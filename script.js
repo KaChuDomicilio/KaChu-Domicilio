@@ -100,7 +100,7 @@ function getCardInfo(card){
 }
 
 
-// ⚙️ Configura aquí el WhatsApp del negocio (formato: 52 + número MX)
+// ⚙️ Configura aquí el WhatsAppp del negocio (formato: 52 + número MX)
 const STORE_WHATSAPP = '528135697787'; // Ej: '5218145069123'  ← PÓNLO cuando lo tengas
 
 function fmt(n){ return Number(n).toFixed(2); }
@@ -133,7 +133,7 @@ function buildTicket({items, zoneName, shipping, pay, subtotal, totalDue, addres
     ``,
     `Pedido: ${fecha}`,
     `Zona: ${zoneName || 'N/A'} (envío: $${fmt(shipping)})`,
-    `Método de pago: ${pay}${pay==='Tarjeta' ? ' (incluye recargo 4.3%)' : ''}`,
+    `Método de pago: ${pay}${pay==='Tarjeta' ? ' (+)' : ''}`,
     ``,
     `Productos:`,
     lineasProductos || '- (vacío)',
@@ -641,3 +641,4 @@ if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/service-worker.js').catch(console.error);
   });
 }
+
