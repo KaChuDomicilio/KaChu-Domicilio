@@ -4,7 +4,7 @@
 // =======================
 document.addEventListener('DOMContentLoaded', () => {
   // === CONFIG API (ajusta tu dominio del catálogo y clave) ===
-  const API_BASE = 'https://kachudomicilio.netlify.app/.netlify/functions';
+  const API_BASE = 'https://kachudomicilio.netlify.app/kachucatalago/.netlify/functions';
   const ADMIN_KEY = 'kachu-2025-ultra';
 
   // --- Sidebar (hamburguesa) ya lo teníamos ---
