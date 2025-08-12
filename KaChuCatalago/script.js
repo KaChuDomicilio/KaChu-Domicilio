@@ -32,10 +32,54 @@ const grid = document.querySelector('.grid');
 const CART_KEY = 'kachu_cart_v1';
 const CHECKOUT_KEY = 'kachu_checkout_v1';
 
+// Si el catálogo y las Functions están en el mismo sitio de Netlify:
+const API_BASE = '/.netlify/functions';
+// Si NO están en el mismo sitio, usa la URL completa del sitio del catálogo:
+// const API_BASE = 'https://TU-SITIO-CATALOGO.netlify.app/.netlify/functions';
+
 function saveCart(){
   const arr = Array.from(cart.values()); // [{id,name,unit,qty}, ...]
   localStorage.setItem(CART_KEY, JSON.stringify(arr));
 }
+
+async function loadZones(){
+  try{
+    const res = await fetch(`${API_BASE}/zones`, { cache: 'no-store' });
+    const data = await res.json();
+    const zones = data.zones || [];
+
+    const zoneSel = document.getElementById('zone');
+    if (!zoneSel) return;
+
+    // Recuerda: tu lógica del total lee "Nombre|Costo", así que dejamos ese formato
+    if (zones.length) {
+      const prev = zoneSel.value;
+      zoneSel.innerHTML = `<option value="">Selecciona una zona…</option>` +
+        zones.map(z => `<option value="${z.name}|${Number(z.fee)}">${z.name} ($${Number(z.fee).toFixed(2)})</option>`).join('');
+
+      // Si el usuario ya había elegido una zona y sigue existiendo, la conservamos
+      if (prev && [...zoneSel.options].some(o => o.value === prev)) {
+        zoneSel.value = prev;
+      }
+      zoneSel.disabled = false;
+    } else {
+      zoneSel.innerHTML = `<option value="">No hay zonas disponibles</option>`;
+      zoneSel.disabled = true;
+    }
+
+    // Si tienes validación del checkout, vuelve a evaluarla
+    if (typeof validateCheckout === 'function') validateCheckout();
+
+  }catch(err){
+    console.error('Zones load error', err);
+    const zoneSel = document.getElementById('zone');
+    if (zoneSel){
+      zoneSel.innerHTML = `<option value="">Error cargando zonas</option>`;
+      zoneSel.disabled = true;
+    }
+  }
+}
+
 
 function loadCart(){
   try{
@@ -631,6 +675,9 @@ loadCart();
 renderCart(); //Pinta lo Cargado
 validateCheckout();
 loadCheckout();
+// INIT (o donde cargas categorías/productos)
+loadZones();
+
 
 // Sincroniza tarjetas con cantidades cargadas
 Array.from(cart.keys()).forEach(id => syncCardsQty(id));
