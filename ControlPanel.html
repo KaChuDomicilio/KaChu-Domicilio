@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Panel de Control - Abarrotes KaChu</title>
+  <link rel="stylesheet" href="stylesPanel.css">
+</head>
+<body>
+  <!-- Menú hamburguesa -->
+  <header class="header">
+    <button class="menu-btn">☰</button>
+    <h1>Panel de Control </h1>
+  </header>
+<!-- Menú lateral hamburguesa -->
+<div id="menuLateral" class="menu-lateral">
+	<h3>Configuracion</h3>
+  <ul>
+	<li><button>🚪 Estado abierto / cerrado</button></li>
+    <li><button>🖼️ Agregar banner promocional</button></li>
+    <li><button>🗂️ Editar / Eliminar categorías</button></li>
+    <li><button id="btnEditarProductos">📦 Editar / Eliminar productos</button></li>
+	<li><button> Editar / Eliminar Zona</button></li>
+  </ul>
+</div>
+<!-- Overlay para cerrar menú -->
+<div id="menuOverlay" class="menu-overlay"></div>
+
+
+  <!-- Filtros -->
+  <section class="filters">
+    <select class="filter-select" id="categoria">
+      <option value="">Categoría</option>
+      <!-- opciones dinámicas -->
+    </select>
+
+    <select class="filter-select" id="subcategoria">
+      <option value="">Subcategoría</option>
+      <!-- opciones dinámicas -->
+    </select>
+
+    <input type="text" class="search-input" placeholder="Buscar producto por nombre..." />
+  </section>
+
+  <!-- Tabla de productos -->
+  <section class="tabla-contenedor">
+    <table class="tabla-productos">
+      <thead>
+        <tr>
+          <th>Producto</th>
+          <th>Stock</th>
+          <th>Precio</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- productos dinámicos -->
+        <tr>
+          <td>Coca-Cola 2L</td>
+          <td>15</td>
+          <td>$28.00</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- Botón flotante + -->
+  <button class="boton-flotante" id="btnAgregar">+</button>
+
+  <!-- Modal flotante -->
+<!-- Modal flotante -->
+<div class="modal oculto" id="modalAgregar">
+  <div class="modal-contenido" id="modalContent">
+
+    <!-- Menú de opciones del "+" -->
+    <div id="menuOpciones">
+      <h2>¿Qué deseas agregar?</h2>
+      <button class="modal-opcion" id="btnCatSub">➕ Categoría / Subcategoría</button>
+      <button class="modal-opcion" id="btnProducto">📦 Nuevo Producto</button>
+	  <button class="modal-opcion" id="btnZona">Agregar Zona</button>
+    </div>
+
+    <!-- Formulario categoría/subcategoría (oculto inicialmente) -->
+    <div id="formCatSub" style="display: none; text-align: left;">
+      <h2>Agregar Categoría / Subcategoría</h2>
+
+      <label for="selectCategoria">Seleccionar categoría existente:</label>
+      <select id="selectCategoria" class="modal-input">
+        <option value="">-- Selecciona una categoría --</option>
+      </select>
+
+      <label for="inputNuevaCategoria">O agrega una nueva categoría:</label>
+      <input type="text" id="inputNuevaCategoria" class="modal-input" placeholder="Nueva categoría">
+
+      <label for="selectSubcategoria">Seleccionar subcategoría existente:</label>
+      <select id="selectSubcategoria" class="modal-input" disabled>
+        <option value="">-- Selecciona una subcategoría --</option>
+      </select>
+
+      <label for="inputNuevaSubcategoria">O agrega una nueva subcategoría:</label>
+      <input type="text" id="inputNuevaSubcategoria" class="modal-input" placeholder="Nueva subcategoría" disabled>
+
+      <div class="modal-botones">
+        <button id="btnCancelarCat" class="btn-cancelar">Cancelar</button>
+        <button id="btnGuardarCat" class="btn-guardar" disabled>Guardar</button>
+      </div>
+    </div>
+
+<!-- Formulario para agregar nuevo producto -->
+<div id="formProducto" style="display: none; text-align: left;">
+  <h2>Agregar nuevo producto</h2>
+
+  <label for="inputNombreProducto">Nombre del producto:</label>
+  <input type="text" id="inputNombreProducto" class="modal-input" placeholder="Ej: Coca-Cola 2L">
+
+  <label for="inputPrecioProducto">Precio:</label>
+  <input type="number" step="0.01" min="0" id="inputPrecioProducto" class="modal-input" placeholder="Ej: 25.00">
+
+  <label for="inputStockProducto">Stock disponible:</label>
+  <input type="number" min="0" id="inputStockProducto" class="modal-input" placeholder="Ej: 10">
+
+  <label for="selectCategoriaProd">Categoría:</label>
+  <select id="selectCategoriaProd" class="modal-input">
+    <option value="">-- Selecciona una categoría --</option>
+  </select>
+
+  <label for="selectSubcategoriaProd">Subcategoría:</label>
+  <select id="selectSubcategoriaProd" class="modal-input" disabled>
+    <option value="">-- Selecciona una subcategoría --</option>
+  </select>
+
+  <label for="inputImagenProducto">Imagen del producto (opcional):</label>
+  <input type="file" id="inputImagenProducto" class="modal-input" accept="image/*">
+
+  <div class="modal-botones">
+    <button id="btnCancelarProd" class="btn-cancelar">Cancelar</button>
+    <button id="btnGuardarProd" class="btn-guardar" disabled>Guardar</button>
+  </div>
+</div>
+
+<!-- Formulario para agregar nueva zona -->
+<div id="formZona" style="display: none; text-align: left;">
+  <h2>Agregar zona de cobertura</h2>
+
+  <label for="inputNombreZona">Nombre de la zona:</label>
+  <input type="text" id="inputNombreZona" class="modal-input" placeholder="Ej: Montecarlo">
+
+  <label for="inputCostoZona">Costo de envío ($):</label>
+  <input type="number" id="inputCostoZona" class="modal-input" min="0" step="0.01" placeholder="Ej: 15.00">
+
+  <div class="modal-botones">
+    <button id="btnCancelarZona" class="btn-cancelar">Cancelar</button>
+    <button id="btnGuardarZona" class="btn-guardar" disabled>Guardar</button>
+  </div>
+</div>
+
+
+  </div>
+</div>
+
+<!-- Modal para Editar / Eliminar Zonas -->
+<div id="modalZonas" class="modal-zonas oculto">
+  <div class="contenido-zonas">
+    <button class="cerrar-zonas" id="btnCerrarZonas">✕</button>
+    <h2>Zonas registradas</h2>
+    <table class="tabla-zonas">
+      <thead>
+        <tr>
+          <th>Zona</th>
+          <th>Costo</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody id="tablaZonasBody">
+        <!-- Aquí se llenarán dinámicamente las zonas -->
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Modal de edición de zona -->
+<div id="modalEditarZona" class="modal oculto">
+  <div class="modal-contenido">
+    <button id="btnCerrarEditarZona" class="cerrar-modal">✕</button>
+    <h2>Editar Zona</h2>
+
+    <label for="editNombreZona">Nombre de la zona:</label>
+    <input type="text" id="editNombreZona" class="modal-input">
+
+    <label for="editCostoZona">Costo de envío:</label>
+    <input type="number" step="0.01" min="0" id="editCostoZona" class="modal-input">
+
+    <div class="modal-botones">
+      <button id="btnGuardarZonaEditada" class="btn-guardar">Guardar Cambios</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal para Editar / Eliminar Productos -->
+<div id="modalProductos" class="modal-zonas oculto">
+  <div class="contenido-zonas">
+    <button class="cerrar-zonas" id="btnCerrarProductos">✕</button>
+    <h2>Productos registrados</h2>
+
+    <!-- Filtros -->
+    <div class="filters" style="margin: .5rem 0 1rem 0;">
+      <select class="filter-select" id="filtroCategoriaProd">
+        <option value="">Categoría</option>
+      </select>
+      <select class="filter-select" id="filtroSubcategoriaProd" disabled>
+        <option value="">Subcategoría</option>
+      </select>
+      <input type="text" id="filtroNombreProd" class="search-input" placeholder="Buscar por nombre..." />
+    </div>
+
+	<div class="tabla-wrap">
+    <table class="tabla-zonas" id="tablaProductos">
+      <thead>
+        <tr>
+          <th>Nombre</th>
+          <th>Stock</th>
+          <th>Precio</th>
+          <th>Categoría</th>
+          <th>Subcategoría</th>
+          <th>Visible</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody id="tablaProductosBody">
+        <!-- Se llena dinámicamente -->
+      </tbody>
+    </table>
+	</div>
+  </div>
+</div>
+
+<!-- Modal de edición de producto -->
+<div id="modalEditarProducto" class="modal oculto">
+  <div class="modal-contenido" style="text-align:left; max-width:520px; width:95%;">
+    <button id="btnCerrarEditarProducto" class="cerrar-modal">✕</button>
+    <h2>Editar producto</h2>
+
+    <label for="editNombreProd">Nombre:</label>
+    <input type="text" id="editNombreProd" class="modal-input">
+
+    <label for="editPrecioProd">Precio:</label>
+    <input type="number" id="editPrecioProd" class="modal-input" min="0" step="0.01">
+
+    <label for="editStockProd">Stock:</label>
+    <input type="number" id="editStockProd" class="modal-input" min="0" step="1">
+
+    <label for="editCategoriaProd">Categoría:</label>
+    <select id="editCategoriaProd" class="modal-input"></select>
+
+    <label for="editSubcategoriaProd">Subcategoría:</label>
+    <select id="editSubcategoriaProd" class="modal-input" disabled></select>
+
+    <div class="modal-botones">
+      <button id="btnGuardarProductoEditado" class="btn-guardar">Guardar cambios</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- Mensaje de guardado -->
+<div id="mensajeGuardado" style="
+  display: none;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: #4ade80;
+  color: #1e293b;
+  padding: 1rem 1.5rem;
+  border-radius: 10px;
+  box-shadow: 0 0 15px rgba(0,0,0,0.3);
+  z-index: 10000;
+  align-items: center;
+  gap: 1rem;
+  font-size: 1rem;
+">
+  <span>Guardado correctamente.</span>
+  <button id="cerrarMensaje" style="background: transparent; border: none; color: #1e293b; font-size: 1.2rem; cursor: pointer;">✕</button>
+</div>
+
+
+<script src="main.js"></script>
+</body>
+</html>
