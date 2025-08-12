@@ -1,7 +1,7 @@
 const CACHE_NAME = 'kachu-v1';
 const ASSETS = [
   '/',
-  '/index_final.html',
+  '/index.html',
   '/styles.css',
   '/script.js',
   '/icons/icon-192.png',
@@ -27,3 +27,4 @@ self.addEventListener('fetch', e => {
     caches.match(e.request).then(resp => resp || fetch(e.request))
   );
 });
+
