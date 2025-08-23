@@ -1,13 +1,13 @@
 // /api/data/servicio.js
 import { put, head } from '@vercel/blob';
-
 const KEY = 'data/servicio.json';
+const token = process.env.BLOB_READ_WRITE_TOKEN;
 
 export default async function handler(req, res) {
   try {
     if (req.method === 'GET') {
       try {
-        const meta = await head(KEY);                 // lanza si no existe
+        const meta = await head(KEY, { token });                 // lanza si no existe
         const r = await fetch(meta.url, { cache:'no-store' });
         const data = await r.json();
         return res.status(200).json({
@@ -31,7 +31,8 @@ export default async function handler(req, res) {
       await put(KEY, JSON.stringify(payload, null, 2), {
         access: 'public',
         addRandomSuffix: false,
-        contentType: 'application/json'
+        contentType: 'application/json',
+        token
       });
       return res.status(200).json({ ok:true });
     }

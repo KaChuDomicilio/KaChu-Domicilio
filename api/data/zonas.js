@@ -1,13 +1,13 @@
 // /api/data/zonas.js
 import { put, head } from '@vercel/blob';
-
 const KEY = 'data/zonas.json';
+const token = process.env.BLOB_READ_WRITE_TOKEN;
 
 export default async function handler(req, res) {
   try {
     if (req.method === 'GET') {
       try {
-        const meta = await head(KEY);
+        const meta = await head(KEY, { token });
         const r = await fetch(meta.url, { cache:'no-store' });
         const data = await r.json();
         const arr = Array.isArray(data) ? data : (data.zonas || data.zones || []);
@@ -24,7 +24,8 @@ export default async function handler(req, res) {
       await put(KEY, JSON.stringify(arr, null, 2), {
         access: 'public',
         addRandomSuffix: false,
-        contentType: 'application/json'
+        contentType: 'application/json',
+        token
       });
       return res.status(200).json({ ok:true });
     }
