@@ -16,7 +16,7 @@ export default async function handler(req, res) {
         return res.status(200).json({ categories: [] });
       }
     }
-
+    
     if (req.method === 'PUT') {
       let body = req.body;
       if (typeof body === 'string') try { body = JSON.parse(body); } catch {}
