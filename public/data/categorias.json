@@ -1,0 +1,41 @@
+{
+  "categories": [
+    {
+      "name": "Sodas",
+      "subcategories": [
+        "Coca-Cola",
+        "Pepsi",
+        "Jumex"
+      ]
+    },
+    {
+      "name": "Panadería",
+      "subcategories": [
+        "Pan"
+      ]
+    },
+    {
+      "name": "Botanas",
+      "subcategories": [
+        "Papas",
+        "Sabritas"
+      ]
+    },
+    {
+      "name": "Otros",
+      "subcategories": [
+        "Hielo",
+        "Bollos"
+      ]
+    },
+    {
+      "name": "Lacteos",
+      "subcategories": [
+        "Lala",
+        "Alpura",
+        "Alpura Vaquitas",
+        "Santa Clara Lechitas"
+      ]
+    }
+  ]
+}

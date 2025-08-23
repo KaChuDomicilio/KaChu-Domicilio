@@ -1,0 +1,288 @@
+<!DOCTYPE html><html lang="es"><head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Panel de Control - KaChu</title>
+<link rel="stylesheet" href="./stylesPanel.css">
+</head><body>
+<header class="header"><button class="menu-btn">☰</button><h1>Panel de Control | Productos</h1></header>
+<div id="menuLateral" class="menu-lateral">
+  <h3>Configuración</h3>
+  <ul>
+    <li><button id="optServicio" class="menu-item">Activar/Desactivar servicio</button></li>
+    <li><button id="btnCats" class="menu-item">Editar/Eliminar Categorías/Subcategorías</button></li>
+    <li><button id="btnAbrirZonas">Editar / Eliminar Zona</button></li>
+   
+  </ul>
+</div>
+<div id="menuOverlay" class="menu-overlay"></div>
+
+<section id="productosAdmin" class="panel-section">
+  <!-- Filtros: fila 1 (cat/subcat) y fila 2 (búsqueda) -->
+  <div class="filtros-panel">
+    <div class="filtros-row top">
+      <select id="filterCategory" class="modal-input">
+        <option value="">Selecciona categoría</option>
+      </select>
+
+      <select id="filterSubcategory" class="modal-input" disabled>
+        <option value="">Selecciona subcategoría</option>
+      </select>
+    </div>
+
+    <div class="filtros-row bottom">
+      <input id="filterSearch" class="modal-input" type="text" placeholder="Buscar por nombre...">
+      
+      <label class="vaciar-wrap">
+        <span class="vaciar-text">Vaciar catálogo</span>
+        <label class="switch">
+          <input id="toggleVaciarCatalogo" type="checkbox" checked>
+          <span class="track"><span class="thumb"></span></span>
+        </label>
+      </label>
+    </div>
+  </div>
+
+  <!-- Tabla -->
+  <div class="tabla-contenedor">
+    <table id="tablaProductos" class="tabla-productos">
+      <thead>
+        <tr>
+          <th style="width:48px;">Img</th>
+          <th>Nombre</th>
+          <th>Precio</th>
+          <th>Categoría</th>
+          <th>Subcategoría</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody id="tablaProductosBody"></tbody>
+    </table>
+    <div id="productosEmpty" class="empty hidden">No hay productos para mostrar.</div>
+  </div>
+</section>
+
+
+<!-- Botón flotante + -->
+<button class="boton-flotante" id="btnAgregar">+</button>
+
+<!-- Modal principal -->
+<div class="modal oculto" id="modalAgregar">
+  <div class="modal-contenido" id="modalContent">
+    <div id="menuOpciones">
+      <h2>¿Qué deseas agregar?</h2>
+      <button class="modal-opcion" id="btnProducto">Agregar producto</button>
+      <button class="modal-opcion" id="btnZona">Agregar Zona</button>
+      <button class="modal-opcion" id="btnCatSub">Agregar Categoría/Subcategoría</button>
+
+    </div>
+
+    
+    
+    <!-- Form Zona -->
+    <div id="formZona" style="display:none; text-align:left;">
+      <h2>Agregar zona de cobertura</h2>
+      <label>Nombre:<input type="text" id="inputNombreZona" class="modal-input" placeholder="Ej: Montecarlo"></label>
+      <label>Costo ($):<input type="number" id="inputCostoZona" class="modal-input" min="0" step="0.01" placeholder="Ej: 15.00"></label>
+      <div class="modal-botones">
+        <button id="btnCancelarZona" class="btn-cancelar">Cancelar</button>
+        <button id="btnGuardarZona" class="btn-guardar" disabled>Guardar</button>
+      </div>
+    </div>
+
+    <!-- Formulario Cat/Subcat (oculto por defecto) -->
+    <div id="formCatSub" style="display:none; text-align:left;">
+        <h2>Agregar Categoría/Subcategoría</h2>
+
+        <label>Categoría existente:</label>
+        <select id="selCategoriaExistente" class="modal-input">
+          <option value="">(ninguna)</option>
+        </select>
+        <label>Nueva categoría:</label>
+        <input id="inputNuevaCategoria" type="text" class="modal-input" placeholder="Ej. Bebidas" />
+
+        <label>Subcategoría existente</label>
+        <select id="selSubcategoriaExistente" class="modal-input" disabled>
+           <option value="">(ninguna)</option>
+        </select>
+        
+        <label>Nueva subcategoría</label>
+        <input id="inputNuevaSubcategoria" type="text" class="modal-input" placeholder="Ej. Refrescos" />
+        <div class="modal-botones">
+          <button id="btnCancelarCatSub" class="btn-cancelar" type="button">Cancelar</button>
+          <button id="btnGuardarCatSub" class="btn-guardar" disabled>Guardar</button>
+        </div>
+    </div>
+
+    <!-- Formulario: Agregar producto -->
+<div id="formProducto" class="modal-seccion" style="display:none; text-align:left;">
+  <h2>Agregar producto</h2>
+
+  <label>Nombre</label>
+  <input id="inputProdName" class="modal-input" type="text" placeholder="Ej. Coca-Cola 600ml">
+
+  <label>Precio</label>
+  <input id="inputProdPrice" class="modal-input" type="number" step="0.01" min="0" placeholder="0.00">
+
+  <label>Categoría existente</label>
+  <select id="selProdCategory" class="modal-input">
+    <option value="">(ninguna)</option>
+  </select>
+
+  <div class="divider">o</div>
+
+  <label>Nueva categoría</label>
+  <input id="inputNewCategory" class="modal-input" type="text" placeholder="Ej. Bebidas">
+
+  <label>Subcategoría existente</label>
+  <select id="selProdSubcategory" class="modal-input" disabled>
+    <option value="">(ninguna)</option>
+  </select>
+
+  <div class="divider">o</div>
+
+  <label>Nueva subcategoría</label>
+  <input id="inputNewSubcategory" class="modal-input" type="text" placeholder="Ej. Refrescos">
+
+  <label>URL de imagen (opcional)</label>
+  <input id="inputProdImage" class="modal-input" type="url" placeholder="https://...">
+
+  <label class="vaciar-wrap" style="margin-top:8px;">
+    <span class="vaciar-text">Activo en catálogo</span>
+    <label class="switch">
+      <input id="chkProdActive" type="checkbox" checked>
+      <span class="track"><span class="thumb"></span></span>
+    </label>
+  </label>
+
+  <div class="modal-botones">
+    <button id="btnCancelarProducto" class="btn-cancelar" type="button">Cancelar</button>
+    <button id="btnGuardarProducto" class="btn-guardar" type="button" disabled>Guardar</button>
+  </div>
+</div>
+
+
+  </div>
+</div>
+
+<!-- Modal: Activar/Desactivar servicio -->
+<div id="modalServicio" class="modal oculto">
+  <div class="modal-contenido" style="max-width:560px;">
+    <h3>Activar / Desactivar servicio</h3>
+
+    <div class="row" style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
+      <label class="lbl">Estado del catálogo</label>
+      <label class="switch">
+        <input id="srvActive" type="checkbox">
+        <span class="track"><span class="thumb"></span></span>
+      </label>
+    </div>
+
+    <label>Mensaje para clientes</label>
+    <textarea id="srvMessage" class="modal-input" rows="3" placeholder="Ej.: Estamos en mantenimiento, volvemos pronto."></textarea>
+
+    <label>Imagen (URL opcional)</label>
+    <input id="srvImage" class="modal-input" type="url" placeholder="https://...">
+
+    <div class="actions" style="display:flex; gap:10px; justify-content:flex-end; margin-top:12px;">
+      <button id="btnSrvCancel" class="btn-cancelar" type="button">Cancelar</button>
+      <button id="btnSrvSave" class="btn-guardar" type="button">Guardar</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- Modal Zonas -->
+<div id="modalZonas" class="modal-zonas oculto">
+  <div class="contenido-zonas">
+    <button class="cerrar-zonas" id="btnCerrarZonas">✕</button>
+    <h2>Zonas registradas</h2>
+    <table class="tabla-zonas">
+      <thead><tr><th>Zona</th><th>Costo</th><th>Acciones</th></tr></thead>
+      <tbody id="tablaZonasBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Modal Editar Zona -->
+<div id="modalEditarZona" class="modal oculto">
+  <div class="modal-contenido">
+    <button id="btnCerrarEditarZona" class="cerrar-modal">✕</button>
+    <h2>Editar Zona</h2>
+    <label>Nombre:<input type="text" id="editNombreZona" class="modal-input"></label>
+    <label>Costo:<input type="number" step="0.01" min="0" id="editCostoZona" class="modal-input"></label>
+    <div class="modal-botones">
+      <button id="btnCancelarEditarZona" type="button" class="btn-cancelar">Cancelar</button>
+      <button id="btnGuardarZonaEditada" class="btn-guardar">Guardar Cambios</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Categorías/Subcategorías -->
+<div id="modalCats" class="modal oculto">
+  <div class="contenido-zonas" style="max-width: 500px; display:flex; gap:16px;">
+    <!-- Columna izquierda: categorías -->
+    <div style="flex:1 1 45%;">
+      <h3>Categorías</h3>
+      <table class="tabla" style="width:100%; border-bottom:1px solid #e2e8f0;">
+        <thead>
+          <tr>
+            <th>Nombre</th>
+            <th style="width:150px;">Acciones</th>
+          </tr>
+        </thead>
+        <tbody id="tablaCatsBody"></tbody>
+      </table>
+    </div>
+
+    <!-- Columna derecha: subcategorías de la categoría seleccionada -->
+    <div style="flex:1 1 55%;">
+      <h3 id="catTitle">Subcategorías</h3>
+      <ul id="subcatList" class="lista-simple"></ul>
+
+      <div class="acciones" style="margin-top:8px; display:flex; gap:8px;">
+        <input id="inputNuevaSubcat" class="modal-input" placeholder="Nueva subcategoría">
+        <button id="btnAgregarSubcat" class="btn-accion">Agregar subcategoría</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="actions" style="display:flex; justify-content:flex-end; gap:10px;">
+    <button id="btnCerrarCats" class="btn ghost">Cerrar</button>
+  </div>
+</div>
+
+<!-- Modal: Editar producto -->
+<div id="modalEditProd" class="modal oculto">
+  <div class="modal-contenido" style="max-width:560px;">
+    <h3>Editar producto</h3>
+
+    <label>Nombre</label>
+    <input id="editProdName" class="modal-input" type="text" placeholder="Nombre del producto">
+
+    <label>Precio</label>
+    <input id="editProdPrice" class="modal-input" type="number" step="0.01" min="0" placeholder="0.00">
+
+    <label>Categoría</label>
+    <select id="editProdCategory" class="modal-input"></select>
+
+    <label>Subcategoría</label>
+    <select id="editProdSubcategory" class="modal-input" disabled></select>
+
+    <label>URL de imagen</label>
+    <input id="editProdImage" class="modal-input" type="url" placeholder="https://...">
+
+    <div class="actions" style="display:flex; gap:10px; justify-content:flex-end; margin-top:12px;">
+      <button id="btnCancelEditProd" class="btn-cancelar" type="button">Cancelar</button>
+      <button id="btnSaveEditProd" class="btn-guardar" type="button" disabled>Guardar cambios</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- Toast -->
+<div id="mensajeGuardado" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#4ade80;color:#1e293b;padding:1rem 1.5rem;border-radius:10px;box-shadow:0 0 15px rgba(0,0,0,.3);z-index:10000;align-items:center;gap:1rem;font-size:1rem;">
+  <span>Guardado correctamente.</span>
+  <button id="cerrarMensaje" style="background:transparent;border:none;color:#1e293b;font-size:1.2rem;cursor:pointer;">✕</button>
+</div>
+
+<script src="main.js"></script>
+</body></html>

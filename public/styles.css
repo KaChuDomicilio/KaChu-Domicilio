@@ -1,0 +1,578 @@
+:root{
+  --green: #4CAF50;
+  --mint: #A8E6A3;
+  --white: #FFFFFF;
+  --gray-100:#F2F2F2;
+  --gray-800:#4D4D4D;
+
+  --bg: var(--gray-100);
+  --text: var(--gray-800);
+  --radius: 16px;
+  --shadow: 0 8px 24px rgba(0,0,0,.12);
+}
+
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, "Noto Sans", "Helvetica Neue", sans-serif;
+  color:var(--text);
+  background:var(--bg);
+}
+
+/* Top bar sticky */
+.topbar{
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: linear-gradient(180deg, var(--white), #ffffffd9);
+  backdrop-filter: blur(6px);
+  border-bottom: 1px solid #e9e9e9;
+}
+
+.filters{
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 12px 16px;
+  display: grid;
+  gap: 10px;
+}
+.filters .row{
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0,1fr));
+  gap: 12px;
+}
+.field{
+  display:flex;
+  flex-direction: column;
+  gap:6px;
+}
+.field > span, .radios legend{
+  font-size:.9rem;
+  color:#555;
+}
+.field select,
+.field input[type="search"],
+.field textarea{
+  border:1px solid #ddd;
+  padding:12px 12px;
+  border-radius: 12px;
+  outline: none;
+  background:#fff;
+}
+.field input[type="search"]{
+  width:100%;
+}
+.field-search{ grid-column: 1 / -1; }
+
+.container{
+  max-width:1100px;
+  margin: 18px auto 80px;
+  padding: 0 16px;
+}
+
+/* Grid de productos */
+.grid{
+  display:grid;
+  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+  gap:16px;
+}
+.card{
+  background:#fff;
+  border-radius: var(--radius);
+  padding:12px;
+  display:flex;
+  gap:12px;
+  box-shadow: var(--shadow);
+}
+.card img{
+  width: 110px;
+  height: 110px;
+  object-fit: cover;
+  border-radius: 12px;
+  background: #eee;
+}
+.card .info{
+  display:flex;
+  flex-direction: column;
+  justify-content: space-between;
+  flex:1;
+  min-width: 0;
+}
+.card h3{
+  margin:0;
+  font-size:1rem;
+  line-height:1.2;
+}
+.price{
+  margin:6px 0;
+  font-weight: 700;
+  color: var(--green);
+}
+
+/* Botones */
+.btn{
+  appearance: none;
+  border: none;
+  padding: 10px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: transform .05s ease, box-shadow .2s ease, background .2s ease;
+}
+.btn:active{ transform: translateY(1px); }
+.btn.primary{
+  background: var(--green);
+  color: #fff;
+  box-shadow: 0 6px 14px rgba(76,175,80,.35);
+}
+.btn.primary:disabled{
+  opacity:.5; cursor:not-allowed; box-shadow:none;
+}
+.btn.ghost{
+  background:#fff; color: var(--text); border:1px solid #ddd;
+}
+.btn.ghost:disabled{
+  opacity:.5; cursor:not-allowed; box-shadow:none;
+}
+.btn.add{
+  background: linear-gradient(180deg, var(--green), #3b9b41);
+  color:#fff;
+}
+
+/* FAB carrito */
+.fab{
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--green);
+  color:#fff;
+  border:none;
+  font-size: 20px;
+  box-shadow: var(--shadow);
+  cursor:pointer;
+  z-index: 100;
+}
+.badge{
+  position:absolute;
+  top:-6px; right:-6px;
+  min-width: 22px;
+  height:22px;
+  padding:0 6px;
+  border-radius:11px;
+  background:#e53935;
+  color:#fff;
+  font-size:12px;
+  display:flex; align-items:center; justify-content:center;
+  box-shadow: 0 2px 8px rgba(0,0,0,.25);
+}
+
+/* Modal base */
+.modal{
+  position: fixed;
+  inset:0;
+  display:none;
+  z-index: 2000; /* ↑ más que .topbar (50) */
+}
+.modal.open{ display:block; }
+.modal__overlay{
+  position:absolute; inset:0;
+  background: rgba(0,0,0,.35);
+  backdrop-filter: blur(2px);
+  z-index: 2000;
+}
+.modal__content{
+  position:absolute;
+  inset:auto 0 0 0;
+  margin: auto;
+  background:#fff;
+  border-radius: 16px 16px 0 0;
+  padding: 16px;
+  max-width: 720px;
+  width: 100%;
+  box-shadow: var(--shadow);
+  animation: slideUp .2s ease-out;
+  z-index: 2001;
+}
+@keyframes slideUp{
+  from{ transform: translateY(10px); opacity:.9; }
+  to{ transform: translateY(0); opacity:1; }
+}
+@media (min-width: 780px){
+  .modal__content{
+    inset: 0;
+    height: fit-content;
+    max-height: 82vh;
+    border-radius: 20px;
+    overflow: auto;
+  }
+}
+.modal__close{
+  position:absolute; right:10px; top:10px;
+  border:none; background:#fff; width:36px; height:36px; border-radius:50%;
+  cursor:pointer; box-shadow: var(--shadow);
+}
+
+/* Carrito */
+.cart-list{
+  list-style:none; margin:0; padding:0; display:grid; gap:12px;
+}
+.cart-item{
+  border:1px solid #eee; border-radius: 12px; padding: 12px;
+  background: #fff;
+}
+.cart-item .row{
+  display:flex; align-items:center; justify-content:space-between;
+  gap:10px;
+}
+.cart-item .name{ font-weight:600; }
+.cart-item .unit{ color:#666; }
+.qty{ display:flex; align-items:center; gap:10px; }
+.chip{
+  border:1px solid #ddd; background:#fff; padding:6px 10px; border-radius:999px;
+  cursor: pointer; /* demo: deshabilitado */
+}
+.line-total{ font-weight:700; color:var(--green); }
+.cart-total{
+  margin-top: 14px; border-top:1px solid #eee; padding-top: 12px;
+}
+.sum-row{
+  display:flex; align-items:center; justify-content:space-between;
+  font-size:1.05rem;
+}
+.note{ margin:.35rem 0 0; font-size:.85rem; color:#cf7500; }
+
+/* Formulario checkout */
+.form{
+  display:grid; gap:14px; margin-top: 8px;
+}
+.radios{
+  display:grid; gap:8px; border:none; padding:0; margin:0;
+}
+.radios label{ display:flex; align-items:center; gap:8px; }
+textarea{ resize: vertical; }
+
+/* Títulos */
+h2{ margin: 8px 0 12px; }
+
+/* Focus */
+select:focus, input:focus, textarea:focus, .btn:focus{
+  outline: 3px solid var(--mint);
+  outline-offset: 2px;
+}
+/* Utilidad para mostrar/ocultar */
+.hidden{ display: none; }
+
+.empty{
+  max-width: 1100px;
+  margin: 24px auto;
+  padding: 18px 16px;
+  color: #555;
+  background: #fff;
+  border: 1px dashed #ddd;
+  border-radius: 12px;
+  text-align: center;
+  box-shadow: var(--shadow);
+}
+
+
+.qty-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.qty-control button {
+  border: 1px solid #ddd;
+  background: #fff;
+  padding: 6px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 1rem;
+}
+
+.qty-control span {
+  min-width: 20px;
+  text-align: center;
+  font-weight: 600;
+}
+
+/* === SOCIAL FABs: botón cuadrado gris -> píldora derecha con color de marca === */
+
+/* Rail fijo a la izquierda 
+.social-fabs{
+  position: fixed !important;
+  left: 16px !important;
+  top: 30vh !important;
+  right: auto !important;
+  z-index: 3000 !important;
+  display: flex; flex-direction: column; gap: 12px;
+}*/
+
+/* Neutraliza estilos globales conflictivos (carrito, etc.)
+.social-fabs .fab{
+  position: static !important; margin:0 !important;
+  display:flex; align-items:center;
+}*/
+
+/* El botón ES el panel: colapsado = cuadrado; expandido = píldora derecha */
+.fab-btn{
+  --w-collapsed: 44px;
+  --w-expanded: 280px;
+
+  width: var(--w-collapsed);
+  height: 44px;
+  display: flex; align-items: center;
+  padding: 0; gap: 10px;
+  border: none;
+  background: #1f2937;   /* gris oscuro */
+  color: #e5e7eb;        /* icono claro */
+  cursor: pointer;
+  box-shadow: 0 6px 14px rgba(2,6,23,.15);
+  border-radius: 8px;    /* cuadrado */
+  overflow: hidden;      /* oculta textos cuando está colapsado */
+  transition: width .22s ease, background .18s ease, border-radius .18s ease, box-shadow .2s ease;
+}
+
+/* Icono (siempre el mismo, sin duplicado) */
+.fab-icon-wrap{
+  width: 44px; height: 44px; display:grid; place-items:center;
+  flex: 0 0 auto;
+}
+.fab-icon{ width:26px; height:26px; fill: currentColor; }
+
+/* Textos (quedan ocultos en colapsado) */
+.fab-text{
+  display: flex; flex-direction: column; justify-content:center;
+  min-width: 0; /* para truncamiento */
+  opacity: 0; transform: translateX(-6px);
+  transition: opacity .18s ease, transform .18s ease;
+}
+.fab-subtitle{
+  font-size:.86rem; line-height:1.1; opacity:.85; color: inherit;
+}
+.fab-title{
+  font-weight:700; color: inherit; text-decoration:none; line-height:1.2;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* EXPANDIDO (clase .open en el contenedor .fab) */
+.fab.open .fab-btn{
+  width: var(--w-expanded);
+  border-radius: 8px 9999px 9999px 8px; /* lado derecho redondo, izquierdo cuadrado */
+}
+/* FB color al expandir */
+.fab[data-net="fb"].open .fab-btn{
+  background: #1877F2;
+  color: #ffffff;
+}
+/* WA color al expandir */
+.fab[data-net="wa"].open .fab-btn{
+  background: #25D366;
+  color: #0b301c;
+}
+
+/* Mostrar textos cuando está expandido */
+.fab.open .fab-text{
+  opacity: 1; transform: translateX(0);
+}
+
+/* Hover sutil */
+.fab-btn:hover{ box-shadow: 0 8px 18px rgba(2,6,23,.18); }
+
+/* Responsivo */
+@media (max-width: 768px){
+  .social-fabs{ left: 10px !important; top: 18vh !important; gap: 10px; }
+  .fab-btn{ --w-expanded: 240px; }
+}
+
+
+
+
+/* === FIX redes: anula estilos globales de .fab (carrito) === */
+.social-fabs{
+  position: fixed !important;
+  left: 16px !important;
+  top: 30vh !important;
+  z-index: 3000 !important;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.social-fabs .fab{
+  /* anula el “botón verde redondo de 56px” del carrito */
+  position: static !important;
+  width: auto !important;
+  height: auto !important;
+  background: transparent !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  overflow: visible !important;
+  right: auto !important;
+  left: auto !important;
+  top: auto !important;
+  bottom: auto !important;
+
+  display: flex !important;
+  align-items: center;
+}
+
+/* botón cuadrado gris que se EXPANDE (tu estilo actual) */
+.fab-btn{
+  --w-collapsed: 44px;
+  --w-expanded: 280px;
+  width: var(--w-collapsed);
+  height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0;
+  border: none;
+  background: #1f2937;   /* gris oscuro */
+  color: #e5e7eb;
+  border-radius: 8px;     /* cuadrado */
+  overflow: hidden;       /* oculta textos en colapsado */
+  box-shadow: 0 6px 14px rgba(2,6,23,.15);
+  transition: width .22s ease, background .18s ease, border-radius .18s ease, box-shadow .2s ease;
+}
+
+/* expandido: píldora hacia la derecha, mismo logo (sin duplicados) */
+.fab.open .fab-btn{
+  width: var(--w-expanded);
+  border-radius: 8px 9999px 9999px 8px; /* izq. cuadrado, der. redondo */
+}
+
+/* colores de marca SOLO al expandir */
+.fab[data-net="fb"].open .fab-btn{ background:#1877F2; color:#fff; }
+.fab[data-net="wa"].open .fab-btn{ background:#25D366; color:#0b301c; }
+
+.fab-icon-wrap{ width:44px; height:44px; display:grid; place-items:center; flex:0 0 auto; }
+.fab-icon{ width:22px; height:22px; fill: currentColor; }
+.fab-text{ display:flex; flex-direction:column; justify-content:center; opacity:0; transform:translateX(-6px); transition:opacity .18s, transform .18s; }
+.fab.open .fab-text{ opacity:1; transform:translateX(0); }
+
+
+/* === OVERRIDES DE TAMAÑO (forzar icono más grande y píldora más corta) === */
+.social-fabs .fab{
+  width: auto !important;
+}
+
+/* Botón cerrado (cuadro) */
+.social-fabs .fab-btn{
+  --fab-size: 52px;     /* ← tamaño del CUADRO (alto y ancho cerrados) */
+  --fab-open: 220px;    /* ← LARGO de la píldora al abrirse (más corto) */
+
+  width: var(--fab-size) !important;
+  height: var(--fab-size) !important;
+  max-width: none !important;     /* evita límites de reglas anteriores */
+  border-radius: 8px !important;  /* sigue cuadrado al cerrar */
+}
+
+/* Botón abierto (píldora derecha) */
+.social-fabs .fab.open .fab-btn{
+  width: var(--fab-open) !important;
+  border-radius: 8px 9999px 9999px 8px !important;
+}
+
+/* Contenedor del ícono (que no se quede chico) */
+.social-fabs .fab-icon-wrap{
+  width: var(--fab-size) !important;
+  height: var(--fab-size) !important;
+  flex: 0 0 var(--fab-size) !important;
+}
+
+/* Tamaño del ícono (un poco más grande) */
+.social-fabs .fab-icon{
+  width: 26px !important;
+  height: 26px !important;
+}
+
+
+
+/* === Pegar al final: Social FABs pegados a la orilla izquierda === */
+
+/* 1) Rail sin margen a la izquierda */
+.social-fabs{
+  left: 0 !important;           /* antes: 16px */
+  margin-left: 0 !important;
+  padding-left: 0 !important;
+}
+@media (max-width: 768px){
+  .social-fabs{ left: 0 !important; }   /* también en móvil */
+}
+
+/* 2) Asegura que nada meta margen extra */
+.social-fabs .fab,
+.social-fabs .fab-btn{
+  margin-left: 0 !important;
+}
+
+/* 3) Esquinas IZQUIERDAS rectas (cuadrado pegado al borde) */
+.social-fabs .fab-btn{
+  border-radius: 0 8px 8px 0 !important;              /* cerrado */
+}
+.social-fabs .fab.open .fab-btn{
+  border-radius: 0 9999px 9999px 0 !important;        /* abierto: píldora sólo a la derecha */
+}
+
+
+/* === Opacidad de redes: discreto cerrado, 100% en hover/expandido === */
+.social-fabs .fab-btn{
+  opacity: .5;
+  transition: opacity .18s ease, box-shadow .2s ease; /* mantiene tu sombra suave */
+}
+
+/* Al pasar el cursor o con foco de teclado: 100% */
+.social-fabs .fab-btn:hover,
+.social-fabs .fab-btn:focus-visible{
+  opacity: 1;
+}
+
+/* Cuando el botón está expandido (clase .open en el contenedor) también 100% */
+.social-fabs .fab.open .fab-btn{
+  opacity: 1;
+}
+
+/* (Opcional) Anillo de accesibilidad en focus */
+.social-fabs .fab-btn:focus-visible{
+  outline: 2px solid rgba(59,130,246,.6);
+  outline-offset: 2px;
+}
+
+/* ===== Overlay bloqueo de servicio ===== */
+.service-overlay{
+  position: fixed; inset: 0; z-index: 9999;
+  background: rgba(15,23,42,.92); /* casi negro azulado */
+  color: #e5e7eb;
+  display: grid; place-items: center;
+  padding: 24px;
+}
+.service-card{
+  max-width: 860px; width: 100%;
+  background: rgba(2,6,23,.35);
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(148,163,184,.25);
+  border-radius: 18px;
+  padding: 28px;
+  text-align: center;
+  box-shadow: 0 30px 80px rgba(0,0,0,.35);
+}
+.service-card h1{
+  font-size: clamp(22px, 4vw, 36px);
+  margin: 0 0 8px;
+}
+.service-card p{
+  font-size: clamp(15px, 2.2vw, 18px);
+  opacity: .95;
+}
+.service-card img{
+  max-width: 220px; max-height: 220px; object-fit: cover;
+  border-radius: 16px; margin: 14px auto 6px; display: block;
+  box-shadow: 0 0 0 1px rgba(226,232,240,.25) inset;
+}
+body.service-blocked{ overflow: hidden; }

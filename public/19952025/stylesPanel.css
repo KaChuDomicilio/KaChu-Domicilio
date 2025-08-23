@@ -1,0 +1,443 @@
+/* ======= Abarrotes KaChu Panel - Estilos finales ======= */
+/* Reset básico para eliminar márgenes y paddings predeterminados */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Segoe UI', sans-serif;
+  background-color: #f1f5f9;
+  color: #1e293b;
+  padding: 1rem;
+}
+
+/* Cabecera con menú hamburguesa */
+.header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background-color: #1e40af;
+  color: white;
+  padding: 1rem;
+  border-radius: 10px;
+  margin-bottom: 1rem;
+}
+
+.menu-btn {
+  font-size: 1.5rem;
+  background: transparent;
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+
+/* Filtros del panel principal */
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.filter-select,
+.search-input {
+  flex: 1;
+  padding: 0.7rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 1rem;
+}
+
+/* Contenedor de la tabla principal */
+.tabla-contenedor {
+  overflow-x: auto;
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0 0 10px #ccc;
+  padding: 1rem;
+}
+
+.tabla-productos,
+.tabla-zonas {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.tabla-productos th,
+.tabla-productos td,
+.tabla-zonas th,
+.tabla-zonas td {
+  padding: 0.8rem;
+  text-align: left;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+/* Botón flotante de alta */
+.boton-flotante {
+  position: fixed;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #2563eb;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 60px;
+  height: 60px;
+  font-size: 2rem;
+  cursor: pointer;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+}
+
+/* Menú lateral */
+.menu-lateral {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 250px;
+  height: 100%;
+  background-color: #1e3a8a;
+  padding: 2rem 1rem;
+  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.3);
+  transform: translateX(-100%);
+  transition: transform 0.3s ease;
+  z-index: 1000;
+}
+
+.menu-lateral.activo {
+  transform: translateX(0);
+}
+
+.menu-lateral ul {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.menu-lateral li button {
+  width: 100%;
+  background-color: #3b82f6;
+  color: white;
+  padding: 0.8rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+/* Overlay para cerrar el menú */
+.menu-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(30, 41, 59, 0.3);
+  z-index: 999;
+  display: none;
+}
+
+.menu-overlay.activo {
+  display: block;
+}
+
+/* Estilos generales para inputs dentro de modales */
+.modal-input {
+  width: 100%;
+  padding: 0.8rem;
+  margin-top: 1rem;
+  font-size: 1rem;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+}
+/* Selects e inputs deshabilitados dentro de modales */
+.modal-input:disabled{
+  background-color:#f1f5f9;
+  color:#64748b;
+  cursor:not-allowed;
+}
+
+/* Botonera en formularios */
+.modal-botones {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 1.5rem;
+  gap: 1rem;
+}
+
+.btn-cancelar {
+  background-color: #e2e8f0;
+  color: #1e293b;
+  border: none;
+  padding: 0.7rem 1rem;
+  font-size: 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.btn-guardar {
+  background-color: #2563eb;
+  color: white;
+  border: none;
+  padding: 0.7rem 1.2rem;
+  font-size: 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.btn-guardar:disabled {
+  background-color: #93c5fd;
+  cursor: not-allowed;
+}
+
+/* Botones de acción en tablas (Editar, Eliminar) */
+.btn-accion {
+  background-color: #3b82f6;
+  border: none;
+  color: white;
+  padding: 0.3rem 0.6rem;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  margin-right: 0.3rem;
+}
+
+/* Modales genéricos */
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(30, 41, 59, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 3000;
+}
+
+.modal.oculto {
+  display: none;
+}
+
+.modal-contenido {
+  background: white;
+  padding: 2rem;
+  border-radius: 15px;
+  text-align: center;
+  box-shadow: 0 0 25px rgba(0,0,0,0.3);
+  max-width: 500px;
+  width: 95%;
+}
+
+/* Menú de opciones dentro del modal principal */
+.modal-opcion {
+  display: block;
+  width: 100%;
+  margin-top: 1rem;
+  padding: 0.8rem;
+  background-color: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+/* Contenedores especiales para tablas grandes dentro de modales */
+.modal-zonas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0,0,0,0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 3000;
+}
+
+.modal-zonas.oculto {
+  display: none;
+}
+
+.contenido-zonas {
+  background: white;
+  padding: 2rem;
+  border-radius: 10px;
+  width: 90%;
+  max-width: 600px;
+  box-shadow: 0 0 15px rgba(0,0,0,0.2);
+  position: relative;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.cerrar-zonas,
+.cerrar-modal {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: transparent;
+  border: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+}
+
+/* Área que envuelve la tabla para permitir scroll interno */
+.tabla-wrap {
+  overflow-y: auto;
+  max-height: 60vh;
+  border-radius: 8px;
+}
+
+.tabla-zonas thead th {
+  position: sticky;
+  top: 0;
+  background: #fff;
+  z-index: 1;
+}
+
+@media (max-width: 600px) {
+  .tabla-productos th,
+  .tabla-productos td {
+    font-size: 0.9rem;
+  }
+  .modal-contenido {
+    width: 90%;
+  }
+  .contenido-zonas {
+    width: 95%;
+  }
+}
+
+/* mini thumbnail en tabla */
+.table-thumb{
+  width: 42px; height: 42px; object-fit: cover;
+  border-radius: 8px; box-shadow: 0 0 0 1px #e2e8f0 inset;
+}
+
+/* estilo simple para switch */
+.switch {
+  position: relative; width: 46px; height: 24px; display:inline-block;
+}
+.switch input{ display:none; }
+.switch .track{
+  position:absolute; inset:0; border-radius:20px; background:#cbd5e1;
+  transition: background .2s ease;
+}
+.switch .thumb{
+  position:absolute; top:3px; left:3px; width:18px; height:18px; border-radius:50%;
+  background:#fff; box-shadow: 0 1px 2px rgba(0,0,0,.25); transition: left .2s ease;
+}
+.switch input:checked + .track{ background:#22c55e; }
+.switch input:checked + .track .thumb{ left:25px; }
+
+/* ===== Filtros estilo catálogo ===== */
+.filtros-panel{
+  display: grid;
+  gap: 10px;
+  max-width: 1100px;
+  margin: 0 auto 10px;
+}
+.filtros-row.top{
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.filtros-row.bottom{
+  display: grid;
+  grid-template-columns: 1fr;
+}
+
+/* ===== Tabla centrada y profesional ===== */
+.tabla-contenedor{
+  margin: 16px auto;
+  max-width: 1100px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0,0,0,.04);
+  padding: .5rem 1rem;
+  overflow-x: auto;
+}
+.tabla-productos{
+  width: 100%;
+  border-collapse: separate; /* para bordes internos suaves */
+  border-spacing: 0;
+  table-layout: auto; /* columnas se adaptan al contenido */
+}
+.tabla-productos thead th{
+  position: sticky;
+  top: 0;
+  background: #fff;
+  z-index: 1;
+  border-bottom: 1px solid #e2e8f0;
+  text-align: left;
+  padding: .8rem;
+}
+.tabla-productos td{
+  border-bottom: 1px solid #e2e8f0;
+  padding: .8rem;
+  vertical-align: middle;
+}
+.tabla-productos th + th,
+.tabla-productos td + td{
+  border-left: 1px solid #f1f5f9; /* separación sutil entre columnas */
+}
+
+/* mini thumbnail (ya lo tenías, lo reusamos) */
+.table-thumb{
+  width: 42px; height: 42px; object-fit: cover;
+  border-radius: 8px; box-shadow: 0 0 0 1px #e2e8f0 inset;
+}
+/* Fila de búsqueda + switch a la derecha */
+.filtros-row.bottom{
+  display: grid;
+  grid-template-columns: 1fr auto; /* input ocupa todo, switch a la derecha */
+  gap: 10px;
+  align-items: center;
+}
+
+/* Etiqueta del switch “Vaciar catálogo” */
+.vaciar-wrap{
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #334155;
+  font-size: .95rem;
+  user-select: none;
+}
+.vaciar-text{ opacity:.9; }
+
+/* Deshabilitado visual del switch global */
+#toggleVaciarCatalogo:disabled + .track{
+  opacity: .6;
+  filter: grayscale(0.4);
+  cursor: not-allowed;
+}
+/* Secciones internas del modal (+) */
+#modalAgregar .modal-contenido{
+  max-height: 85vh;
+  overflow: auto;
+  text-align: left; /* los formularios alineados a la izquierda */
+}
+#modalAgregar .modal-seccion label{
+  display:block;
+  margin-top:.6rem;
+}
+#modalAgregar .divider{
+  text-align:center;
+  color:#64748b;
+  font-size:.9rem;
+  margin:.6rem 0;
+}
+
+#modalServicio .lbl{ font-weight:600; }
+#modalServicio .modal-input:disabled{ opacity:.6; cursor:not-allowed; }
+#btnSrvSave:disabled{ opacity:.5; cursor:not-allowed; box-shadow:none; }

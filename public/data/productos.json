@@ -1,0 +1,22 @@
+{
+  "products": [
+    {
+      "id": "p_1755910941405",
+      "name": "Sabritas Sal 42g",
+      "price": 20,
+      "category": "Botanas",
+      "subcategory": "Sabritas",
+      "image": "",
+      "active": true
+    },
+    {
+      "id": "p_1755911028114",
+      "name": "Sabritas Adobadas 42g",
+      "price": 20,
+      "category": "Botanas",
+      "subcategory": "Sabritas",
+      "image": "",
+      "active": true
+    }
+  ]
+}
