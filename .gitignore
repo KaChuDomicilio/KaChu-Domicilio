@@ -1,1 +1,18 @@
-.vercel
+# Dependencias (no se suben)
+node_modules/
+
+# Builds/artefactos
+dist/
+.next/
+out/
+.vercel/
+
+# Variables de entorno (secretos)
+.env
+.env.local
+.env.*
+
+# Basura de SO/editores
+.DS_Store
+Thumbs.db
+*.log
