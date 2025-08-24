@@ -144,12 +144,33 @@ function fillSubcategorySelectFromMap(selectedCat) {
 
 // --------- Modales ---------
 function openModal(modal){
+  if (!modal) return;
+  modal.inert = false;                     // permitimos foco
   modal.classList.add('open');
-  modal.setAttribute('aria-hidden', 'false');
+  modal.removeAttribute('aria-hidden');    // visible para a11y
+  // opcional: llevar foco al botón cerrar si existe
+  setTimeout(() => modal.querySelector('.modal__close, [data-close]')?.focus?.(), 0);
 }
+
 function closeModal(modal){
+  if (!modal) return;
+  // si el foco está dentro del modal, quítalo antes de ocultar
+  const active = document.activeElement;
+  if (active && modal.contains(active)) active.blur();
+
   modal.classList.remove('open');
-  modal.setAttribute('aria-hidden', 'true');
+  modal.setAttribute('aria-hidden','true'); // oculto para a11y
+  modal.inert = true;                       // bloquea foco/tab
+}}
+// Genera un data URL de un SVG sin red, y correctamente codificado
+function svgPlaceholder(text = 'Sin foto') {
+  const svg = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="120" height="120">
+      <rect width="100%" height="100%" fill="#EEE"/>
+      <text x="50%" y="50%" dominant-baseline="middle"
+            text-anchor="middle" fill="#999" font-family="Arial" font-size="12">${text}</text>
+    </svg>`;
+  return 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg);
 }
 
 // --------- Render del GRID de productos (FALTABA) ---------
@@ -157,11 +178,7 @@ function renderProductGrid(products){
   if(!grid) return;
   grid.innerHTML = products.map(p => {
     const price = typeof p.price === 'number' ? p.price : parseFloat(p.price||0);
-    const img = p.image || 'data:image/svg+xml;utf8,\
-      <svg xmlns="http://www.w3.org/2000/svg" width="120" height="120">\
-      <rect width="100%" height="100%" fill="%23EEE"/>\
-      <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="%23999" font-family="Arial" font-size="12">Sin foto</text>\
-      </svg>';
+    const img = (p.image && p.image.trim()) ? p.image : svgPlaceholder('Sin foto');
     const cat   = p.category || '';
     const sub   = p.subcategory || '';
     const name  = p.name || '';
@@ -519,27 +536,34 @@ async function loadProducts() {
 async function loadZones() {
   try {
     const { url, json } = await fetchFirstOk(API.zonas);
+    console.debug('ZONAS raw from', url, json);
 
-    // Intenta encontrar el arreglo donde esté
     let zonas = [];
     if (Array.isArray(json)) {
       zonas = json;
     } else if (json && typeof json === 'object') {
-      const candidates = ['zonas', 'zones', 'items', 'data', 'records', 'rows'];
-      for (const k of candidates) {
+      // Busca array en distintas llaves comunes
+      const keys = ['zonas','zones','items','data','records','rows'];
+      for (const k of keys) {
         if (Array.isArray(json[k])) { zonas = json[k]; break; }
       }
-      // Si el archivo es un diccionario { "Montecarlo": 15, ... }
+      // Si viene como diccionario { "Montecarlo": 15, ... }
       if (!zonas.length && Object.values(json).every(v => typeof v === 'number')) {
         zonas = Object.entries(json).map(([nombre, costo]) => ({ nombre, costo }));
       }
     }
 
-    if (!zonas.length) throw new Error('zonas vacío o con formato inesperado');
+    if (!Array.isArray(zonas) || !zonas.length) {
+      throw new Error('zonas vacío o con formato inesperado');
+    }
 
     zone.innerHTML = [
       '<option value="">Selecciona una zona…</option>',
-      ...zonas.map(z => `<option value="${z.nombre}|${Number(z.costo).toFixed(2)}">${z.nombre} — $${Number(z.costo).toFixed(2)}</option>`)
+      ...zonas.map(z => {
+        const nombre = z.nombre ?? z.name ?? '';
+        const costo  = Number(z.costo ?? z.cost ?? z.price ?? 0);
+        return `<option value="${nombre}|${costo.toFixed(2)}">${nombre} — $${costo.toFixed(2)}</option>`;
+      })
     ].join('');
 
     console.info('Zonas cargadas desde:', url, 'Total:', zonas.length);
@@ -548,10 +572,12 @@ async function loadZones() {
     // Fallback visual para no dejar el select vacío
     zone.innerHTML = [
       '<option value="">Selecciona una zona…</option>',
-      '<option value="Montecarlo|15.00">Montecarlo — $15.00</option>'
+      '<option value="Montecarlo|15.00">Montecarlo — $15.00</option>',
+      '<option value="Haciendas|20.00">Haciendas — $20.00</option>'
     ].join('');
   }
 }
+
 
 async function loadServiceStatus(){
   try{
