@@ -576,3 +576,44 @@ select:focus, input:focus, textarea:focus, .btn:focus{
   box-shadow: 0 0 0 1px rgba(226,232,240,.25) inset;
 }
 body.service-blocked{ overflow: hidden; }
+
+/* --- Capas (z-index) --- */
+:root{
+  --z-fabs: 1200;          /* redes sociales */
+  --z-modal-overlay: 2000; /* fondo del modal (oscurecido) */
+  --z-modal: 2100;         /* ventana del modal */
+}
+
+/* Asegura orden correcto de capas */
+.social-fabs{ z-index: var(--z-fabs) !important; }
+
+/* Ajusta a como se llamen tus modales/backdrop */
+.modal,
+.modal.open,
+[data-modal].open { z-index: var(--z-modal) !important; }
+
+.modal-backdrop,
+.backdrop,
+.modal-overlay { z-index: var(--z-modal-overlay) !important; }
+
+/* Botón del carrito */
+#btnCart{
+  /* tu verde actual */
+  background: #22c55e;
+  color: #fff;                 /* <— hace blanco a los iconos que usan currentColor */
+}
+
+/* Si es SVG embebido (lo más común): */
+#btnCart svg, 
+#btnCart svg *{
+  fill: currentColor !important;
+  stroke: currentColor !important;
+}
+
+/* Si usas <img src="carrito.svg"> (bitmap o svg con color fijo): */
+#btnCart img{
+  filter: brightness(0) invert(1) !important;  /* lo vuelve blanco */
+}
+
+/* (Opcional) tamaño del icono */
+#btnCart svg{ width: 22px; height: 22px; }

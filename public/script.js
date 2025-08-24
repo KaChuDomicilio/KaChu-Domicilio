@@ -157,7 +157,11 @@ function renderProductGrid(products){
   if(!grid) return;
   grid.innerHTML = products.map(p => {
     const price = typeof p.price === 'number' ? p.price : parseFloat(p.price||0);
-    const img   = p.image || 'https://via.placeholder.com/120x120';
+    const img = p.image || 'data:image/svg+xml;utf8,\
+      <svg xmlns="http://www.w3.org/2000/svg" width="120" height="120">\
+      <rect width="100%" height="100%" fill="%23EEE"/>\
+      <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="%23999" font-family="Arial" font-size="12">Sin foto</text>\
+      </svg>';
     const cat   = p.category || '';
     const sub   = p.subcategory || '';
     const name  = p.name || '';
@@ -515,25 +519,36 @@ async function loadProducts() {
 async function loadZones() {
   try {
     const { url, json } = await fetchFirstOk(API.zonas);
-    // Acepta arreglo directo o varias claves comunes:
-    const zonas = Array.isArray(json) ? json
-                : (json?.zonas || json?.zones || json?.items || json?.data || []);
-    if (!Array.isArray(zonas) || !zonas.length) throw new Error('zonas vacío o con formato inesperado');
 
-    const opts = ['<option value="">Selecciona una zona…</option>'].concat(
-      zonas.map(z => `<option value="${z.nombre}|${Number(z.costo).toFixed(2)}">${z.nombre} — $${Number(z.costo).toFixed(2)}</option>`)
-    );
-    zone.innerHTML = opts.join('');
-    console.info('Zonas cargadas desde:', url, 'Total:', zonas.length);
-  } catch (e) {
-    console.error('loadZones()', e);
-    const zonasDemo = [
-      { nombre: 'Montecarlo', costo: 15 },
-      { nombre: 'Haciendas',  costo: 20 }
-    ];
+    // Intenta encontrar el arreglo donde esté
+    let zonas = [];
+    if (Array.isArray(json)) {
+      zonas = json;
+    } else if (json && typeof json === 'object') {
+      const candidates = ['zonas', 'zones', 'items', 'data', 'records', 'rows'];
+      for (const k of candidates) {
+        if (Array.isArray(json[k])) { zonas = json[k]; break; }
+      }
+      // Si el archivo es un diccionario { "Montecarlo": 15, ... }
+      if (!zonas.length && Object.values(json).every(v => typeof v === 'number')) {
+        zonas = Object.entries(json).map(([nombre, costo]) => ({ nombre, costo }));
+      }
+    }
+
+    if (!zonas.length) throw new Error('zonas vacío o con formato inesperado');
+
     zone.innerHTML = [
       '<option value="">Selecciona una zona…</option>',
-      ...zonasDemo.map(z => `<option value="${z.nombre}|${z.costo}">${z.nombre} — $${Number(z.costo).toFixed(2)}</option>`)
+      ...zonas.map(z => `<option value="${z.nombre}|${Number(z.costo).toFixed(2)}">${z.nombre} — $${Number(z.costo).toFixed(2)}</option>`)
+    ].join('');
+
+    console.info('Zonas cargadas desde:', url, 'Total:', zonas.length);
+  } catch (e) {
+    console.warn('loadZones()', e);
+    // Fallback visual para no dejar el select vacío
+    zone.innerHTML = [
+      '<option value="">Selecciona una zona…</option>',
+      '<option value="Montecarlo|15.00">Montecarlo — $15.00</option>'
     ].join('');
   }
 }
@@ -749,15 +764,6 @@ function toggleContinueButton(){
 
 // --------- INIT ---------
 window.addEventListener('DOMContentLoaded', async () => {
-  // Registrar SW solo si existe el archivo (evita 404 ruidoso)
-  if ('serviceWorker' in navigator) {
-    try {
-      const head = await fetch('/service-worker.js', { method:'HEAD' });
-      if (head.ok) {
-        navigator.serviceWorker.register('/service-worker.js').catch(console.error);
-      }
-    } catch(_) {}
-  }
 
   // 0) Checar estado del servicio ANTES de montar catálogo
   try {
