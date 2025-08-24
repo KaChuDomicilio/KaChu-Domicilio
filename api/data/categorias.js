@@ -20,12 +20,13 @@ export default async function handler(req, res) {
       let body = req.body; if (typeof body === 'string') { try { body = JSON.parse(body); } catch {} }
       const arr = Array.isArray(body) ? body : (body?.categories || []);
       await put(KEY, JSON.stringify({ categories: arr }, null, 2), {
-        access: 'public',
-        addRandomSuffix: false,
-        overwrite: true,              // ⬅️
-        contentType: 'application/json',
-        token
-      });
+  access: 'public',
+  addRandomSuffix: false,
+  allowOverwrite: true,          // ← clave
+  contentType: 'application/json',
+  token
+});
+
       return res.status(200).json({ ok: true });
     }
 

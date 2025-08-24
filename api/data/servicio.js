@@ -26,13 +26,14 @@ export default async function handler(req, res) {
         message: String(body?.message || ''),
         image:   String(body?.image || '')
       };
-      await put(KEY, JSON.stringify(payload, null, 2), {
-        access: 'public',
-        addRandomSuffix: false,
-        overwrite: true,              // ⬅️ permitir sobrescritura
-        contentType: 'application/json',
-        token
-      });
+await put(KEY, JSON.stringify(payload, null, 2), {
+  access: 'public',
+  addRandomSuffix: false,
+  allowOverwrite: true,          // ← clave
+  contentType: 'application/json',
+  token
+});
+
       return res.status(200).json({ ok: true });
     }
 
