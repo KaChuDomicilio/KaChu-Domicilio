@@ -161,8 +161,8 @@ function closeModal(modal){
   modal.classList.remove('open');
   modal.setAttribute('aria-hidden','true'); // oculto para a11y
   modal.inert = true;                       // bloquea foco/tab
-}}
-// Genera un data URL de un SVG sin red, y correctamente codificado
+}
+// === Placeholder de imagen (sin red y correctamente codificado) ===
 function svgPlaceholder(text = 'Sin foto') {
   const svg = `
     <svg xmlns="http://www.w3.org/2000/svg" width="120" height="120">
@@ -173,12 +173,12 @@ function svgPlaceholder(text = 'Sin foto') {
   return 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg);
 }
 
-// --------- Render del GRID de productos (FALTABA) ---------
+// === Render de tarjetas de producto ===
 function renderProductGrid(products){
   if(!grid) return;
   grid.innerHTML = products.map(p => {
-    const price = typeof p.price === 'number' ? p.price : parseFloat(p.price||0);
-    const img = (p.image && p.image.trim()) ? p.image : svgPlaceholder('Sin foto');
+    const price = typeof p.price === 'number' ? p.price : parseFloat(p.price || 0);
+    const img   = (p.image && String(p.image).trim()) ? p.image : svgPlaceholder('Sin foto');
     const cat   = p.category || '';
     const sub   = p.subcategory || '';
     const name  = p.name || '';
@@ -542,12 +542,10 @@ async function loadZones() {
     if (Array.isArray(json)) {
       zonas = json;
     } else if (json && typeof json === 'object') {
-      // Busca array en distintas llaves comunes
       const keys = ['zonas','zones','items','data','records','rows'];
       for (const k of keys) {
         if (Array.isArray(json[k])) { zonas = json[k]; break; }
       }
-      // Si viene como diccionario { "Montecarlo": 15, ... }
       if (!zonas.length && Object.values(json).every(v => typeof v === 'number')) {
         zonas = Object.entries(json).map(([nombre, costo]) => ({ nombre, costo }));
       }
@@ -569,7 +567,6 @@ async function loadZones() {
     console.info('Zonas cargadas desde:', url, 'Total:', zonas.length);
   } catch (e) {
     console.warn('loadZones()', e);
-    // Fallback visual para no dejar el select vacío
     zone.innerHTML = [
       '<option value="">Selecciona una zona…</option>',
       '<option value="Montecarlo|15.00">Montecarlo — $15.00</option>',
@@ -577,6 +574,7 @@ async function loadZones() {
     ].join('');
   }
 }
+
 
 
 async function loadServiceStatus(){
