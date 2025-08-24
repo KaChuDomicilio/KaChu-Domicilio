@@ -1,4 +1,3 @@
-// /api/data/servicio.js
 import { put, head } from '@vercel/blob';
 const KEY = 'data/servicio.json';
 const token = process.env.BLOB_READ_WRITE_TOKEN;
@@ -7,8 +6,8 @@ export default async function handler(req, res) {
   try {
     if (req.method === 'GET') {
       try {
-        const meta = await head(KEY, { token });                 // lanza si no existe
-        const r = await fetch(meta.url, { cache:'no-store' });
+        const meta = await head(KEY, { token });
+        const r = await fetch(meta.url, { cache: 'no-store' });
         const data = await r.json();
         return res.status(200).json({
           active: data?.active !== false,
@@ -16,13 +15,13 @@ export default async function handler(req, res) {
           image: data?.image || ''
         });
       } catch {
-        return res.status(200).json({ active:true, message:'', image:'' });
+        return res.status(200).json({ active: true, message: '', image: '' });
       }
     }
 
     if (req.method === 'PUT') {
       let body = req.body;
-      if (typeof body === 'string') try { body = JSON.parse(body); } catch {}
+      if (typeof body === 'string') { try { body = JSON.parse(body); } catch {} }
       const payload = {
         active: body?.active !== false,
         message: String(body?.message || ''),
@@ -34,7 +33,7 @@ export default async function handler(req, res) {
         contentType: 'application/json',
         token
       });
-      return res.status(200).json({ ok:true });
+      return res.status(200).json({ ok: true });
     }
 
     res.setHeader('Allow', 'GET, PUT');
