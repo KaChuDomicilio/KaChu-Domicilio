@@ -1,4 +1,4 @@
-// ==== KaChu Catálogo – script.js (versión limpia y funcional) ====
+// ==== KaChu Catálogo – script.js (API-first, sin caché, solo activos) ====
 
 // --------- Referencias de UI ---------
 const modalCart = document.getElementById('modalCart');
@@ -30,7 +30,6 @@ const emptyState = document.getElementById('emptyState');
 const grid = document.querySelector('.grid');
 
 const btnClearCart = document.getElementById('btnClearCart');
-
 const checkoutTotalPill = document.getElementById('checkoutTotalPill');
 
 btnClearCart?.addEventListener('click', clearCart);
@@ -39,54 +38,33 @@ btnClearCart?.addEventListener('click', clearCart);
 const CART_KEY = 'kachu_cart_v1';
 const CHECKOUT_KEY = 'kachu_checkout_v1';
 
-const SERVICE_URLS = [
-  '/public/data/servicio.json',
-  '/data/servicio.json',
-  'servicio.json'
-];
+// --- API primero; estáticos como respaldo ---
+const API = {
+  productos:  ['/api/data/productos',  '/public/data/productos.json',  '/data/productos.json',  'productos.json'],
+  categorias: ['/api/data/categorias', '/public/data/categorias.json', '/data/categorias.json', 'categorias.json'],
+  zonas:      ['/api/data/zonas',      '/public/data/zonas.json',      '/data/zonas.json',      'zonas.json'],
+  servicio:   ['/api/data/servicio',   '/public/data/servicio.json',   '/data/servicio.json',   'servicio.json'],
+};
 
-async function loadServiceStatus(){
-  try{
-    const { url, json } = await fetchFirstOk(SERVICE_URLS);
-    const data = Array.isArray(json) ? {} : (json || {});
-    return {
-      active: data.active !== false,
-      message: data.message || '',
-      image: data.image || ''
-    };
-  }catch(_){
-    return { active: true, message: '', image: '' };
-  }
+// fetch sin caché (+timestamp para evitar CDN/browser cache)
+async function fetchNoCache(url){
+  const u = url + (url.includes('?') ? `&t=${Date.now()}` : `?t=${Date.now()}`);
+  return fetch(u, { cache: 'no-store' });
 }
 
-// --------- Fuentes de datos (probamos varias rutas hasta atinar) ---------
-const PRODUCT_URLS = [
-  '/public/data/productos.json',
-  '/data/productos.json',
-  'data/productos.json',
-  './data/productos.json',
-  '/kachucatalago/data/productos.json'
-];
-
-const ZONE_URLS = [
-  '/public/data/zonas.json',
-  '/data/zonas.json',
-  'data/zonas.json',
-  './data/zonas.json',
-  '/kachucatalago/data/zonas.json',
-  '/api/zonas'
-];
-const CATEGORY_URLS = [
-  '/public/data/categorias.json',
-  '/data/categorias.json',
-  'data/categorias.json',
-  './data/categorias.json'
-];
-
-// --------- Carrito en memoria ---------
-const cart = new Map(); // id -> { id, name, unit, qty }
+// intenta URLs en orden hasta obtener 200
+async function fetchFirstOk(urls){
+  for (const url of urls){
+    try{
+      const r = await fetchNoCache(url);
+      if (r.ok) return { url, json: await r.json() };
+    }catch(_){}
+  }
+  throw new Error('No se pudo leer ninguna URL:\n' + urls.join('\n'));
+}
 
 // --------- Helpers ---------
+const cart = new Map(); // id -> { id, name, unit, qty }
 function money(n){ return '$' + Number(n).toFixed(2); }
 function parseMoney(str){ return parseFloat((str||'').replace(/[^0-9.]/g,'')) || 0; }
 function normalize(str){ return (str || '').toString().toLowerCase().trim(); }
@@ -143,6 +121,8 @@ function loadCheckout(){
     cashField.classList.toggle('hidden', data.pay !== 'Efectivo');
   }catch(e){ console.warn('No se pudo cargar checkout:', e); }
 }
+
+// --------- Categorías (desde categorias.json o derivadas de productos) ---------
 let categoriesMap = null; // Map<string, string[]>  // name -> [subs]
 
 function fillCategorySelectFromMap() {
@@ -161,7 +141,6 @@ function fillSubcategorySelectFromMap(selectedCat) {
     subs.slice().sort().map(s => `<option>${s}</option>`).join('');
   subcategorySelect.disabled = subs.length === 0;
 }
-
 
 // --------- Modales ---------
 function openModal(modal){
@@ -211,17 +190,17 @@ function renderCart(){
 
   btnContinue.disabled = totalQty === 0;
   if (btnClearCart) btnClearCart.disabled = totalQty === 0;
-  
+
   saveCart();
   updateCheckoutTotalPill();
 }
 
-//Funcion para vaciar el carrito
+// Vaciar carrito
 function clearCart() {
   if (!cart.size) return;
   if (!confirm('¿Vaciar todo el carrito?')) return;
   cart.clear();
-  renderCart(); // esto actualiza totales, badge y “Continuar”
+  renderCart();
 
   // Regresa todos los productos a botón “Agregar”
   document.querySelectorAll('.card').forEach(card => {
@@ -416,13 +395,12 @@ function applyFilters(){
   }
 }
 
-// --------- Carga de datos (JSON) ---------
+// --------- Carga de datos (API-first) ---------
 async function loadCategories() {
   try {
-    const { json } = await fetchFirstOk(CATEGORY_URLS);
+    const { json } = await fetchFirstOk(API.categorias);
     const list = Array.isArray(json) ? json : (Array.isArray(json.categories) ? json.categories : []);
     if (!list.length) throw new Error('categorias.json vacío o con formato inesperado');
-
     // Construye el Map
     categoriesMap = new Map();
     list.forEach(item => {
@@ -432,139 +410,36 @@ async function loadCategories() {
                 : [];
       if (name) categoriesMap.set(name, subs);
     });
-
     fillCategorySelectFromMap();
-    console.info('Categorías cargadas desde categorias.json:', categoriesMap.size);
+    console.info('Categorías cargadas:', categoriesMap.size);
   } catch (e) {
-    // Sin categorias.json → seguimos derivando desde productos (fallback)
     categoriesMap = null;
     console.warn('No se cargó categorias.json. Usaremos categorías derivadas de productos.');
   }
 }
 
-async function fetchFirstOk(urls) {
-  for (const u of urls) {
-    try {
-      const res = await fetch(u, { cache: 'no-store' });
-      if (res.ok) {
-        const json = await res.json();
-        console.log('[OK]', u);
-        return { url: u, json };
-      } else {
-        console.warn('[404]', u);
-      }
-    } catch (e) {
-      console.warn('[ERR]', u, e.message);
-    }
-  }
-  throw new Error('Ninguna URL respondió OK:\n' + urls.join('\n'));
-}
-
-function renderProductGrid(products){
-  if(!grid) return;
-  grid.innerHTML = products.map(p => {
-    const price = typeof p.price === 'number' ? p.price : parseFloat(p.price||0);
-    const img   = p.image || 'https://via.placeholder.com/120x120';
-    const cat   = p.category || '';
-    const sub   = p.subcategory || '';
-    const name  = p.name || '';
-
-    return `
-      <article class="card" data-category="${cat}" data-subcategory="${sub}">
-        <img src="${img}" alt="${name}">
-        <div class="info">
-          <h3>${name}</h3>
-          <p class="price">$${price.toFixed(2)}</p>
-          <button class="btn add">Agregar</button>
-        </div>
-      </article>
-    `;
-  }).join('');
-}
-
-function buildCategoryFilters(products){
-  if (categoriesMap && categoriesMap.size) return;
-
-  const cats = new Set();
-  const subsByCat = new Map();
-
-  products.forEach(p => {
-    const cat = p.category || '';
-    const sub = p.subcategory || '';
-    if (cat) cats.add(cat);
-    if (cat && sub) {
-      if (!subsByCat.has(cat)) subsByCat.set(cat, new Set());
-      subsByCat.get(cat).add(sub);
-    }
-  });
-
-  if (categorySelect){
-    const current = categorySelect.value;
-    categorySelect.innerHTML = `<option value="">Todas</option>` +
-      Array.from(cats).sort().map(c => `<option>${c}</option>`).join('');
-    if ([...cats, ''].includes(current)) categorySelect.value = current;
-  }
-
-  if (subcategorySelect){
-    const cat = categorySelect?.value || '';
-    const subs = subsByCat.get(cat) || new Set();
-    subcategorySelect.innerHTML = `<option value="">Todas</option>` +
-      Array.from(subs).sort().map(s => `<option>${s}</option>`).join('');
-    subcategorySelect.disabled = !cat;
-  }
-}
-
-function bindAddButtons(){
-  document.querySelectorAll('.card').forEach(card => {
-    const addBtn = card.querySelector('.btn.add');
-    if (!addBtn || addBtn.dataset.bound === '1') return;
-    addBtn.dataset.bound = '1';
-    addBtn.addEventListener('click', () => switchToQtyControl(card, 1, true));
-  });
-}
-
 async function loadProducts() {
   try {
-    const { url, json } = await fetchFirstOk(PRODUCT_URLS);
+    const { url, json } = await fetchFirstOk(API.productos);
+    const all = Array.isArray(json) ? json : (Array.isArray(json.products) ? json.products : []);
+    if (!all.length) throw new Error('productos vacío o con formato inesperado');
 
-    // Unifica formato: acepta arreglo directo o { products: [...] }
-    const all = Array.isArray(json)
-      ? json
-      : (Array.isArray(json.products) ? json.products : []);
-
-    if (!all.length) {
-      throw new Error('productos.json vacío o con formato inesperado');
-    }
-
-    // Normaliza: si no existe "active", se asume true (compatibilidad)
-    const normalized = all.map(p => ({
-      ...p,
-      active: p?.active === false ? false : true
-    }));
-
+    // Normaliza "active": si falta, se considera true (compatibilidad)
+    const normalized = all.map(p => ({ ...p, active: (p?.active === false ? false : true) }));
     // Solo productos ACTIVOS
     const visible = normalized.filter(p => p.active);
 
-    // Render con visibles y filtros derivados de visibles
     renderProductGrid(visible);
     buildCategoryFilters(visible);
     bindAddButtons();
     applyFilters();
 
-    console.info(
-      'Productos cargados desde:',
-      url,
-      'Total en JSON:',
-      all.length,
-      '| Activos mostrados:',
-      visible.length
-    );
+    console.info('Productos desde:', url, '| Total:', all.length, '| Activos:', visible.length);
   } catch (e) {
     console.error('loadProducts()', e);
-    // Fallback para no quedar en blanco
     const demo = [
       { name: 'Coca-Cola 2.5lt Retornable', price: 40, category: 'Sodas',   subcategory: 'Coca-Cola', image: 'https://via.placeholder.com/120', active: true },
-      { name: 'Coca-Cola 1.5lt Retornable',       price: 28, category: 'Sodas', subcategory: 'Coca-Cola',       image: 'https://via.placeholder.com/120', active: true }
+      { name: 'Coca-Cola 1.5lt Retornable', price: 28, category: 'Sodas',   subcategory: 'Coca-Cola', image: 'https://via.placeholder.com/120', active: true }
     ];
     renderProductGrid(demo);
     buildCategoryFilters(demo);
@@ -573,12 +448,11 @@ async function loadProducts() {
   }
 }
 
-
 async function loadZones() {
   try {
-    const { url, json } = await fetchFirstOk(ZONE_URLS);
-    const zonas = Array.isArray(json) ? json : [];
-    if (!zonas.length) throw new Error('zonas.json vacío o con formato inesperado');
+    const { url, json } = await fetchFirstOk(API.zonas);
+    const zonas = Array.isArray(json) ? json : (json?.zonas || json?.zones || []);
+    if (!Array.isArray(zonas) || !zonas.length) throw new Error('zonas vacío o con formato inesperado');
 
     const opts = ['<option value="">Selecciona una zona…</option>'].concat(
       zonas.map(z => `<option value="${z.nombre}|${Number(z.costo).toFixed(2)}">${z.nombre} — $${Number(z.costo).toFixed(2)}</option>`)
@@ -598,6 +472,20 @@ async function loadZones() {
   }
 }
 
+async function loadServiceStatus(){
+  try{
+    const { json } = await fetchFirstOk(API.servicio);
+    const data = Array.isArray(json) ? {} : (json || {});
+    return {
+      active: data.active !== false,
+      message: data.message || '',
+      image: data.image || ''
+    };
+  }catch(_){
+    return { active: true, message: '', image: '' };
+  }
+}
+
 // --------- Eventos globales ---------
 categorySelect.addEventListener('change', () => {
   if (categoriesMap && categoriesMap.size && categorySelect.value) {
@@ -608,8 +496,8 @@ categorySelect.addEventListener('change', () => {
   }
   applyFilters();
 });
-
 subcategorySelect.addEventListener('change', applyFilters);
+searchInput.addEventListener('input', applyFilters);
 
 btnCart.addEventListener('click', () => {
   openModal(modalCart);
@@ -622,17 +510,10 @@ btnContinue.addEventListener('click', () => {
 });
 
 // Confirmación post-WhatsApp
-btnConfirmNo?.addEventListener('click', () => {
-  // NO tocar nada; solo cerrar el modal de confirmación
-  closeModal(modalConfirm);
-});
-
+btnConfirmNo?.addEventListener('click', () => closeModal(modalConfirm));
 btnConfirmYes?.addEventListener('click', () => {
-  // 1) Vaciar carrito (y devolver tarjetas a "Agregar")
-  if (typeof clearCart === 'function') {
-    clearCart();
-  } else {
-    // fallback si no tienes clearCart():
+  if (typeof clearCart === 'function') clearCart();
+  else {
     cart.clear();
     renderCart();
     document.querySelectorAll('.card .qty-control')?.forEach(q => {
@@ -640,28 +521,16 @@ btnConfirmYes?.addEventListener('click', () => {
       q.replaceWith(createAddButton(card));
     });
   }
-
-  // 2) Limpiar formulario de checkout
   resetCheckoutForm();
-
-  // 3) Cerrar confirmación y checkout
   closeModal(modalConfirm);
   closeModal(modalCheckout);
 });
 
-document.querySelectorAll('[data-close="cart"]').forEach(el=>{
-  el.addEventListener('click', ()=> closeModal(modalCart));
-});
-document.querySelectorAll('[data-close="checkout"]').forEach(el=>{
-  el.addEventListener('click', ()=> closeModal(modalCheckout));
-});
-document.querySelectorAll('[data-close="confirm"]').forEach(el=>{
-  el.addEventListener('click', ()=> closeModal(modalConfirm));
-});
+document.querySelectorAll('[data-close="cart"]').forEach(el=> el.addEventListener('click', ()=> closeModal(modalCart)));
+document.querySelectorAll('[data-close="checkout"]').forEach(el=> el.addEventListener('click', ()=> closeModal(modalCheckout)));
+document.querySelectorAll('[data-close="confirm"]').forEach(el=> el.addEventListener('click', ()=> closeModal(modalConfirm)));
 
-btnCancel.addEventListener('click', () => {
-  closeModal(modalCheckout);
-});
+btnCancel.addEventListener('click', () => closeModal(modalCheckout));
 
 checkoutForm.addEventListener('input', validateCheckout);
 checkoutForm.addEventListener('change', validateCheckout);
@@ -681,19 +550,13 @@ function validateCheckout(){
   updateCheckoutTotalPill();
 }
 
-//funcion si se envio correctamente pedido por whatsapp
+// Si se envió correctamente por WhatsApp, resetear formulario
 function resetCheckoutForm() {
-  // Limpia selects y campos
   if (zone) zone.selectedIndex = 0;
   if (address) address.value = '';
   if (cashGiven) cashGiven.value = '';
-
-  // Limpia radios de pago
   checkoutForm.querySelectorAll('input[name="pay"]').forEach(r => (r.checked = false));
-  // Oculta el campo de efectivo
   cashField.classList.add('hidden');
-
-  // Actualiza UI/botones y borra persistencia del checkout
   localStorage.removeItem(CHECKOUT_KEY);
   validateCheckout();
   updateCheckoutTotalPill?.();
@@ -702,21 +565,17 @@ function resetCheckoutForm() {
 function updateCheckoutTotalPill(){
   if (!checkoutTotalPill) return;
 
-  // Subtotal del carrito (lo toma del modal del carrito)
   const subtotal = parseFloat(document.getElementById('cartTotal').textContent.replace(/[^0-9.]/g, '')) || 0;
 
-  // Envío según zona seleccionada
   const [_, zoneCostRaw] = (zone.value || '').split('|');
   const shipping = parseFloat(zoneCostRaw || '0') || 0;
 
-  // Método de pago (4.3% si es tarjeta)
   const pay = checkoutForm.querySelector('input[name="pay"]:checked')?.value || '';
   const base = subtotal + shipping;
   const totalDue = pay === 'Tarjeta' ? +(base * 1.043).toFixed(2) : +base.toFixed(2);
 
   checkoutTotalPill.textContent = `Total: $${totalDue.toFixed(2)}`;
 }
-
 
 checkoutForm.addEventListener('change', () => {
   const pay = checkoutForm.querySelector('input[name="pay"]:checked')?.value;
@@ -764,7 +623,7 @@ checkoutForm.addEventListener('submit', (e)=>{
   openModal(modalConfirm);
 });
 
-// Lee items visibles en el modal del carrito (para armar ticket)
+// Lee items del modal del carrito (para armar ticket)
 function collectCartItems(){
   const items = [];
   document.querySelectorAll('#cartList .cart-item').forEach(li=>{
@@ -807,54 +666,44 @@ function buildTicket({ items, zoneName, shipping, pay, subtotal, totalDue, addre
 }
 
 const STORE_WHATSAPP = '528135697787'; // MX con 52 + número
-
 function openWhatsAppWithMessage(text){
   const base = STORE_WHATSAPP
     ? `https://wa.me/${STORE_WHATSAPP}?text=`
     : `https://wa.me/?text=`;
   const url = base + encodeURIComponent(text);
-
-  // Intento 1: nueva pestaña (gesto del usuario)
   const win = window.open(url, '_blank', 'noopener');
-  // Fallback: si el navegador bloquea el popup, redirigimos en la misma pestaña
-  //if (!win) window.location.href = url;
+  // if (!win) window.location.href = url;
 }
 
-// Filtros: eventos
-categorySelect.addEventListener('change', applyFilters);
-subcategorySelect.addEventListener('change', applyFilters);
-searchInput.addEventListener('input', applyFilters);
-
-// Habilitar/Deshabilitar “Continuar” según items “visibles” (si hubieran estáticos; nosotros lo manejamos con renderCart)
+// Control de “Continuar”
 function toggleContinueButton(){
   const items = cartList.querySelectorAll('.cart-item').length;
   btnContinue.disabled = items === 0;
   cartBadge.style.display = items === 0 ? 'none' : '';
 }
+
 // --------- INIT ---------
 window.addEventListener('DOMContentLoaded', async () => {
-  // (opcional) Mantén tu Service Worker sin cambios
+  // SW opcional
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
       navigator.serviceWorker.register('/service-worker.js').catch(console.error);
     });
   }
 
-  // 0) Checar estado del servicio ANTES de iniciar todo
+  // 0) Checar estado del servicio ANTES de montar catálogo
   try {
-    // Requiere que tengas definidas SERVICE_URLS + loadServiceStatus() y showServiceOverlay()
     const service = await loadServiceStatus();
     if (!service.active) {
-      showServiceOverlay(service); // Overlay a pantalla completa (bloquea scroll)
-      return; // Detén el resto del init si el servicio está OFF
+      showServiceOverlay(service); // bloquea la UI
+      return;
     }
   } catch (err) {
     console.error('Service status error', err);
-    // Si prefieres no montar nada cuando falla el check, puedes: return;
-    // De lo contrario, continúa y monta el catálogo.
+    // continúa si prefieres
   }
 
-  // 1) Tu flujo original
+  // 1) Flujo del catálogo
   loadCart();
   renderCart();
   validateCheckout();
@@ -862,7 +711,6 @@ window.addEventListener('DOMContentLoaded', async () => {
 
   try {
     await Promise.all([ loadCategories(), loadProducts(), loadZones() ]);
-    // Sincroniza tarjetas con cantidades guardadas
     Array.from(cart.keys()).forEach(id => syncCardsQty(id));
     toggleContinueButton();
   } catch (e) {
@@ -870,8 +718,7 @@ window.addEventListener('DOMContentLoaded', async () => {
   }
 });
 
-
-// ===== Social FABs (sin panel separado, 1 solo logo) =====
+// ===== Social FABs (1 solo logo) =====
 (function(){
   function closeAll(except=null){
     document.querySelectorAll('.social-fabs .fab').forEach(f=>{
@@ -883,7 +730,6 @@ window.addEventListener('DOMContentLoaded', async () => {
       if (title) title.textContent = title.getAttribute('data-name') || title.textContent;
     });
   }
-
   function initAlternator(fab){
     const title = fab.querySelector('.fab-title');
     if (!title) return;
@@ -894,13 +740,10 @@ window.addEventListener('DOMContentLoaded', async () => {
       title.textContent = (title.textContent === name) ? alt : name;
     }, 2400);
   }
-
   function initFab(fab){
     const btn = fab.querySelector('.fab-btn');
     if (!btn) return;
-
     initAlternator(fab);
-
     const toggle = () => {
       if (fab.classList.contains('open')){
         fab.classList.remove('open'); btn.setAttribute('aria-expanded','false');
@@ -910,27 +753,19 @@ window.addEventListener('DOMContentLoaded', async () => {
       }
     };
     btn.addEventListener('click', toggle);
-    btn.addEventListener('keydown', (e)=>{
-      if (e.key==='Enter' || e.key===' ') { e.preventDefault(); toggle(); }
-    });
+    btn.addEventListener('keydown', (e)=>{ if (e.key==='Enter' || e.key===' ') { e.preventDefault(); toggle(); } });
   }
-
   function initRail(){
     const rail = document.querySelector('.social-fabs');
     if (!rail) return;
     rail.querySelectorAll('.fab').forEach(initFab);
-    document.addEventListener('click', (e)=>{
-      if (!rail.contains(e.target)) closeAll();
-    });
+    document.addEventListener('click', (e)=>{ if (!rail.contains(e.target)) closeAll(); });
   }
-
-  if (document.readyState==='loading'){
-    window.addEventListener('DOMContentLoaded', initRail);
-  } else {
-    initRail();
-  }
+  if (document.readyState==='loading'){ window.addEventListener('DOMContentLoaded', initRail); }
+  else { initRail(); }
 })();
 
+// Overlay de servicio OFF
 function showServiceOverlay({ message, image }){
   const overlay = document.createElement('div');
   overlay.className = 'service-overlay';
