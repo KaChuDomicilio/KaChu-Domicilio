@@ -17,12 +17,12 @@ export default async function handler(req, res) {
     }
 
     if (req.method === 'PUT') {
-      let body = req.body;
-      if (typeof body === 'string') { try { body = JSON.parse(body); } catch {} }
+      let body = req.body; if (typeof body === 'string') { try { body = JSON.parse(body); } catch {} }
       const arr = Array.isArray(body) ? body : (body?.zonas || body?.zones || []);
       await put(KEY, JSON.stringify(arr, null, 2), {
         access: 'public',
         addRandomSuffix: false,
+        overwrite: true,              // ⬅️
         contentType: 'application/json',
         token
       });
@@ -30,9 +30,9 @@ export default async function handler(req, res) {
     }
 
     res.setHeader('Allow', 'GET, PUT');
-    return res.status(405).end();
+    res.status(405).end();
   } catch (e) {
     console.error(e);
-    return res.status(500).json({ error: e.message });
+    res.status(500).json({ error: e.message });
   }
 }
