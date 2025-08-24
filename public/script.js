@@ -152,6 +152,72 @@ function closeModal(modal){
   modal.setAttribute('aria-hidden', 'true');
 }
 
+// --------- Render del GRID de productos (FALTABA) ---------
+function renderProductGrid(products){
+  if(!grid) return;
+  grid.innerHTML = products.map(p => {
+    const price = typeof p.price === 'number' ? p.price : parseFloat(p.price||0);
+    const img   = p.image || 'https://via.placeholder.com/120x120';
+    const cat   = p.category || '';
+    const sub   = p.subcategory || '';
+    const name  = p.name || '';
+
+    return `
+      <article class="card" data-category="${cat}" data-subcategory="${sub}">
+        <img src="${img}" alt="${name}">
+        <div class="info">
+          <h3>${name}</h3>
+          <p class="price">$${price.toFixed(2)}</p>
+          <button class="btn add">Agregar</button>
+        </div>
+      </article>
+    `;
+  }).join('');
+}
+
+// Derivar filtros desde productos si no hay categorias.json (FALTABA)
+function buildCategoryFilters(products){
+  if (categoriesMap && categoriesMap.size) return; // ya tenemos categorias.json
+
+  const cats = new Set();
+  const subsByCat = new Map();
+
+  products.forEach(p => {
+    const cat = p.category || '';
+    const sub = p.subcategory || '';
+    if (cat) cats.add(cat);
+    if (cat && sub) {
+      if (!subsByCat.has(cat)) subsByCat.set(cat, new Set());
+      subsByCat.get(cat).add(sub);
+    }
+  });
+
+  if (categorySelect){
+    const current = categorySelect.value;
+    categorySelect.innerHTML = `<option value="">Todas</option>` +
+      Array.from(cats).sort().map(c => `<option>${c}</option>`).join('');
+    if ([...cats, ''].includes(current)) categorySelect.value = current;
+  }
+
+  if (subcategorySelect){
+    const cat = categorySelect?.value || '';
+    const subs = subsByCat.get(cat) || new Set();
+    subcategorySelect.innerHTML = `<option value="">Todas</option>` +
+      Array.from(subs).sort().map(s => `<option>${s}</option>`).join('');
+    subcategorySelect.disabled = !cat;
+  }
+}
+
+// Enlazar “Agregar” en cada tarjeta (FALTABA)
+function bindAddButtons(){
+  document.querySelectorAll('.card').forEach(card => {
+    const addBtn = card.querySelector('.btn.add');
+    if (!addBtn || addBtn.dataset.bound === '1') return;
+    addBtn.dataset.bound = '1';
+    addBtn.addEventListener('click', () => switchToQtyControl(card, 1, true));
+  });
+}
+
 // --------- Render del carrito ---------
 function renderCart(){
   const items = Array.from(cart.values());
@@ -306,7 +372,6 @@ function syncCardsQty(id){
     if (info.id !== id) return;
 
     const item = cart.get(id);
-    const addBtn = card.querySelector('.btn.add');
     const qtyControl = card.querySelector('.qty-control');
 
     if (item) {
@@ -336,8 +401,6 @@ function getCards(){
 
 function applyFilters(){
   const searchVal = normalize(searchInput.value);
-  const catVal = categorySelect.value;
-  const subVal = subcategorySelect.value;
 
   const cards = getCards();
   let visibleCount = 0;
@@ -365,6 +428,7 @@ function applyFilters(){
   }
 
   // 2) sin búsqueda: aplicar categoría/subcategoría
+  const catVal = categorySelect.value;
   const hasCategory = !!catVal;
   subcategorySelect.disabled = !hasCategory;
   if (!hasCategory) subcategorySelect.value = '';
@@ -451,7 +515,9 @@ async function loadProducts() {
 async function loadZones() {
   try {
     const { url, json } = await fetchFirstOk(API.zonas);
-    const zonas = Array.isArray(json) ? json : (json?.zonas || json?.zones || []);
+    // Acepta arreglo directo o varias claves comunes:
+    const zonas = Array.isArray(json) ? json
+                : (json?.zonas || json?.zones || json?.items || json?.data || []);
     if (!Array.isArray(zonas) || !zonas.length) throw new Error('zonas vacío o con formato inesperado');
 
     const opts = ['<option value="">Selecciona una zona…</option>'].concat(
@@ -491,7 +557,6 @@ categorySelect.addEventListener('change', () => {
   if (categoriesMap && categoriesMap.size && categorySelect.value) {
     fillSubcategorySelectFromMap(categorySelect.value);
   } else {
-    // si no hay categorias.json, tu lógica actual lo maneja (derivado de productos)
     subcategorySelect.disabled = !categorySelect.value;
   }
   applyFilters();
@@ -684,11 +749,14 @@ function toggleContinueButton(){
 
 // --------- INIT ---------
 window.addEventListener('DOMContentLoaded', async () => {
-  // SW opcional
+  // Registrar SW solo si existe el archivo (evita 404 ruidoso)
   if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/service-worker.js').catch(console.error);
-    });
+    try {
+      const head = await fetch('/service-worker.js', { method:'HEAD' });
+      if (head.ok) {
+        navigator.serviceWorker.register('/service-worker.js').catch(console.error);
+      }
+    } catch(_) {}
   }
 
   // 0) Checar estado del servicio ANTES de montar catálogo
