@@ -279,7 +279,7 @@ function renderCart(){
   if (btnClearCart) btnClearCart.disabled = totalQty === 0;
 
   // --- activar/desactivar scroll del carrito según cantidad ---
-  const needsScroll = items .length > 5;
+  const needsScroll = items .length > 4;
   cartList.classList.toggle('scroll', needsScroll);
 
   // si quieres que el alto se ajuste al tamaño de pantalla:
@@ -296,7 +296,7 @@ function renderCart(){
 }
 //Redimencionar ventana
 window.addEventListener('resize', () => {
-  const needsScroll = (cartList.querySelectorAll('.cart-item').length > 5);
+  const needsScroll = (cartList.querySelectorAll('.cart-item').length > 4);
   cartList.classList.toggle('scroll', needsScroll);
   if (needsScroll) {
     const vh = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0);
@@ -665,18 +665,38 @@ checkoutForm.addEventListener('change', validateCheckout);
 checkoutForm.addEventListener('input', saveCheckout);
 checkoutForm.addEventListener('change', saveCheckout);
 
-function validateCheckout(){
+function validateCheckout() {
   const zoneOk = zone.value.trim() !== '';
   const pay = checkoutForm.querySelector('input[name="pay"]:checked')?.value || '';
   const addressOk = address.value.trim().length > 0;
 
+  // Totales actuales (idénticos a los que muestras en el pill)
+  const subtotal = parseFloat(document.getElementById('cartTotal').textContent.replace(/[^0-9.]/g, '')) || 0;
+  const [ , zoneCostRaw ] = (zone.value || '').split('|');
+  const shipping = parseFloat(zoneCostRaw || '0') || 0;
+
+  const base = subtotal + shipping;
+  const totalDue = pay === 'Tarjeta' ? +(base * 1.043).toFixed(2) : +base.toFixed(2);
+  // Validación de efectivo: debe ser número y mayor o igual al total
   let cashOk = true;
   if (pay === 'Efectivo') {
-    cashOk = cashGiven.value.trim() !== '' && !isNaN(parseFloat(cashGiven.value)) && parseFloat(cashGiven.value) >= 0;
+    const cash = parseFloat(cashGiven.value || '');
+    cashOk = !isNaN(cash) && cash >= totalDue;
+    // Mensaje de validación HTML5 en el propio input
+    if (!cashOk) {
+      cashGiven.setCustomValidity(`El efectivo no cubre el total ($${totalDue.toFixed(2)}).`);
+    } else {
+      cashGiven.setCustomValidity('');
+    }
+  } else {
+    cashGiven.setCustomValidity('');
   }
+  // Habilita/deshabilita el botón de WhatsApp
   btnWhatsApp.disabled = !(zoneOk && pay && addressOk && cashOk);
+  // Actualiza el “Total: …” del pill
   updateCheckoutTotalPill();
 }
+
 
 // Si se envió correctamente por WhatsApp, resetear formulario
 function resetCheckoutForm() {
