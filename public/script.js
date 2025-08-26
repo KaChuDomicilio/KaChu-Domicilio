@@ -38,6 +38,19 @@ btnClearCart?.addEventListener('click', clearCart);
 const CART_KEY = 'kachu_cart_v1';
 const CHECKOUT_KEY = 'kachu_checkout_v1';
 
+const cashBubble = document.getElementById('cashBubble');
+
+function showCashBubble(msg) {
+  if (!cashBubble) return;
+  cashBubble.textContent = msg;
+  cashBubble.classList.remove('hidden');
+}
+function hideCashBubble() {
+  if (!cashBubble) return;
+  cashBubble.classList.add('hidden');
+}
+
+
 // --- API primero; estáticos como respaldo ---
 const API = {
   productos:  ['/api/data/productos',  '/public/data/productos.json',  '/data/productos.json',  'productos.json'],
@@ -666,34 +679,46 @@ checkoutForm.addEventListener('input', saveCheckout);
 checkoutForm.addEventListener('change', saveCheckout);
 
 function validateCheckout() {
-  const zoneOk = zone.value.trim() !== '';
-  const pay = checkoutForm.querySelector('input[name="pay"]:checked')?.value || '';
-  const addressOk = address.value.trim().length > 0;
+  const zoneOk   = zone.value.trim() !== '';
+  const pay      = checkoutForm.querySelector('input[name="pay"]:checked')?.value || '';
+  const addressOk= address.value.trim().length > 0;
 
-  // Totales actuales (idénticos a los que muestras en el pill)
-  const subtotal = parseFloat(document.getElementById('cartTotal').textContent.replace(/[^0-9.]/g, '')) || 0;
-  const [ , zoneCostRaw ] = (zone.value || '').split('|');
+  // Totales tal como los usas en el pill
+  const subtotal = parseFloat(document.getElementById('cartTotal').textContent.replace(/[^0-9.]/g,'')) || 0;
+  const [, zoneCostRaw] = (zone.value || '').split('|');
   const shipping = parseFloat(zoneCostRaw || '0') || 0;
 
   const base = subtotal + shipping;
   const totalDue = pay === 'Tarjeta' ? +(base * 1.043).toFixed(2) : +base.toFixed(2);
-  // Validación de efectivo: debe ser número y mayor o igual al total
+
+  // Validación de efectivo + globo
   let cashOk = true;
   if (pay === 'Efectivo') {
-    const cash = parseFloat(cashGiven.value || '');
-    cashOk = !isNaN(cash) && cash >= totalDue;
-    // Mensaje de validación HTML5 en el propio input
+    const raw = cashGiven.value.trim();
+    const cash = parseFloat(raw);
+
+    let msg = '';
+    if (!raw.length) {
+      cashOk = false; msg = 'Escribe el monto con el que pagarás.';
+    } else if (isNaN(cash)) {
+      cashOk = false; msg = 'Coloca un número válido (ej. 500.00).';
+    } else if (cash < totalDue) {
+      cashOk = false; msg = `El efectivo no cubre el total ($${totalDue.toFixed(2)}).`;
+    }
     if (!cashOk) {
-      cashGiven.setCustomValidity(`El efectivo no cubre el total ($${totalDue.toFixed(2)}).`);
+      cashGiven.setCustomValidity(msg); // bloquea submit nativo
+      showCashBubble(msg);              // globo naranja
     } else {
       cashGiven.setCustomValidity('');
+      hideCashBubble();
     }
   } else {
     cashGiven.setCustomValidity('');
+    hideCashBubble();
   }
-  // Habilita/deshabilita el botón de WhatsApp
+  // Habilita/deshabilita WhatsApp
   btnWhatsApp.disabled = !(zoneOk && pay && addressOk && cashOk);
-  // Actualiza el “Total: …” del pill
+  // Actualiza el pill de total
   updateCheckoutTotalPill();
 }
 
@@ -733,7 +758,12 @@ checkoutForm.addEventListener('change', () => {
 
 checkoutForm.addEventListener('submit', (e)=>{
   e.preventDefault();
-
+  validateCheckout();
+  if (!checkoutForm.checkValidity()) {
+    // Muestra el bubble y también el tooltip nativo si el navegador decide
+    checkoutForm.reportValidity();
+    return;
+  }
   const subtotal = parseFloat(document.getElementById('cartTotal').textContent.replace(/[^0-9.]/g, '')) || 0;
 
   const [zoneName, zoneCostRaw] = (zone.value || '').split('|');

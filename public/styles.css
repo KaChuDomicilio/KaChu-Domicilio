@@ -639,3 +639,51 @@ body.service-blocked{ overflow: hidden; }
 #cartList.scroll::-webkit-scrollbar-track { background: rgba(0,0,0,.06); border-radius: 8px; }
 #cartList.scroll::-webkit-scrollbar-thumb { background: rgba(0,0,0,.18); border-radius: 8px; }
 #cartList.scroll::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,.28); }
+
+/* Para posicionar el globo respecto al campo */
+#cashField { position: relative; }
+
+/* Globo de error/ayuda */
+.cash-bubble {
+  position: absolute;
+  left: 0;
+  top: calc(100% + 6px);
+  background: #FDE68A;           /* amarillo suave */
+  border: 1px solid #F59E0B;     /* naranja */
+  color: #111827;                /* casi negro */
+  padding: 6px 10px;
+  border-radius: 10px;
+  font-size: .9rem;
+  box-shadow: 0 6px 18px rgba(0,0,0,.12);
+  z-index: 60;
+  max-width: 320px;
+}
+
+/* Flechita del globo */
+.cash-bubble::before {
+  content: "";
+  position: absolute;
+  left: 16px;
+  top: -6px;
+  border-width: 6px;
+  border-style: solid;
+  border-color: transparent transparent #F59E0B transparent; /* borde */
+}
+.cash-bubble::after {
+  content: "";
+  position: absolute;
+  left: 16px;
+  top: -5px;
+  border-width: 6px;
+  border-style: solid;
+  border-color: transparent transparent #FDE68A transparent; /* relleno */
+}
+
+/* Si ya usas .hidden, perfecto; si no: */
+.hidden { display: none !important; }
+
+/* Borde rojo opcional cuando es inválido */
+#cashField input:invalid {
+  border-color: #e53e3e;
+  box-shadow: 0 0 0 2px rgba(229,62,62,.12);
+}
