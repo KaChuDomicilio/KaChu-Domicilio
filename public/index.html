@@ -142,14 +142,13 @@
           <label><input type="radio" name="pay" value="Tarjeta" required> Tarjeta</label>
           <!-- dentro de #cashField, debajo del input -->
         </fieldset>
-<div id="cashBubble" class="cash-bubble hidden" role="alert"></div>
-			<!-- 👇 PÉGALO DEBAJO DEL FIELDSET DE MÉTODO DE PAGO -->
-		<label class="field hidden" id="cashField">
-			<span>¿Con cuánto vas a pagar?</span>
-			<input type="number" id="cashGiven" placeholder="Ej. 200.00" min="0" step="0.01">
-			<small style="color:#cf7500">Usaremos este dato para calcular tu feria/cambio en el ticket.</small>
-		</label>
 
+			<!-- 👇 PÉGALO DEBAJO DEL FIELDSET DE MÉTODO DE PAGO -->
+		    <label class="field hidden" id="cashField">
+  			  <span>¿Con cuánto vas a pagar?</span>
+	    		<input type="number" id="cashGiven" placeholder="Ej. 200.00" min="0" step="0.01">
+    			<small id="cashHelp" class="cash-help"></small>
+		    </label>
 
         <label class="field">
           <span>Dirección</span>

@@ -38,7 +38,7 @@ btnClearCart?.addEventListener('click', clearCart);
 const CART_KEY = 'kachu_cart_v1';
 const CHECKOUT_KEY = 'kachu_checkout_v1';
 
-const cashBubble = document.getElementById('cashBubble');
+const cashHelp = document.getElementById('cashHelp');
 
 function showCashBubble(msg) {
   if (!cashBubble) return;
@@ -679,25 +679,24 @@ checkoutForm.addEventListener('input', saveCheckout);
 checkoutForm.addEventListener('change', saveCheckout);
 
 function validateCheckout() {
-  const zoneOk   = zone.value.trim() !== '';
-  const pay      = checkoutForm.querySelector('input[name="pay"]:checked')?.value || '';
-  const addressOk= address.value.trim().length > 0;
+  const zoneOk    = zone.value.trim() !== '';
+  const pay       = checkoutForm.querySelector('input[name="pay"]:checked')?.value || '';
+  const addressOk = address.value.trim().length > 0;
 
-  // Totales tal como los usas en el pill
+  // Totales actuales (igual que en tu pill)
   const subtotal = parseFloat(document.getElementById('cartTotal').textContent.replace(/[^0-9.]/g,'')) || 0;
   const [, zoneCostRaw] = (zone.value || '').split('|');
   const shipping = parseFloat(zoneCostRaw || '0') || 0;
-
   const base = subtotal + shipping;
   const totalDue = pay === 'Tarjeta' ? +(base * 1.043).toFixed(2) : +base.toFixed(2);
 
-  // Validación de efectivo + globo
+  // Validación de efectivo y mensaje en <small>
   let cashOk = true;
   if (pay === 'Efectivo') {
-    const raw = cashGiven.value.trim();
+    const raw  = cashGiven.value.trim();
     const cash = parseFloat(raw);
-
     let msg = '';
+
     if (!raw.length) {
       cashOk = false; msg = 'Escribe el monto con el que pagarás.';
     } else if (isNaN(cash)) {
@@ -705,19 +704,23 @@ function validateCheckout() {
     } else if (cash < totalDue) {
       cashOk = false; msg = `El efectivo no cubre el total ($${totalDue.toFixed(2)}).`;
     }
+
+    // bloquea submit nativo + muestra/oculta el <small>
     if (!cashOk) {
-      cashGiven.setCustomValidity(msg); // bloquea submit nativo
-      showCashBubble(msg);              // globo naranja
+      cashGiven.setCustomValidity(msg);
+      if (cashHelp) { cashHelp.textContent = msg; cashHelp.classList.add('show'); }
     } else {
       cashGiven.setCustomValidity('');
-      hideCashBubble();
+      if (cashHelp) { cashHelp.textContent = ''; cashHelp.classList.remove('show'); }
     }
   } else {
     cashGiven.setCustomValidity('');
-    hideCashBubble();
+    if (cashHelp) { cashHelp.textContent = ''; cashHelp.classList.remove('show'); }
   }
+
   // Habilita/deshabilita WhatsApp
   btnWhatsApp.disabled = !(zoneOk && pay && addressOk && cashOk);
+
   // Actualiza el pill de total
   updateCheckoutTotalPill();
 }
