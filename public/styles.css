@@ -617,3 +617,25 @@ body.service-blocked{ overflow: hidden; }
 
 /* (Opcional) tamaño del icono */
 #btnCart svg{ width: 22px; height: 22px; }
+
+/* --- Carrito: hacer scroll si hay muchos items --- */
+#cartList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Se activa desde JS cuando hay >5 ítems */
+#cartList.scroll {
+  /* límite relativo a la pantalla para que no tape el total/botones */
+  max-height: 48vh;
+  overflow-y: auto;
+  padding-right: .25rem; /* espacio para el scrollbar */
+  overscroll-behavior: contain;
+}
+
+/* Estilo opcional del scrollbar (webkit) */
+#cartList.scroll::-webkit-scrollbar { width: 8px; }
+#cartList.scroll::-webkit-scrollbar-track { background: rgba(0,0,0,.06); border-radius: 8px; }
+#cartList.scroll::-webkit-scrollbar-thumb { background: rgba(0,0,0,.18); border-radius: 8px; }
+#cartList.scroll::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,.28); }

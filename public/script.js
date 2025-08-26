@@ -278,9 +278,33 @@ function renderCart(){
   btnContinue.disabled = totalQty === 0;
   if (btnClearCart) btnClearCart.disabled = totalQty === 0;
 
+  // --- activar/desactivar scroll del carrito según cantidad ---
+  const needsScroll = items .length > 5;
+  cartList.classList.toggle('scroll', needsScroll);
+
+  // si quieres que el alto se ajuste al tamaño de pantalla:
+  if (needsScroll) {
+    const vh = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0);
+    cartList.style.maxHeight = Math.floor(vh * 0.48) + 'px'; // 48% del alto de la ventana
+    cartList.style.overflowY = 'auto';
+  } else {
+    cartList.style.maxHeight = '';
+    cartList.style.overflowY = '';
+  }
   saveCart();
   updateCheckoutTotalPill();
 }
+//Redimencionar ventana
+window.addEventListener('resize', () => {
+  const needsScroll = (cartList.querySelectorAll('.cart-item').length > 5);
+  cartList.classList.toggle('scroll', needsScroll);
+  if (needsScroll) {
+    const vh = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0);
+    cartList.style.maxHeight = Math.floor(vh * 0.48) + 'px';
+  } else {
+    cartList.style.maxHeight = '';
+  }
+});
 
 // Vaciar carrito
 function clearCart() {
