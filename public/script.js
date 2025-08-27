@@ -851,16 +851,15 @@ function buildTicket({ items, zoneName, shipping, pay, subtotal, totalDue, addre
     lines.push(`*Cambio:* $${Number(efectivo.cambio).toFixed(2)}`);
   }
   lines.push('');
-
   // Dirección
   if (address) {
     lines.push('*Dirección de entrega:*');
     lines.push(`> ${address}`);
     lines.push('');
   }
-  lines.push('Hemos recibido tu solicitud, en un máximo de 15min-20min te estariamos entregando tu pedido');
+  lines.push('*Aviso:* _Hemos recibido tu solicitud, en un máximo de *15min-20min* te estaríamos entregando tu pedido_');
   lines.push('');
-  lines.push(' ```Gracias por tu compra 🙌``` ');
+  lines.push(' ```Gracias por tu compra...``` ');
 
   return lines.join('\n');
 }
