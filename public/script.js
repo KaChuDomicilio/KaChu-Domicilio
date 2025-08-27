@@ -828,9 +828,9 @@ function buildTicket({ items, zoneName, shipping, pay, subtotal, totalDue, addre
     items.forEach(it => {
       const u = Number(it.unit).toFixed(2);
       const l = Number(it.line).toFixed(2);
-      lines.push(`• ${it.name}`);
+      lines.push(`* ${it.name}`);
       // barra vertical "│" (U+2502). Si no te gusta, puedes cambiarla por "|"
-      lines.push(`│ ${it.qty} x $${u} = $${l}`);
+      lines.push(`> ${it.qty} x $${u} = $${l}`);
       lines.push('');
     });
   }
@@ -840,7 +840,7 @@ function buildTicket({ items, zoneName, shipping, pay, subtotal, totalDue, addre
   const envioTag = isFree ? `${zoneName || 'Zona'}(Gratis)` : (zoneName || 'Zona');
 
   lines.push(`*Subtotal:* $${Number(subtotal).toFixed(2)}`);
-  lines.push(`*Envío (${envioTag}):* $${Number(shipping).toFixed(2)}`);
+  lines.push(`*Envío:* (${envioTag}) $${Number(shipping).toFixed(2)}`);
   lines.push(`*Total a pagar:* $${Number(totalDue).toFixed(2)}`);
   lines.push('');
 
@@ -854,12 +854,13 @@ function buildTicket({ items, zoneName, shipping, pay, subtotal, totalDue, addre
 
   // Dirección
   if (address) {
-    lines.push('*Dirección:*');
-    lines.push(address);
+    lines.push('*Dirección de entrega:*');
+    lines.push(`> ${address}`);
     lines.push('');
   }
-
-  lines.push('Gracias por tu compra 🙌');
+  lines.push('Hemos recibido tu solicitud, en un máximo de 15min-20min te estariamos entregando tu pedido');
+  lines.push('');
+  lines.push(' ```Gracias por tu compra 🙌``` ');
 
   return lines.join('\n');
 }
