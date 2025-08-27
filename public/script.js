@@ -837,7 +837,7 @@ function buildTicket({ items, zoneName, shipping, pay, subtotal, totalDue, addre
 
   // Totales
   const isFree = Number(shipping) === 0;
-  const envioTag = isFree ? `${zoneName || 'Zona'}(Gratis)` : (zoneName || 'Zona');
+  const envioTag = isFree ? `${zoneName || 'Zona'}` : (zoneName || 'Zona');
 
   lines.push(`*Subtotal:* $${Number(subtotal).toFixed(2)}`);
   lines.push(`*Envío:* (${envioTag}) $${Number(shipping).toFixed(2)}`);
@@ -863,7 +863,6 @@ function buildTicket({ items, zoneName, shipping, pay, subtotal, totalDue, addre
 
   return lines.join('\n');
 }
-
 
 const STORE_WHATSAPP = '528135697787'; // MX con 52 + número
 function openWhatsAppWithMessage(text){
