@@ -93,17 +93,15 @@ const btnSaveEditProd     = document.getElementById('btnSaveEditProd');
 
 let editingProdId = null; // id del producto que estamos editando
 
-// ----- (+) Agregar producto
+// ----- (+) Agregar producto (SOLO con categorías/sub existentes)
 const btnProducto          = document.getElementById('btnProducto');
 const formProducto         = document.getElementById('formProducto');
 
 const inputProdName        = document.getElementById('inputProdName');
 const inputProdPrice       = document.getElementById('inputProdPrice');
 const selProdCategory      = document.getElementById('selProdCategory');
-const inputNewCategory     = document.getElementById('inputNewCategory');
 const selProdSubcategory   = document.getElementById('selProdSubcategory');
-const inputNewSubcategory  = document.getElementById('inputNewSubcategory');
-const inputProdImage       = document.getElementById('inputProdImage');
+const inputProdImage       = document.getElementById('inputProdImage');   // opcional
 const chkProdActive        = document.getElementById('chkProdActive');
 
 const btnGuardarProducto   = document.getElementById('btnGuardarProducto');
@@ -130,34 +128,28 @@ async function loadServicio(){
 }
 
 function setServicioFormState(activeOn){
-  // Campos de mensaje/imagen se deshabilitan cuando está ACTIVO
   const disableFields = !!activeOn;
   srvMessage.disabled = disableFields;
   srvImage.disabled   = disableFields;
 
-  // Regla de guardado:
-  // - Si el estado actual es distinto al que traía el modal -> permitir Guardar
-  // - Si está OFF (false) -> permitir Guardar (puede haber cambios de mensaje/imagen)
   const changed = (srvActive.checked !== srvInitialActive);
   btnSrvSave.disabled = !(changed || !srvActive.checked);
 }
 
 async function openServicioModal(){
-  // Carga estado actual
   const data = await loadServicio();
   srvActive.checked  = !!data.active;
   srvMessage.value   = data.message || "";
   srvImage.value     = data.image || "";
 
-  //Guarda el estado inicial para comparar cambios
   srvInitialActive = !!data.active;
 
-  setServicioFormState(srvActive.checked); //Aplica logica de habilitado/deshabilitado
+  setServicioFormState(srvActive.checked);
   abrirModal(modalServicio);
 }
 
 optServicio?.addEventListener('click', () => {
-  cerrarMenu?.(); // tu función para cerrar el menú
+  cerrarMenu?.();
   openServicioModal().catch(err => {
     console.error(err); mostrarToast?.('Error cargando estado del servicio');
   });
@@ -192,11 +184,13 @@ btnSrvSave?.addEventListener('click', async () => {
 function numeroDesdeTexto(v){ return parseFloat(String(v||'').replace(',', '.')); }
 function normalizeStr(s){ return (s||'').toString().trim(); }
 
+// ---- Add Product helpers (solo existentes)
 function fillProdSelectorsFromCategories(){
-  // Llena el select de categorías con lo que haya en categorias.json
-  selProdCategory.innerHTML = `<option value="">(ninguna)</option>` +
+  selProdCategory.innerHTML =
+    `<option value="">Selecciona…</option>` +
     categoriesCache.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
-  selProdSubcategory.innerHTML = `<option value="">(ninguna)</option>`;
+
+  selProdSubcategory.innerHTML = `<option value="">Selecciona…</option>`;
   selProdSubcategory.disabled = true;
 }
 
@@ -204,11 +198,9 @@ function prepararFormProducto(){
   inputProdName.value = '';
   inputProdPrice.value = '';
   inputProdImage.value = '';
-  inputNewCategory.value = '';
-  inputNewSubcategory.value = '';
   if (selProdCategory) selProdCategory.value = '';
   if (selProdSubcategory){
-    selProdSubcategory.innerHTML = `<option value="">(ninguna)</option>`;
+    selProdSubcategory.innerHTML = `<option value="">Selecciona…</option>`;
     selProdSubcategory.disabled = true;
   }
   chkProdActive.checked = true;
@@ -217,32 +209,23 @@ function prepararFormProducto(){
 
 function validarFormProducto(){
   const nameOk = normalizeStr(inputProdName.value).length > 0;
-  const price = numeroDesdeTexto(inputProdPrice.value);
-  const priceOk = Number.isFinite(price) && price >= 0;
+  const price  = numeroDesdeTexto(inputProdPrice.value);
+  const priceOk= Number.isFinite(price) && price > 0; // mínimo 0.01
 
-  // categoría: o select o nueva
-  const cat = normalizeStr(inputNewCategory.value) || normalizeStr(selProdCategory.value);
-  const catOk = cat.length > 0;
-
-  // subcategoría: o select (si hay cat existente) o nueva
-  const usingNewCat = normalizeStr(inputNewCategory.value).length > 0;
-  const sub = usingNewCat
-    ? normalizeStr(inputNewSubcategory.value)
-    : (normalizeStr(inputNewSubcategory.value) || normalizeStr(selProdSubcategory.value));
-
-  const subOk = sub.length > 0;
+  const catOk  = normalizeStr(selProdCategory.value).length > 0;
+  const subOk  = !selProdSubcategory.disabled && normalizeStr(selProdSubcategory.value).length > 0;
 
   const ok = nameOk && priceOk && catOk && subOk;
   btnGuardarProducto.disabled = !ok;
   btnGuardarProducto.setAttribute('aria-disabled', String(!ok));
 }
+
 btnProducto?.addEventListener('click', async () => {
   if (menuOpciones) menuOpciones.style.display = 'none';
   if (formZona)     formZona.style.display     = 'none';
   if (formCatSub)   formCatSub.style.display   = 'none';
   if (formProducto) formProducto.style.display = 'block';
 
-  // Carga categorias si aún no están; luego llena selects
   if (!categoriesCache.length){
     const payload = await apiGet(API_CATEGORIAS).catch(()=>({categories:[]}));
     categoriesCache = Array.isArray(payload) ? payload : (payload.categories || []);
@@ -251,51 +234,33 @@ btnProducto?.addEventListener('click', async () => {
   prepararFormProducto();
   validarFormProducto();
 });
-selProdCategory?.addEventListener('change', () => {
-  // Si está escribiendo NUEVA categoría, ignoramos el select
-  if (normalizeStr(inputNewCategory.value).length > 0){
-    selProdSubcategory.innerHTML = `<option value="">(ninguna)</option>`;
-    selProdSubcategory.disabled = true;
-    validarFormProducto();
-    return;
-  }
 
+selProdCategory?.addEventListener('change', () => {
   const selected = normalizeStr(selProdCategory.value);
   if (!selected){
-    selProdSubcategory.innerHTML = `<option value="">(ninguna)</option>`;
+    selProdSubcategory.innerHTML = `<option value="">Selecciona…</option>`;
     selProdSubcategory.disabled = true;
     validarFormProducto();
     return;
   }
   const found = categoriesCache.find(c => c.name === selected);
   const subs = Array.isArray(found?.subcategories) ? found.subcategories : [];
-  selProdSubcategory.innerHTML = `<option value="">(ninguna)</option>` +
+  selProdSubcategory.innerHTML =
+    `<option value="">Selecciona…</option>` +
     subs.sort().map(s => `<option value="${s}">${s}</option>`).join('');
   selProdSubcategory.disabled = subs.length === 0;
   validarFormProducto();
 });
+selProdSubcategory?.addEventListener('change', validarFormProducto);
 
-inputNewCategory?.addEventListener('input', () => {
-  const typed = normalizeStr(inputNewCategory.value).length > 0;
-  if (typed){
-    selProdCategory.value = '';
-    selProdSubcategory.innerHTML = `<option value="">(ninguna)</option>`;
-    selProdSubcategory.disabled = true;
-  } else {
-    // si borra, volvemos a depender del select
-    selProdCategory.dispatchEvent(new Event('change'));
-  }
-  validarFormProducto();
-});
-
-inputNewSubcategory?.addEventListener('input', validarFormProducto);
 inputProdName?.addEventListener('input', validarFormProducto);
 inputProdPrice?.addEventListener('input', validarFormProducto);
 inputProdPrice?.addEventListener('blur', () => {
   const n = numeroDesdeTexto(inputProdPrice.value);
-  if (Number.isFinite(n) && n >= 0) inputProdPrice.value = n.toFixed(2);
+  if (Number.isFinite(n) && n > 0) inputProdPrice.value = n.toFixed(2);
 });
-inputProdImage?.addEventListener('input', validarFormProducto);
+inputProdImage?.addEventListener('input', () => {}); // opcional, no afecta validación
+
 btnGuardarProducto?.addEventListener('click', async (e) => {
   e.preventDefault();
   if (btnGuardarProducto.disabled) return;
@@ -305,19 +270,13 @@ btnGuardarProducto?.addEventListener('click', async (e) => {
   const image = normalizeStr(inputProdImage.value);
   const active= !!chkProdActive.checked;
 
-  const cat = normalizeStr(inputNewCategory.value) || normalizeStr(selProdCategory.value);
-  const usingNewCat = normalizeStr(inputNewCategory.value).length > 0;
-
-  const sub = usingNewCat
-    ? normalizeStr(inputNewSubcategory.value)
-    : (normalizeStr(inputNewSubcategory.value) || normalizeStr(selProdSubcategory.value));
+  const cat = normalizeStr(selProdCategory.value);
+  const sub = normalizeStr(selProdSubcategory.value);
 
   try{
-    // 1) products.json: insert
     const id = `p_${Date.now()}`;
     const producto = { id, name, price, category: cat, subcategory: sub, image, active };
 
-    // lee cache si está vacío
     if (!productsCache.length){
       const payload = await apiGet(API_PRODUCTOS).catch(()=>({products:[]}));
       productsCache = Array.isArray(payload) ? payload : (payload.products || []);
@@ -325,25 +284,8 @@ btnGuardarProducto?.addEventListener('click', async (e) => {
     productsCache.push(producto);
     await apiPut(API_PRODUCTOS, { products: productsCache });
 
-    // 2) categorias.json: si se creó nueva cat/sub, reflejar
-    let touchedCats = false;
-    let entry = categoriesCache.find(c => c.name.toLowerCase() === cat.toLowerCase());
-    if (!entry){
-      entry = { name: cat, subcategories: [] };
-      categoriesCache.push(entry);
-      touchedCats = true;
-    }
-    if (!entry.subcategories.some(s => s.toLowerCase() === sub.toLowerCase())){
-      entry.subcategories.push(sub);
-      touchedCats = true;
-    }
-    if (touchedCats){
-      await apiPut(API_CATEGORIAS, { categories: categoriesCache });
-    }
-
-    // 3) UI: feedback y refrescos
     mostrarToast?.('Producto agregado');
-    prepararFormProducto(); // limpia el form (permite alta continua)
+    prepararFormProducto(); // listo para siguiente alta
 
     // Refresca filtros/tabla/switch global
     fillFilterSelectors();
@@ -368,14 +310,8 @@ btnCancelarProducto?.addEventListener('click', (e) => {
 
 async function initProductosPanel(){
   try{
-    // Estas funciones deben existir por el Paso B:
-    // - loadCategoriasAdmin() -> llena categoriesCache
-    // - loadProductosAdmin()  -> llena productsCache
     await Promise.all([ loadCategoriasAdmin(), loadProductosAdmin() ]);
 
-    // Estas funciones deben existir por el Paso C:
-    // - fillFilterSelectors() -> llena <select> de categoría y resetea subcategoría
-    // - applyProductosFilters() -> pinta la tabla con productosCache
     fillFilterSelectors();
     applyProductosFilters();
     updateVaciarToggleUI();
@@ -444,9 +380,7 @@ btnSaveEditProd?.addEventListener('click', async () => {
   const image = (editProdImage.value || '').trim();
 
   try {
-    // Buscar el producto en cache
     let idx = productsCache.findIndex(p => (p.id || '') === (editingProdId || ''));
-    // Fallback si no tuviera id: por nombre+cat+sub (no ideal, pero útil para datos viejos)
     if (idx === -1) {
       idx = productsCache.findIndex(p => p.name === name && p.category === cat && p.subcategory === sub);
     }
@@ -465,7 +399,7 @@ btnSaveEditProd?.addEventListener('click', async () => {
     cerrarModal(modalEditProd);
     editingProdId = null;
     mostrarToast?.('Producto actualizado');
-    applyProductosFilters(); // refresca tabla según filtros activos
+    applyProductosFilters();
   } catch (err) {
     console.error(err);
     mostrarToast?.('Error al guardar cambios');
@@ -473,36 +407,30 @@ btnSaveEditProd?.addEventListener('click', async () => {
 });
 
 
-// Listeners de filtros (usa funciones del Paso C)
+// Listeners de filtros
 function attachProductosFilterListeners(){
   if (typeof updateSubcategoryFilter !== 'function' || typeof applyProductosFilters !== 'function') return;
 
-  // Categoría -> habilita subcategorías dependientes y aplica filtros
   filterCategory?.addEventListener('change', () => {
     updateSubcategoryFilter();
     applyProductosFilters();
   });
 
-  // Subcategoría -> aplica filtros
   filterSubcategory?.addEventListener('change', applyProductosFilters);
 
-  // Búsqueda por nombre (multi-palabra, sin acentos)
   let searchTimer = null;
   filterSearch?.addEventListener('input', () => {
     clearTimeout(searchTimer);
-
-    // Al empezar a escribir, reinicia los selects (Esto es busqueda global)
     if (filterCategory) filterCategory.value = '';
     if (filterSubcategory) {
       filterSubcategory.innerHTML = `<option value="">Selecciona subcategoría</option>`;
       filterSubcategory.disabled = true;
     }
-
     searchTimer = setTimeout(() => applyProductosFilters(), 120);
   });
 }
 
-// Boot del panel de productos (no interfiere con otros DOMContentLoaded)
+// Boot
 function bootProductosPanel(){
   attachProductosFilterListeners();
   initProductosPanel().catch(err => {
@@ -511,7 +439,6 @@ function bootProductosPanel(){
   });
 }
 
-// Llama al boot de forma segura, exista o no otro DOMContentLoaded
 if (document.readyState === 'loading') {
   window.addEventListener('DOMContentLoaded', bootProductosPanel);
 } else {
@@ -521,13 +448,11 @@ if (document.readyState === 'loading') {
 function fillEditCatAndSub(catSel, subSel, selectedCat = '', selectedSub = ''){
   const cats = categoriesCache.map(c => c.name);
   catSel.innerHTML = cats.map(c => `<option value="${c}">${c}</option>`).join('');
-  // Selección de categoría
   if (selectedCat && cats.includes(selectedCat)) {
     catSel.value = selectedCat;
   } else {
     catSel.value = cats[0] || '';
   }
-  // Subcats de la categoría elegida
   const subs = (categoriesCache.find(c => c.name === catSel.value)?.subcategories) || [];
   subSel.innerHTML = subs.map(s => `<option value="${s}">${s}</option>`).join('');
   subSel.disabled = subs.length === 0;
@@ -587,7 +512,6 @@ async function loadProductosAdmin(){
   const payload = await apiGet(API_PRODUCTOS).catch(()=>({products:[]}));
   productsCache = Array.isArray(payload) ? payload : (payload.products || []);
 
-  // Asigna id a los que no tengan y persiste una sola vez
   let touched = false;
   productsCache.forEach((p, i) => {
     if (!p.id) {
@@ -608,8 +532,6 @@ function countActiveProducts(){
 
 function updateVaciarToggleUI(){
   const activeCount = countActiveProducts();
-  // ON si hay al menos 1 activo, y habilitado (para permitir apagar todo)
-  // OFF y deshabilitado si no hay activos
   if (toggleVaciarCatalogo){
     toggleVaciarCatalogo.checked  = activeCount > 0;
     toggleVaciarCatalogo.disabled = activeCount === 0;
@@ -619,46 +541,38 @@ function updateVaciarToggleUI(){
   }
 }
 toggleVaciarCatalogo?.addEventListener('change', async () => {
-  // Solo permitimos el cambio cuando pasa de ON -> OFF (vaciar)
   if (toggleVaciarCatalogo.checked){
-    // No se puede encender manualmente: revertimos
     toggleVaciarCatalogo.checked = false;
     mostrarToast?.('Activa al menos un producto desde la tabla');
     return;
   }
 
-  // Confirmación
   if (!confirm('¿Vaciar catálogo? Esto desactivará TODOS los productos (no aparecerán en el catálogo).')) {
-    toggleVaciarCatalogo.checked = true; // revertir UI
+    toggleVaciarCatalogo.checked = true;
     return;
   }
 
   try{
-    // Desactivar todos
     productsCache = productsCache.map(p => ({ ...p, active: false }));
     await apiPut(API_PRODUCTOS, { products: productsCache });
 
-    // Refrescar tabla (según filtros) y actualizar UI del switch global
     applyProductosFilters();
     updateVaciarToggleUI();
     mostrarToast?.('Catálogo vaciado (todos inactivos)');
   }catch(err){
     console.error(err);
     mostrarToast?.('Error al vaciar catálogo');
-    toggleVaciarCatalogo.checked = true; // revertir si falló
+    toggleVaciarCatalogo.checked = true;
   }
 });
 
 
 function fillFilterSelectors(){
-  // Usamos categorias.json si existe; si no, derivamos de productos
   const map = categoriesCache.length ? buildCatMapFromCategories() : buildCatMapFromProducts();
 
-  // Categorías
   filterCategory.innerHTML = `<option value="">Todas las categorías</option>` +
     Array.from(map.keys()).sort().map(c=>`<option value="${c}">${c}</option>`).join('');
 
-  // Subcategoría reseteada
   filterSubcategory.innerHTML = `<option value="">Todas las subcategorías</option>`;
   filterSubcategory.disabled = true;
 }
@@ -679,10 +593,8 @@ function applyProductosFilters(){
   const terms = normalize(filterSearch.value).split(/\s+/).filter(Boolean);
 
   const filtered = productsCache.filter(p=>{
-    // categoría/subcategoría
     if (cat && p.category !== cat) return false;
     if (sub && p.subcategory !== sub) return false;
-    // búsqueda por nombre (multi-palabra)
     if (terms.length){
       const name = normalize(p.name);
       return terms.every(t => name.includes(t));
@@ -705,27 +617,21 @@ function renderProductosTable(list){
     const tr = document.createElement('tr');
     tr.dataset.id = p.id || '';
 
-    // Imagen
     const imgTd = document.createElement('td');
     imgTd.innerHTML = `<img src="${p.image || ''}" alt="" class="table-thumb" onerror="this.style.visibility='hidden'">`;
 
-    // Nombre
     const nameTd = document.createElement('td');
     nameTd.textContent = p.name || '';
 
-    // Precio
     const priceTd = document.createElement('td');
     priceTd.textContent = `$${Number(p.price||0).toFixed(2)}`;
 
-    // Categoría
     const catTd = document.createElement('td');
     catTd.textContent = p.category || '';
 
-    // Subcategoría
     const subTd = document.createElement('td');
     subTd.textContent = p.subcategory || '';
 
-    // Acciones: Editar, Eliminar, Switch
     const actionsTd = document.createElement('td');
     actionsTd.style.whiteSpace = 'nowrap';
     actionsTd.innerHTML = `
@@ -755,19 +661,16 @@ tablaProductosBody?.addEventListener('change', async (e) => {
   if (!id) return;
 
   try {
-    // Cambiamos en cache
     const idx = productsCache.findIndex(x => (x.id||'') === id);
     if (idx === -1) return;
     productsCache[idx].active = chk.checked;
 
-    // Persistimos todo el arreglo
     await apiPut(API_PRODUCTOS, { products: productsCache });
     mostrarToast?.(chk.checked ? 'Producto activado' : 'Producto desactivado');
     updateVaciarToggleUI(); 
   } catch (err) {
     console.error(err);
     mostrarToast?.('Error al actualizar estado');
-    // revertir UI si falló
     chk.checked = !chk.checked;
   }
 });
@@ -777,9 +680,7 @@ tablaProductosBody?.addEventListener('click', async (e) => {
   if (!tr) return;
   const id = tr.dataset.id || '';
 
-  // EDITAR
   if (e.target.closest('.btn-edit-prod')) {
-    // Busca el producto por id; si no hay id, por claves visibles del tr
     let prod = productsCache.find(p => (p.id || '') === id);
     if (!prod) {
       const tds = tr.querySelectorAll('td');
@@ -794,12 +695,10 @@ tablaProductosBody?.addEventListener('click', async (e) => {
     return;
   }
 
-  // ELIMINAR
   if (e.target.closest('.btn-del-prod')) {
     if (!confirm('¿Eliminar este producto?')) return;
     try{
       const newList = productsCache.filter(p => (p.id || '') !== id);
-      // Si no tenía id, filtramos por lo visible del tr
       if (newList.length === productsCache.length) {
         const tds = tr.querySelectorAll('td');
         const name = tds[1]?.textContent?.trim() || '';
@@ -824,8 +723,8 @@ tablaProductosBody?.addEventListener('click', async (e) => {
 // ================== Menú hamburguesa ==================
 function abrirMenu() {
   if (!menuLateral || !menuOverlay) return;
-  menuLateral.classList.add('activo');   // stylesPanel.css usa .activo
-  menuOverlay.classList.add('activo');   // muestra overlay
+  menuLateral.classList.add('activo');
+  menuOverlay.classList.add('activo');
 }
 function cerrarMenu() {
   if (!menuLateral || !menuOverlay) return;
@@ -838,7 +737,7 @@ menuOverlay?.addEventListener('click', cerrarMenu);
 // ================== Utilidades de modal ==================
 function abrirModal(modalEl) {
   if (!modalEl) return;
-  modalEl.classList.remove('oculto'); // tu CSS centra con display:flex
+  modalEl.classList.remove('oculto');
 }
 function cerrarModal(modalEl) {
   if (!modalEl) return;
@@ -889,12 +788,11 @@ function renderSubcats(catName) {
 }
 
 btnCats?.addEventListener('click', async () => {
-  cerrarMenu?.(); // tu función para cerrar el menú
+  cerrarMenu?.();
   try {
     const payload = await apiGet(API_CATEGORIAS);
     categoriesCache = Array.isArray(payload) ? payload : (payload.categories || []);
     renderCategoriasTabla();
-    // Seleccionamos la primera categoría (si existe)
     if (categoriesCache.length) renderSubcats(categoriesCache[0].name);
     abrirModal?.(modalCats);
   } catch (err) {
@@ -914,18 +812,15 @@ tablaCatsBody?.addEventListener('click', async (e) => {
   if (!tr) return;
   const catName = tr.dataset.cat;
 
-  // Seleccionar categoría (para ver subcategorías)
   if (e.target.closest('.select-cat')) {
     renderSubcats(catName);
     return;
   }
 
-  // Editar nombre de la categoría
   if (e.target.closest('.btn-edit-cat')) {
     const nuevo = prompt('Nuevo nombre para la categoría:', catName);
     if (!nuevo) return;
 
-    // validaciones
     if (categoriesCache.some(c => c.name.toLowerCase() === nuevo.toLowerCase() && c.name !== catName)) {
       return mostrarToast?.('Ya existe una categoría con ese nombre');
     }
@@ -947,7 +842,6 @@ tablaCatsBody?.addEventListener('click', async (e) => {
     return;
   }
 
-  // Eliminar categoría
   if (e.target.closest('.btn-del-cat')) {
     if (!confirm(`¿Eliminar la categoría "${catName}" y todas sus subcategorías?`)) return;
     const nuevas = categoriesCache.filter(c => c.name !== catName);
@@ -955,7 +849,6 @@ tablaCatsBody?.addEventListener('click', async (e) => {
       await apiPut(API_CATEGORIAS, { categories: nuevas });
       categoriesCache = nuevas;
       renderCategoriasTabla();
-      // Ajustar panel derecho
       if (selectedCat === catName) {
         renderSubcats(nuevas[0]?.name || '');
       }
@@ -967,7 +860,6 @@ tablaCatsBody?.addEventListener('click', async (e) => {
   }
 });
 
-// Agregar subcategoría
 btnAgregarSubcat?.addEventListener('click', async () => {
   const s = (inputNuevaSubcat?.value || '').trim();
   if (!selectedCat) return mostrarToast?.('Selecciona una categoría');
@@ -992,7 +884,6 @@ btnAgregarSubcat?.addEventListener('click', async () => {
   }
 });
 
-// Editar / Eliminar subcategoría (delegado)
 subcatList?.addEventListener('click', async (e) => {
   const li = e.target.closest('li');
   if (!li) return;
@@ -1000,7 +891,6 @@ subcatList?.addEventListener('click', async (e) => {
   const cat = categoriesCache.find(c => c.name === selectedCat);
   if (!cat) return;
 
-  // Editar subcategoría
   if (e.target.closest('.btn-edit-sub')) {
     const nuevo = prompt('Nuevo nombre para la subcategoría:', subName);
     if (!nuevo) return;
@@ -1023,7 +913,6 @@ subcatList?.addEventListener('click', async (e) => {
     return;
   }
 
-  // Eliminar subcategoría
   if (e.target.closest('.btn-del-sub')) {
     if (!confirm(`¿Eliminar la subcategoría "${subName}"?`)) return;
     const nuevas = cat.subcategories.filter(x => x !== subName);
@@ -1051,21 +940,19 @@ function habilitarCierreExterior(modalEl, contentSelector = '.modal-contenido') 
 }
 habilitarCierreExterior(modalAgregar, '.modal-contenido');
 habilitarCierreExterior(modalEditarZona, '.modal-contenido');
-// Para modalZonas el contenedor es .contenido-zonas:
 modalZonas?.addEventListener('click', (e) => {
   const cont = modalZonas.querySelector('.contenido-zonas');
   if (e.target === modalZonas) cerrarModal(modalZonas);
 });
 
 // ================== VALIDACIÓN "Agregar Zona" ==================
-// Normaliza números con coma o punto
-function numeroDesdeTexto(v) {
+function numeroDesdeTextoZona(v) {
   if (typeof v !== 'string') return NaN;
   return parseFloat(v.replace(',', '.'));
 }
 function validarFormZona() {
   const nombreOk = !!(inputNombreZona && inputNombreZona.value.trim().length > 0);
-  const costoVal = numeroDesdeTexto(inputCostoZona ? inputCostoZona.value.trim() : '');
+  const costoVal = numeroDesdeTextoZona(inputCostoZona ? inputCostoZona.value.trim() : '');
   const costoOk  = Number.isFinite(costoVal) && costoVal >= 0;
 
   const habilitar = nombreOk && costoOk;
@@ -1075,12 +962,10 @@ function validarFormZona() {
   }
 }
 function prepararFormZona() {
-  // Limpia campos y desactiva el botón al abrir el form
   if (inputNombreZona) inputNombreZona.value = '';
   if (inputCostoZona)  inputCostoZona.value  = '';
   validarFormZona();
 }
-// Re-validación en vivo
 inputNombreZona?.addEventListener('input', validarFormZona);
 inputCostoZona?.addEventListener('input', validarFormZona);
 
@@ -1089,7 +974,7 @@ btnAgregar?.addEventListener('click', () => {
   if (menuOpciones) menuOpciones.style.display = 'block';
   if (formZona)     formZona.style.display     = 'none';
   if (formCatSub)    formCatSub.style.display    = 'none';
-  if (formProducto)  formProducto.style.display  = 'none'; // <— IMPORTANTE
+  if (formProducto)  formProducto.style.display  = 'none';
   abrirModal(modalAgregar);
 });
 
@@ -1097,7 +982,7 @@ btnZona?.addEventListener('click', () => {
   if (!menuOpciones || !formZona) return;
   menuOpciones.style.display = 'none';
   formZona.style.display     = 'block';
-  prepararFormZona(); // <-- inicia con Guardar desactivado
+  prepararFormZona();
 });
 
 btnCancelarZona?.addEventListener('click', (e) => {
@@ -1105,7 +990,7 @@ btnCancelarZona?.addEventListener('click', (e) => {
   if (!menuOpciones || !formZona) return;
   menuOpciones.style.display = 'block';
   formZona.style.display     = 'none';
-  prepararFormZona(); // reset por si vuelven a entrar
+  prepararFormZona();
 });
 
 // Guardar zona REAL
@@ -1114,7 +999,7 @@ btnGuardarZona?.addEventListener('click', async (e) => {
   if (btnGuardarZona.disabled) return;
 
   const nombre = inputNombreZona.value.trim();
-  const costo  = numeroDesdeTexto(inputCostoZona.value.trim());
+  const costo  = numeroDesdeTextoZona(inputCostoZona.value.trim());
 
   try {
     const zonas = await apiGet(API_ZONAS).catch(() => []);
@@ -1125,12 +1010,10 @@ btnGuardarZona?.addEventListener('click', async (e) => {
     await apiPut(API_ZONAS, zonas);
 
     mostrarToast('Zona guardada');
-    // limpia el form y deja Guardar desactivado
     if (inputNombreZona) inputNombreZona.value = '';
     if (inputCostoZona)  inputCostoZona.value  = '';
     (btnGuardarZona || {}).disabled = true;
 
-    // Si el modal de Zonas está abierto, refresca la tabla
     if (modalZonas && !modalZonas.classList.contains('oculto')) {
       await cargarZonasEnTabla();
     }
@@ -1154,14 +1037,13 @@ btnGuardarZonaEditada?.addEventListener('click', async (e) => {
   e.preventDefault();
   const original = modalEditarZona.dataset.original || '';
   const nuevoNombre = editNombreZona.value.trim();
-  const nuevoCosto  = numeroDesdeTexto(editCostoZona.value.trim());
+  const nuevoCosto  = numeroDesdeTextoZona(editCostoZona.value.trim());
 
   try {
     const zonas = await apiGet(API_ZONAS);
     const idx = zonas.findIndex(z => z.nombre === original);
     if (idx === -1) return mostrarToast('No se encontró la zona');
 
-    // evitar duplicados si cambió el nombre
     if (nuevoNombre.toLowerCase() !== original.toLowerCase() &&
         zonas.some(z => z.nombre.toLowerCase() === nuevoNombre.toLowerCase())) {
       return mostrarToast('Ya existe una zona con ese nombre');
@@ -1183,49 +1065,17 @@ btnGuardarZonaEditada?.addEventListener('click', async (e) => {
 btnCancelarEditarZona?.addEventListener('click', (e) => {
   e.preventDefault();
   cerrarModal(modalEditarZona);
-  // Si el modal de Zonas estuviera cerrado por alguna razón, lo abrimos:
   if (modalZonas && modalZonas.classList.contains('oculto')) {
     abrirModal(modalZonas);
   }
 });
 
-// ================== Relleno de tabla demo (Zonas) ==================
-function crearFilaZona({ nombre, costo }) {
-  const tr = document.createElement('tr');
-
-  const tdNombre = document.createElement('td');
-  tdNombre.textContent = nombre;
-
-  const tdCosto = document.createElement('td');
-  tdCosto.textContent = `$${Number(costo).toFixed(2)}`;
-
-  const tdAcciones = document.createElement('td');
-
-  const btnEdit = document.createElement('button');
-  btnEdit.className = 'btn-accion';
-  btnEdit.textContent = 'Editar';
-  btnEdit.addEventListener('click', () => {
-    if (editNombreZona) editNombreZona.value = nombre;
-    if (editCostoZona)  editCostoZona.value  = Number(costo).toFixed(2);
-    abrirModal(modalEditarZona);
-  });
-
-  const btnDel = document.createElement('button');
-  btnDel.className = 'btn-accion';
-  btnDel.style.backgroundColor = '#ef4444';
-  btnDel.textContent = 'Eliminar';
-  btnDel.addEventListener('click', () => mostrarToast('Función eliminar (demo)'));
-
-  tdAcciones.append(btnEdit, btnDel);
-  tr.append(tdNombre, tdCosto, tdAcciones);
-  return tr;
-}
 async function cargarZonasEnTabla() {
   const zonas = await apiGet(API_ZONAS).catch(() => []);
   tablaZonasBody.innerHTML = '';
   zonas.forEach(z => {
     const tr = document.createElement('tr');
-    tr.dataset.nombre = z.nombre; // identificador lógico
+    tr.dataset.nombre = z.nombre;
     tr.innerHTML = `
       <td>${z.nombre}</td>
       <td>$${Number(z.costo).toFixed(2)}</td>
@@ -1239,32 +1089,30 @@ async function cargarZonasEnTabla() {
   return zonas;
 }
 
-function normalizeStr(s){ return (s||'').toString().trim(); }
+function normalizeStr2(s){ return (s||'').toString().trim(); }
 
-// Carga categorías en el select; devuelve arreglo [{name, subcategories[]},...]
+// Carga categorías (para el form Cat/Sub)
 async function cargarCategorias() {
   const payload = await apiGet(API_CATEGORIAS).catch(()=>({categories:[]}));
   const categories = Array.isArray(payload) ? payload : (payload.categories || []);
 
-  // Rellena select de categorías
   if (selCategoriaExistente) {
     selCategoriaExistente.innerHTML =
       `<option value="">(ninguna)</option>` +
       categories.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
   }
 
-  // Reset subcats
   if (selSubcategoriaExistente) {
     selSubcategoriaExistente.innerHTML = `<option value="">(ninguna)</option>`;
     selSubcategoriaExistente.disabled = true;
   }
-  categoriesCache = categories;  // cacheamos para no reconstruir el select al cambiar
+  categoriesCache = categories;
   return categories;
 }
 
 function validarFormCatSub(){
-  const cat = normalizeStr(inputNuevaCategoria?.value) || normalizeStr(selCategoriaExistente?.value);
-  const sub = normalizeStr(inputNuevaSubcategoria?.value) || normalizeStr(selSubcategoriaExistente?.value);
+  const cat = normalizeStr2(inputNuevaCategoria?.value) || normalizeStr2(selCategoriaExistente?.value);
+  const sub = normalizeStr2(inputNuevaSubcategoria?.value) || normalizeStr2(selSubcategoriaExistente?.value);
   const ok = !!cat && !!sub;
   if (btnGuardarCatSub) {
     btnGuardarCatSub.disabled = !ok;
@@ -1283,7 +1131,6 @@ function prepararFormCatSub(){
   validarFormCatSub();
 }
 btnCatSub?.addEventListener('click', async () => {
-  // Oculta el menú de opciones del "+" y el form de zona; muestra Cat/Subcat
   if (menuOpciones) menuOpciones.style.display = 'none';
   if (formZona)     formZona.style.display     = 'none';
   if (formCatSub)   formCatSub.style.display   = 'block';
@@ -1295,7 +1142,6 @@ btnCatSub?.addEventListener('click', async () => {
 selCategoriaExistente?.addEventListener('change', () => {
   const selected = (selCategoriaExistente.value || '').trim();
 
-  // Si el usuario está escribiendo una nueva categoría, ignoramos el select
   const newCatTyped = (inputNuevaCategoria?.value || '').trim().length > 0;
   if (newCatTyped) {
     selSubcategoriaExistente.innerHTML = `<option value="">(ninguna)</option>`;
@@ -1311,7 +1157,6 @@ selCategoriaExistente?.addEventListener('change', () => {
     return;
   }
 
-  // Usamos el caché (no reconstruye el select de categoría)
   const found = categoriesCache.find(c => c.name === selected);
   const subs = Array.isArray(found?.subcategories) ? found.subcategories : [];
   selSubcategoriaExistente.innerHTML =
@@ -1322,18 +1167,15 @@ selCategoriaExistente?.addEventListener('change', () => {
   validarFormCatSub();
 });
 
-
 inputNuevaCategoria?.addEventListener('input', () => {
-  const typed = normalizeStr(inputNuevaCategoria.value).length > 0;
+  const typed = normalizeStr2(inputNuevaCategoria.value).length > 0;
   if (typed) {
-    // Vacía selección de categoría y deshabilita subcategorías existentes
     if (selCategoriaExistente) selCategoriaExistente.value = '';
     if (selSubcategoriaExistente) {
       selSubcategoriaExistente.innerHTML = `<option value="">(ninguna)</option>`;
       selSubcategoriaExistente.disabled = true;
     }
   } else {
-    // Si borra lo escrito, reactivamos el flujo normal (depende del select)
     selCategoriaExistente?.dispatchEvent(new Event('change'));
   }
   validarFormCatSub();
@@ -1344,28 +1186,25 @@ selSubcategoriaExistente?.addEventListener('change', validarFormCatSub);
 btnGuardarCatSub?.addEventListener('click', async (e) => {
   e.preventDefault();
 
-  const cat = normalizeStr(inputNuevaCategoria?.value) || normalizeStr(selCategoriaExistente?.value);
-  const sub = normalizeStr(inputNuevaSubcategoria?.value) || normalizeStr(selSubcategoriaExistente?.value);
+  const cat = normalizeStr2(inputNuevaCategoria?.value) || normalizeStr2(selCategoriaExistente?.value);
+  const sub = normalizeStr2(inputNuevaSubcategoria?.value) || normalizeStr2(selSubcategoriaExistente?.value);
   if (!cat || !sub) return mostrarToast?.('Indica categoría y subcategoría');
 
   try {
     const payload = await apiGet(API_CATEGORIAS).catch(()=>({categories:[]}));
     const categories = Array.isArray(payload) ? payload : (payload.categories || []);
 
-    // Buscar categoría (case-insensitive)
     let entry = categories.find(c => c.name.toLowerCase() === cat.toLowerCase());
     if (!entry) {
       entry = { name: cat, subcategories: [] };
       categories.push(entry);
     }
-    // Evitar duplicado de subcategoría (case-insensitive)
     const existsSub = entry.subcategories.some(s => s.toLowerCase() === sub.toLowerCase());
     if (!existsSub) entry.subcategories.push(sub);
     else return mostrarToast?.('Esa subcategoría ya existe en esa categoría');
 
     await apiPut(API_CATEGORIAS, { categories });
 
-    // Feedback y reset
     mostrarToast?.('Categoría/Subcategoría guardadas');
     prepararFormCatSub();
 
@@ -1381,13 +1220,11 @@ btnCancelarCatSub?.addEventListener('click', (e) => {
   prepararFormCatSub();
 });
 
-
 tablaZonasBody?.addEventListener('click', async (e) => {
   const tr = e.target.closest('tr');
   if (!tr) return;
   const nombreOriginal = tr.dataset.nombre;
 
-  // EDITAR
   if (e.target.closest('.btn-edit')) {
     try {
       const zonas = await apiGet(API_ZONAS);
@@ -1404,7 +1241,6 @@ tablaZonasBody?.addEventListener('click', async (e) => {
     return;
   }
 
-  // ELIMINAR
   if (e.target.closest('.btn-eliminar')) {
     if (!confirm(`¿Eliminar la zona "${nombreOriginal}"?`)) return;
     try {
