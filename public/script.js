@@ -883,6 +883,24 @@ function toggleContinueButton(){
 
 // --------- INIT ---------
 window.addEventListener('DOMContentLoaded', async () => {
+// --- Fijar topbar y ajustar el desplazamiento del contenido ---
+(function fixTopbarOffset(){
+  const topbar = document.querySelector('.topbar');
+  if (!topbar) return;
+
+  const applyOffset = () => {
+    // Calcula la altura real (cambia cuando las filas se apilan en móvil)
+    const h = topbar.offsetHeight || 0;
+    document.body.classList.add('has-fixed-topbar');
+    document.body.style.setProperty('--topbar-h', h + 'px');
+  };
+
+  // Aplica cuando esté todo pintado, y también al redimensionar
+  window.addEventListener('load', applyOffset);
+  window.addEventListener('resize', applyOffset);
+  // Por si el DOM ya está listo:
+  if (document.readyState !== 'loading') applyOffset();
+})();
 
   // 0) Checar estado del servicio ANTES de montar catálogo
   try {

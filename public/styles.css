@@ -20,14 +20,22 @@ body{
   background:var(--bg);
 }
 
-/* Top bar sticky */
+/* Top bar fija de verdad */
 .topbar{
-  position: sticky;
+  position: fixed;       /* antes: sticky */
   top: 0;
-  z-index: 50;
+  left: 0;
+  right: 0;
+  width: 100%;
+  z-index: 100;          /* debajo de modales (2000+) y por encima del contenido */
   background: linear-gradient(180deg, var(--white), #ffffffd9);
   backdrop-filter: blur(6px);
   border-bottom: 1px solid #e9e9e9;
+}
+/* Cuando la topbar es fija, empuja el contenido hacia abajo.
+   JS medirá la altura real y pondrá --topbar-h; aquí dejamos un fallback. */
+body.has-fixed-topbar{
+  padding-top: var(--topbar-h, 120px);
 }
 
 .filters{
