@@ -698,11 +698,11 @@ function validateCheckout() {
     let msg = '';
 
     if (!raw.length) {
-      cashOk = false; msg = 'Escribe el monto con el que pagarás.';
+      cashOk = false; msg = 'Con este dato calcularemos tu feria/cambio.';
     } else if (isNaN(cash)) {
       cashOk = false; msg = 'Coloca un número válido (ej. 500.00).';
     } else if (cash < totalDue) {
-      cashOk = false; msg = `El efectivo no cubre el total ($${totalDue.toFixed(2)}).`;
+      cashOk = false; msg = `El efectivo ingresado no cubre el total ($${totalDue.toFixed(2)}).`;
     }
 
     // bloquea submit nativo + muestra/oculta el <small>
@@ -724,7 +724,6 @@ function validateCheckout() {
   // Actualiza el pill de total
   updateCheckoutTotalPill();
 }
-
 
 // Si se envió correctamente por WhatsApp, resetear formulario
 function resetCheckoutForm() {
@@ -759,15 +758,15 @@ checkoutForm.addEventListener('change', () => {
   validateCheckout();
 });
 
-checkoutForm.addEventListener('submit', (e)=>{
+checkoutForm.addEventListener('submit', (e) => {
   e.preventDefault();
+  // Asegura validación (efectivo >= total, etc.)
   validateCheckout();
   if (!checkoutForm.checkValidity()) {
-    // Muestra el bubble y también el tooltip nativo si el navegador decide
     checkoutForm.reportValidity();
     return;
   }
-  const subtotal = parseFloat(document.getElementById('cartTotal').textContent.replace(/[^0-9.]/g, '')) || 0;
+  const subtotal = parseFloat(document.getElementById('cartTotal').textContent.replace(/[^0-9.]/g,'')) || 0;
 
   const [zoneName, zoneCostRaw] = (zone.value || '').split('|');
   const shipping = parseFloat(zoneCostRaw || '0') || 0;
@@ -777,17 +776,16 @@ checkoutForm.addEventListener('submit', (e)=>{
   const base = subtotal + shipping;
   const totalDue = pay === 'Tarjeta' ? +(base * 1.043).toFixed(2) : +base.toFixed(2);
 
-  let changeInfo = '';
-  if (pay === 'Efectivo') {
-    const cash = parseFloat(cashGiven.value || '0') || 0;
-    const change = +(cash - totalDue).toFixed(2);
-    changeInfo = change >= 0
-      ? `Cambio aproximado: $${Number(change).toFixed(2)}`
-      : `Faltan: $${Number(Math.abs(change)).toFixed(2)}`;
-  }
-
   const items = collectCartItems();
   const addressText = address.value.trim();
+
+  // Datos de efectivo (ya sabemos que será >= total por la validación)
+  let efectivo = null;
+  if (pay === 'Efectivo') {
+    const pagaCon = parseFloat(cashGiven.value || '0') || 0;
+    const cambio  = +(pagaCon - totalDue).toFixed(2);
+    efectivo = { pagaCon, cambio };
+  }
 
   const ticket = buildTicket({
     items,
@@ -797,7 +795,7 @@ checkoutForm.addEventListener('submit', (e)=>{
     subtotal,
     totalDue,
     address: addressText,
-    changeInfo
+    efectivo, // null si no es efectivo
   });
 
   openWhatsAppWithMessage(ticket);
@@ -816,35 +814,56 @@ function collectCartItems(){
   });
   return items;
 }
-function buildTicket({ items, zoneName, shipping, pay, subtotal, totalDue, address, changeInfo }) {
+
+function buildTicket({ items, zoneName, shipping, pay, subtotal, totalDue, address, efectivo }) {
   const lines = [];
-  lines.push('🧾 *Pedido KaChu*');
+
+  // Título
+  lines.push('*KaChu Domicilio*');
   lines.push('');
+
+  // Artículos
   if (items && items.length) {
     lines.push('*Artículos:*');
     items.forEach(it => {
       const u = Number(it.unit).toFixed(2);
       const l = Number(it.line).toFixed(2);
-      lines.push(`• ${it.name} — $${u} x ${it.qty} = $${l}`);
+      lines.push(`• ${it.name}`);
+      // barra vertical "│" (U+2502). Si no te gusta, puedes cambiarla por "|"
+      lines.push(`│ ${it.qty} x $${u} = $${l}`);
+      lines.push('');
     });
-    lines.push('');
   }
+
+  // Totales
+  const isFree = Number(shipping) === 0;
+  const envioTag = isFree ? `${zoneName || 'Zona'}(Gratis)` : (zoneName || 'Zona');
+
   lines.push(`*Subtotal:* $${Number(subtotal).toFixed(2)}`);
-  lines.push(`*Envío (${zoneName || 'Zona'}):* $${Number(shipping).toFixed(2)}`);
-  if (pay === 'Tarjeta') lines.push(`% incluida`);
+  lines.push(`*Envío (${envioTag}):* $${Number(shipping).toFixed(2)}`);
   lines.push(`*Total a pagar:* $${Number(totalDue).toFixed(2)}`);
   lines.push('');
+
+  // Forma de pago
   lines.push(`*Pago:* ${pay}`);
-  if (pay === 'Efectivo' && changeInfo) lines.push(changeInfo);
+  if (efectivo) {
+    lines.push(`*Paga con:* $${Number(efectivo.pagaCon).toFixed(2)}`);
+    lines.push(`*Cambio:* $${Number(efectivo.cambio).toFixed(2)}`);
+  }
   lines.push('');
+
+  // Dirección
   if (address) {
     lines.push('*Dirección:*');
     lines.push(address);
     lines.push('');
   }
+
   lines.push('Gracias por tu compra 🙌');
+
   return lines.join('\n');
 }
+
 
 const STORE_WHATSAPP = '528135697787'; // MX con 52 + número
 function openWhatsAppWithMessage(text){
