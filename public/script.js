@@ -38,6 +38,36 @@ const btnTransferOK = document.getElementById('btnTransferOK');
 
 btnClearCart?.addEventListener('click', clearCart);
 
+// Aviso de transferencia: solo cuando el usuario selecciona ese radio
+const modalTransfer = document.getElementById('modalTransfer'); // tu modal
+const payRadios = document.querySelectorAll('input[name="pay"]');
+
+let transferNoticeShown = false; // para no repetirlo en el mismo intento
+
+payRadios.forEach(r => {
+  r.addEventListener('change', (e) => {
+    const v = e.target.value;
+    if (v === 'Transferencia') {
+      if (!transferNoticeShown) {
+        openModal(modalTransfer);
+        transferNoticeShown = true;
+      }
+    } else {
+      // si cambia a Efectivo o Tarjeta, resetea
+      transferNoticeShown = false;
+    }
+  });
+});
+
+// Cada vez que abres el modal de checkout, resetea el aviso
+btnContinue.addEventListener('click', () => {
+  if (btnContinue.disabled) return;
+  closeModal(modalCart);
+  transferNoticeShown = false;    // ← importante
+  openModal(modalCheckout);
+});
+
+
 // --------- Persistencia ---------
 const CART_KEY = 'kachu_cart_v1';
 const CHECKOUT_KEY = 'kachu_checkout_v1';
@@ -765,9 +795,6 @@ checkoutForm.addEventListener('change', () => {
   // efectivo: mostrar/ocultar campo
   cashField.classList.toggle('hidden', pay !== 'Efectivo');
   // NUEVO: si selecciona Transferencia, abre el modal informativo
-  if (pay === 'Transferencia') {
-    openModal(modalTransfer);
-  }
   validateCheckout();
 });
 
