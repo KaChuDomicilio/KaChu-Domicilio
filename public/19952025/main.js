@@ -414,9 +414,13 @@ function attachProductosFilterListeners(){
   filterCategory?.addEventListener('change', () => {
     updateSubcategoryFilter();
     applyProductosFilters();
+    updateVaciarToggleUI();
   });
 
-  filterSubcategory?.addEventListener('change', applyProductosFilters);
+  filterSubcategory?.addEventListener('change', () => {
+    applyProductosFilters();
+    updateVaciarToggleUI();   // ← agregar
+  });
 
   let searchTimer = null;
   filterSearch?.addEventListener('input', () => {
@@ -426,7 +430,10 @@ function attachProductosFilterListeners(){
       filterSubcategory.innerHTML = `<option value="">Selecciona subcategoría</option>`;
       filterSubcategory.disabled = true;
     }
-    searchTimer = setTimeout(() => applyProductosFilters(), 120);
+    searchTimer = setTimeout(() => {
+      applyProductosFilters();
+      updateVaciarToggleUI(); // ← agregar
+    }, 120);
   });
 }
 
@@ -530,42 +537,82 @@ function countActiveProducts(){
   return productsCache.reduce((acc,p)=> acc + (p.active === false ? 0 : 1), 0);
 }
 
+function getCurrentScope(){
+  const cat = (filterCategory?.value || '').trim();
+  const sub = (filterSubcategory?.value || '').trim();
+  return { cat, sub, isValid: !!cat && !!sub };
+}
+function countTotalInScope(cat, sub){
+  return productsCache.reduce((acc,p)=> acc + ((p.category===cat && p.subcategory===sub) ? 1 : 0), 0);
+}
+function countActiveProductsInScope(cat, sub){
+  return productsCache.reduce((acc,p)=> acc + ((p.category===cat && p.subcategory===sub && p.active !== false) ? 1 : 0), 0);
+}
+
 function updateVaciarToggleUI(){
-  const activeCount = countActiveProducts();
-  if (toggleVaciarCatalogo){
-    toggleVaciarCatalogo.checked  = activeCount > 0;
-    toggleVaciarCatalogo.disabled = activeCount === 0;
-    toggleVaciarCatalogo.title = activeCount > 0
-      ? 'Apaga para desactivar todos los productos'
-      : 'Actívalo encendiendo algún producto desde la tabla';
+  if (!toggleVaciarCatalogo) return;
+  const { cat, sub, isValid } = getCurrentScope();
+  // Si no hay categoría y subcategoría seleccionadas, inhabilita el switch
+  if (!isValid) {
+    toggleVaciarCatalogo.checked  = false;
+    toggleVaciarCatalogo.disabled = true;
+    toggleVaciarCatalogo.title = 'Selecciona categoría y subcategoría para usar este switch';
+    return;
+  }
+  const totalInScope  = countTotalInScope(cat, sub);
+  const activeInScope = countActiveProductsInScope(cat, sub);
+  // "Encendido" cuando hay al menos un producto activo en ese ámbito
+  toggleVaciarCatalogo.checked  = activeInScope > 0;
+  // Deshabilitado si no hay productos en el ámbito o ya están todos inactivos
+  toggleVaciarCatalogo.disabled = (totalInScope === 0) || (activeInScope === 0);
+
+  if (totalInScope === 0) {
+    toggleVaciarCatalogo.title = 'No hay productos en esta categoría/subcategoría';
+  } else if (activeInScope === 0) {
+    toggleVaciarCatalogo.title = 'Activa productos individualmente en la tabla para reactivar esta subcategoría';
+  } else {
+    toggleVaciarCatalogo.title = `Apaga para desactivar todos los productos de "${cat} / ${sub}"`;
   }
 }
+
 toggleVaciarCatalogo?.addEventListener('change', async () => {
+  const { cat, sub, isValid } = getCurrentScope();
+  if (!isValid) {
+    updateVaciarToggleUI();
+    return;
+  }
+  // Si intentan "encenderlo", impedimos (igual que antes) y pedimos reactivar individuales
   if (toggleVaciarCatalogo.checked){
     toggleVaciarCatalogo.checked = false;
-    mostrarToast?.('Activa al menos un producto desde la tabla');
+    mostrarToast?.(`Activa al menos un producto en "${cat} / ${sub}" desde la tabla`);
     return;
   }
-
-  if (!confirm('¿Vaciar catálogo? Esto desactivará TODOS los productos (no aparecerán en el catálogo).')) {
-    toggleVaciarCatalogo.checked = true;
+  // Apagar = desactivar TODOS los productos del ámbito
+  if (!confirm(`¿Desactivar TODOS los productos de "${cat} / ${sub}"?`)) {
+    updateVaciarToggleUI();
     return;
   }
-
   try{
-    productsCache = productsCache.map(p => ({ ...p, active: false }));
-    await apiPut(API_PRODUCTOS, { products: productsCache });
-
+    let touched = false;
+    productsCache = productsCache.map(p => {
+      if (p.category === cat && p.subcategory === sub && p.active !== false) {
+        touched = true;
+        return { ...p, active: false };
+      }
+      return p;
+    });
+    if (touched) {
+      await apiPut(API_PRODUCTOS, { products: productsCache });
+    }
     applyProductosFilters();
     updateVaciarToggleUI();
-    mostrarToast?.('Catálogo vaciado (todos inactivos)');
+    mostrarToast?.(`Subcategoría "${cat} / ${sub}" desactivada`);
   }catch(err){
     console.error(err);
-    mostrarToast?.('Error al vaciar catálogo');
-    toggleVaciarCatalogo.checked = true;
+    mostrarToast?.('Error al desactivar productos');
+    updateVaciarToggleUI();
   }
 });
-
 
 function fillFilterSelectors(){
   const map = categoriesCache.length ? buildCatMapFromCategories() : buildCatMapFromProducts();
