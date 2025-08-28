@@ -257,21 +257,25 @@ body.has-fixed-topbar{
 .form{
   display:grid; gap:14px; margin-top: 8px;
 }
+/* Antes: .radios { display: grid; ... }  */
+/* Ahora: horizontales en una fila */
 .radios{
-  display: flex;              /* ← horizontal */
-  gap: 12px;                  /* separación entre opciones */
-  align-items: center;        /* centra verticalmente el texto con el radio */
-  flex-wrap: wrap;            /* si no caben, saltan a la siguiente línea */
+  display: flex;           /* ← fila horizontal */
+  flex-direction: row;
+  align-items: center;     /* centra el texto con el radio */
+  gap: 20px;               /* espacio entre opciones */
+  flex-wrap: nowrap;       /* todas en la misma línea (cámbialo a wrap si quieres que salten) */
   border: none;
   padding: 0;
   margin: 0;
-  justify-content: space-between;
 }
+/* Etiquetas en línea, sin ocupar ancho completo */
 .radios label{
-  display: inline-flex;       /* en línea y con alineación */
+  display: inline-flex;
   align-items: center;
   gap: 8px;
   margin: 0;
+  white-space: nowrap;     /* evita que se rompa “Pago por transferencia” */
 }
 textarea{ resize: vertical; }
 
