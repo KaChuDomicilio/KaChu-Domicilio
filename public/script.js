@@ -35,38 +35,7 @@ const checkoutTotalPill = document.getElementById('checkoutTotalPill');
 const modalTransfer = document.getElementById('modalTransferencia');
 const btnTransferOK = document.getElementById('btnTransferOK');
 
-
 btnClearCart?.addEventListener('click', clearCart);
-
-// Aviso de transferencia: solo cuando el usuario selecciona ese radio
-const modalTransfer = document.getElementById('modalTransfer'); // tu modal
-const payRadios = document.querySelectorAll('input[name="pay"]');
-
-let transferNoticeShown = false; // para no repetirlo en el mismo intento
-
-payRadios.forEach(r => {
-  r.addEventListener('change', (e) => {
-    const v = e.target.value;
-    if (v === 'Transferencia') {
-      if (!transferNoticeShown) {
-        openModal(modalTransfer);
-        transferNoticeShown = true;
-      }
-    } else {
-      // si cambia a Efectivo o Tarjeta, resetea
-      transferNoticeShown = false;
-    }
-  });
-});
-
-// Cada vez que abres el modal de checkout, resetea el aviso
-btnContinue.addEventListener('click', () => {
-  if (btnContinue.disabled) return;
-  closeModal(modalCart);
-  transferNoticeShown = false;    // ← importante
-  openModal(modalCheckout);
-});
-
 
 // --------- Persistencia ---------
 const CART_KEY = 'kachu_cart_v1';
@@ -83,7 +52,6 @@ function hideCashBubble() {
   if (!cashBubble) return;
   cashBubble.classList.add('hidden');
 }
-
 
 // --- API primero; estáticos como respaldo ---
 const API = {
@@ -190,29 +158,25 @@ function fillSubcategorySelectFromMap(selectedCat) {
 }
 
 // --------- Modales ---------
-
 btnTransferOK?.addEventListener('click', () => closeModal(modalTransfer));
-
 
 function openModal(modal){
   if (!modal) return;
   modal.inert = false;                     // permitimos foco
   modal.classList.add('open');
   modal.removeAttribute('aria-hidden');    // visible para a11y
-  // opcional: llevar foco al botón cerrar si existe
   setTimeout(() => modal.querySelector('.modal__close, [data-close]')?.focus?.(), 0);
 }
 
 function closeModal(modal){
   if (!modal) return;
-  // si el foco está dentro del modal, quítalo antes de ocultar
   const active = document.activeElement;
   if (active && modal.contains(active)) active.blur();
-
   modal.classList.remove('open');
   modal.setAttribute('aria-hidden','true'); // oculto para a11y
   modal.inert = true;                       // bloquea foco/tab
 }
+
 // === Placeholder de imagen (sin red y correctamente codificado) ===
 function svgPlaceholder(text = 'Sin foto') {
   const svg = `
@@ -330,13 +294,12 @@ function renderCart(){
   if (btnClearCart) btnClearCart.disabled = totalQty === 0;
 
   // --- activar/desactivar scroll del carrito según cantidad ---
-  const needsScroll = items .length > 4;
+  const needsScroll = items.length > 4;
   cartList.classList.toggle('scroll', needsScroll);
 
-  // si quieres que el alto se ajuste al tamaño de pantalla:
   if (needsScroll) {
     const vh = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0);
-    cartList.style.maxHeight = Math.floor(vh * 0.48) + 'px'; // 48% del alto de la ventana
+    cartList.style.maxHeight = Math.floor(vh * 0.48) + 'px';
     cartList.style.overflowY = 'auto';
   } else {
     cartList.style.maxHeight = '';
@@ -364,7 +327,6 @@ function clearCart() {
   cart.clear();
   renderCart();
 
-  // Regresa todos los productos a botón “Agregar”
   document.querySelectorAll('.card').forEach(card => {
     const qtyCtrl = card.querySelector('.qty-control');
     if (qtyCtrl) qtyCtrl.replaceWith(createAddButton(card));
@@ -650,8 +612,6 @@ async function loadZones() {
   }
 }
 
-
-
 async function loadServiceStatus(){
   try{
     const { json } = await fetchFirstOk(API.servicio);
@@ -682,9 +642,14 @@ btnCart.addEventListener('click', () => {
   openModal(modalCart);
   toggleContinueButton();
 });
+
+// <<< reset de aviso al abrir checkout >>>
+let transferNoticeShown = false;
+
 btnContinue.addEventListener('click', () => {
   if (btnContinue.disabled) return;
   closeModal(modalCart);
+  transferNoticeShown = false;     // ← reset cada vez que se entra al checkout
   openModal(modalCheckout);
 });
 
@@ -721,7 +686,6 @@ function validateCheckout() {
   const pay       = checkoutForm.querySelector('input[name="pay"]:checked')?.value || '';
   const addressOk = address.value.trim().length > 0;
 
-  // Totales actuales (igual que en tu pill)
   const subtotal = parseFloat(document.getElementById('cartTotal').textContent.replace(/[^0-9.]/g,'')) || 0;
   const [, zoneCostRaw] = (zone.value || '').split('|');
   const shipping = parseFloat(zoneCostRaw || '0') || 0;
@@ -743,7 +707,6 @@ function validateCheckout() {
       cashOk = false; msg = `El efectivo ingresado no cubre el total ($${totalDue.toFixed(2)}).`;
     }
 
-    // bloquea submit nativo + muestra/oculta el <small>
     if (!cashOk) {
       cashGiven.setCustomValidity(msg);
       if (cashHelp) { cashHelp.textContent = msg; cashHelp.classList.add('show'); }
@@ -756,10 +719,7 @@ function validateCheckout() {
     if (cashHelp) { cashHelp.textContent = ''; cashHelp.classList.remove('show'); }
   }
 
-  // Habilita/deshabilita WhatsApp
   btnWhatsApp.disabled = !(zoneOk && pay && addressOk && cashOk);
-
-  // Actualiza el pill de total
   updateCheckoutTotalPill();
 }
 
@@ -790,18 +750,36 @@ function updateCheckoutTotalPill(){
   checkoutTotalPill.textContent = `Total: $${totalDue.toFixed(2)}`;
 }
 
+// Cambios de campos del checkout (mostrar efectivo, etc.)
 checkoutForm.addEventListener('change', () => {
   const pay = checkoutForm.querySelector('input[name="pay"]:checked')?.value;
-  // efectivo: mostrar/ocultar campo
   cashField.classList.toggle('hidden', pay !== 'Efectivo');
-  // NUEVO: si selecciona Transferencia, abre el modal informativo
   validateCheckout();
 });
 
+// —— Aviso de Transferencia SOLO al seleccionar ese radio ——
+function attachTransferNotice() {
+  if (!checkoutForm) return;
+  const radios = checkoutForm.querySelectorAll('input[name="pay"]');
+  radios.forEach(r => {
+    r.addEventListener('change', (e) => {
+      const v = e.target.value;
+      if (v === 'Transferencia') {
+        if (!transferNoticeShown) {
+          if (modalTransfer) openModal(modalTransfer);
+          transferNoticeShown = true;
+        }
+      } else {
+        // si cambia a Efectivo/Tarjeta, permite volver a mostrar si regresa a Transferencia
+        transferNoticeShown = false;
+      }
+    });
+  });
+}
+attachTransferNotice();
 
 checkoutForm.addEventListener('submit', (e) => {
   e.preventDefault();
-  // Asegura validación (efectivo >= total, etc.)
   validateCheckout();
   if (!checkoutForm.checkValidity()) {
     checkoutForm.reportValidity();
@@ -820,7 +798,6 @@ checkoutForm.addEventListener('submit', (e) => {
   const items = collectCartItems();
   const addressText = address.value.trim();
 
-  // Datos de efectivo (ya sabemos que será >= total por la validación)
   let efectivo = null;
   if (pay === 'Efectivo') {
     const pagaCon = parseFloat(cashGiven.value || '0') || 0;
@@ -836,7 +813,7 @@ checkoutForm.addEventListener('submit', (e) => {
     subtotal,
     totalDue,
     address: addressText,
-    efectivo, // null si no es efectivo
+    efectivo,
   });
 
   openWhatsAppWithMessage(ticket);
@@ -859,24 +836,20 @@ function collectCartItems(){
 function buildTicket({ items, zoneName, shipping, pay, subtotal, totalDue, address, efectivo }) {
   const lines = [];
 
-  // Título
   lines.push('*KaChu Domicilio*');
   lines.push('');
 
-  // Artículos
   if (items && items.length) {
     lines.push('*Artículos:*');
     items.forEach(it => {
       const u = Number(it.unit).toFixed(2);
       const l = Number(it.line).toFixed(2);
       lines.push(`* ${it.name}`);
-      // barra vertical "│" (U+2502). Si no te gusta, puedes cambiarla por "|"
       lines.push(`> ${it.qty} x $${u} = $${l}`);
       lines.push('');
     });
   }
 
-  // Totales
   const isFree = Number(shipping) === 0;
   const envioTag = isFree ? `${zoneName || 'Zona'}` : (zoneName || 'Zona');
 
@@ -885,14 +858,12 @@ function buildTicket({ items, zoneName, shipping, pay, subtotal, totalDue, addre
   lines.push(`*Total a pagar:* $${Number(totalDue).toFixed(2)}`);
   lines.push('');
 
-  // Forma de pago
   lines.push(`*Pago:* ${pay}`);
   if (efectivo) {
     lines.push(`*Paga con:* $${Number(efectivo.pagaCon).toFixed(2)}`);
     lines.push(`*Cambio:* $${Number(efectivo.cambio).toFixed(2)}`);
   }
   lines.push('');
-  // Dirección
   if (address) {
     lines.push('*Dirección de entrega:*');
     lines.push(`> ${address}`);
@@ -929,35 +900,29 @@ function toggleContinueButton(){
 
 // --------- INIT ---------
 window.addEventListener('DOMContentLoaded', async () => {
-// --- Fijar topbar y ajustar el desplazamiento del contenido ---
-(function fixTopbarOffset(){
-  const topbar = document.querySelector('.topbar');
-  if (!topbar) return;
-
-  const applyOffset = () => {
-    // Calcula la altura real (cambia cuando las filas se apilan en móvil)
-    const h = topbar.offsetHeight || 0;
-    document.body.classList.add('has-fixed-topbar');
-    document.body.style.setProperty('--topbar-h', h + 'px');
-  };
-
-  // Aplica cuando esté todo pintado, y también al redimensionar
-  window.addEventListener('load', applyOffset);
-  window.addEventListener('resize', applyOffset);
-  // Por si el DOM ya está listo:
-  if (document.readyState !== 'loading') applyOffset();
-})();
+  // --- Fijar topbar y ajustar el desplazamiento del contenido ---
+  (function fixTopbarOffset(){
+    const topbar = document.querySelector('.topbar');
+    if (!topbar) return;
+    const applyOffset = () => {
+      const h = topbar.offsetHeight || 0;
+      document.body.classList.add('has-fixed-topbar');
+      document.body.style.setProperty('--topbar-h', h + 'px');
+    };
+    window.addEventListener('load', applyOffset);
+    window.addEventListener('resize', applyOffset);
+    if (document.readyState !== 'loading') applyOffset();
+  })();
 
   // 0) Checar estado del servicio ANTES de montar catálogo
   try {
     const service = await loadServiceStatus();
     if (!service.active) {
-      showServiceOverlay(service); // bloquea la UI
+      showServiceOverlay(service);
       return;
     }
   } catch (err) {
     console.error('Service status error', err);
-    // continúa si prefieres
   }
 
   // 1) Flujo del catálogo
