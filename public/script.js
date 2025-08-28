@@ -32,6 +32,10 @@ const grid = document.querySelector('.grid');
 const btnClearCart = document.getElementById('btnClearCart');
 const checkoutTotalPill = document.getElementById('checkoutTotalPill');
 
+const modalTransfer = document.getElementById('modalTransferencia');
+const btnTransferOK = document.getElementById('btnTransferOK');
+
+
 btnClearCart?.addEventListener('click', clearCart);
 
 // --------- Persistencia ---------
@@ -156,6 +160,12 @@ function fillSubcategorySelectFromMap(selectedCat) {
 }
 
 // --------- Modales ---------
+document.querySelectorAll('[data-close="transfer"]').forEach(el =>
+  el.addEventListener('click', () => closeModal(modalTransfer))
+);
+btnTransferOK?.addEventListener('click', () => closeModal(modalTransfer));
+
+
 function openModal(modal){
   if (!modal) return;
   modal.inert = false;                     // permitimos foco
@@ -754,9 +764,15 @@ function updateCheckoutTotalPill(){
 
 checkoutForm.addEventListener('change', () => {
   const pay = checkoutForm.querySelector('input[name="pay"]:checked')?.value;
+  // efectivo: mostrar/ocultar campo
   cashField.classList.toggle('hidden', pay !== 'Efectivo');
+  // NUEVO: si selecciona Transferencia, abre el modal informativo
+  if (pay === 'Transferencia') {
+    openModal(modalTransfer);
+  }
   validateCheckout();
 });
+
 
 checkoutForm.addEventListener('submit', (e) => {
   e.preventDefault();
@@ -859,8 +875,13 @@ function buildTicket({ items, zoneName, shipping, pay, subtotal, totalDue, addre
   }
   lines.push('*Aviso:* _Hemos recibido tu solicitud, en un máximo de *15min-20min* te estaríamos entregando tu pedido_');
   lines.push('');
+  if (pay === 'Transferencia') {
+    lines.push('');
+    lines.push('*Aviso:* _Pago Transferencia_');
+    lines.push('> Con *este método de pago* la *entrega* de tu pedido puede *tardar un poco más de lo establecido.*');
+    lines.push('> Esperamos la captura de tu transferencia, cuando se *refleje el pago* en nuestra Banca *procedemos a enviar* tu pedido');
+  }
   lines.push(' ```Gracias por tu compra...``` ');
-
   return lines.join('\n');
 }
 
