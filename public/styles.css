@@ -258,9 +258,21 @@ body.has-fixed-topbar{
   display:grid; gap:14px; margin-top: 8px;
 }
 .radios{
-  display:grid; gap:8px; border:none; padding:0; margin:0;
+  display: flex;              /* ← horizontal */
+  gap: 12px;                  /* separación entre opciones */
+  align-items: center;        /* centra verticalmente el texto con el radio */
+  flex-wrap: wrap;            /* si no caben, saltan a la siguiente línea */
+  border: none;
+  padding: 0;
+  margin: 0;
+  justify-content: space-between;
 }
-.radios label{ display:flex; align-items:center; gap:8px; }
+.radios label{
+  display: inline-flex;       /* en línea y con alineación */
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+}
 textarea{ resize: vertical; }
 
 /* Títulos */
