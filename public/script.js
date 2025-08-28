@@ -160,12 +160,6 @@ function fillSubcategorySelectFromMap(selectedCat) {
 }
 
 // --------- Modales ---------
-document.querySelectorAll('[data-close="transfer"]').forEach(el =>
-  el.addEventListener('click', () => closeModal(modalTransfer))
-);
-btnTransferOK?.addEventListener('click', () => closeModal(modalTransfer));
-
-
 function openModal(modal){
   if (!modal) return;
   modal.inert = false;                     // permitimos foco
