@@ -88,7 +88,14 @@ function getCardInfo(card){
   const name = card.querySelector('h3')?.textContent.trim() || '';
   const unit = parseMoney(card.querySelector('.price')?.textContent);
   const id = name; // simple por ahora
-  return { id, name, unit };
+
+  // NUEVO: leer dataset para peso
+  const soldBy    = card.dataset.soldby || 'unit';
+  const unitLabel = card.dataset.unitlabel || (soldBy==='weight' ? 'kg' : 'pza');
+  const step      = parseFloat(card.dataset.step) || (soldBy==='weight' ? 0.25 : 1);
+  const minQty    = parseFloat(card.dataset.minqty) || step;
+
+  return { id, name, unit, soldBy, unitLabel, step, minQty };
 }
 
 function saveCart(){
@@ -103,7 +110,13 @@ function loadCart(){
     cart.clear();
     arr.forEach(it => {
       if(it && it.id && it.qty > 0){
-        cart.set(it.id, { id: it.id, name: it.name, unit: it.unit, qty: it.qty });
+        cart.set(it.id, {
+          id: it.id, name: it.name, unit: it.unit, qty: it.qty,
+          soldBy: it.soldBy || 'unit',
+          unitLabel: it.unitLabel || (it.soldBy==='weight' ? 'kg' : 'pza'),
+          step: parseFloat(it.step) || (it.soldBy==='weight' ? 0.25 : 1),
+          minQty: parseFloat(it.minQty) || (parseFloat(it.step)||1)
+        });
       }
     });
   }catch(e){ console.warn('No se pudo cargar el carrito:', e); }
@@ -135,6 +148,15 @@ function loadCheckout(){
 
     cashField.classList.toggle('hidden', data.pay !== 'Efectivo');
   }catch(e){ console.warn('No se pudo cargar checkout:', e); }
+}
+function decimalsFromStep(step){
+  const s = String(step || 1);
+  return s.includes('.') ? (s.split('.')[1] || '').length : 0;
+}
+function formatQty(qty, step){
+  const d = decimalsFromStep(step || 1);
+  // muestra “1” en vez de “1.00”, pero “0.25” cuando toca
+  return Number(qty || 0).toFixed(d).replace(/\.?0+$/,'');
 }
 
 // --------- Categorías (desde categorias.json o derivadas de productos) ---------
@@ -198,8 +220,17 @@ function renderProductGrid(products){
     const sub   = p.subcategory || '';
     const name  = p.name || '';
 
+    // NUEVO: datos para peso
+    const soldBy    = p.soldBy || 'unit';            // 'unit' | 'weight'
+    const unitLabel = p.unitLabel || (soldBy==='weight' ? 'kg' : 'pza');
+    const step      = Number(p.step ?? (soldBy==='weight' ? 0.25 : 1));
+    const minQty    = Number(p.minQty ?? step);
+
     return `
-      <article class="card" data-category="${cat}" data-subcategory="${sub}">
+      <article class="card"
+        data-category="${cat}" data-subcategory="${sub}"
+        data-soldby="${soldBy}" data-unitlabel="${unitLabel}"
+        data-step="${step}" data-minqty="${minQty}">
         <img src="${img}" alt="${name}">
         <div class="info">
           <h3>${name}</h3>
@@ -275,7 +306,10 @@ function renderCart(){
       <div class="row">
         <div class="qty">
           <button class="chip cart-minus">-</button>
-          <span class="count">${it.qty}</span>
+          <span class="count">${it.soldBy==='weight'
+            ? `${formatQty(it.qty, it.step)} ${it.unitLabel}`
+            : `${formatQty(it.qty, 1)}`
+          }</span>
           <button class="chip cart-plus">+</button>
         </div>
         <span class="line-total">${money(line)}</span>
@@ -293,7 +327,6 @@ function renderCart(){
   btnContinue.disabled = totalQty === 0;
   if (btnClearCart) btnClearCart.disabled = totalQty === 0;
 
-  // --- activar/desactivar scroll del carrito según cantidad ---
   const needsScroll = items.length > 4;
   cartList.classList.toggle('scroll', needsScroll);
 
@@ -308,6 +341,7 @@ function renderCart(){
   saveCart();
   updateCheckoutTotalPill();
 }
+
 //Redimencionar ventana
 window.addEventListener('resize', () => {
   const needsScroll = (cartList.querySelectorAll('.cart-item').length > 4);
@@ -345,21 +379,24 @@ cartList.addEventListener('click', (e) => {
   const item = cart.get(id);
   if (!item) return;
 
+  const d = decimalsFromStep(item.step || 1);
+
   if (plus) {
-    item.qty++;
+    item.qty = +(item.qty + (item.step || 1)).toFixed(d);
     cart.set(id, item);
     renderCart();
     syncCardsQty(id);
   }
   if (minus) {
-    if (item.qty <= 1) {
+    const next = +(item.qty - (item.step || 1)).toFixed(d);
+    if (next < (item.minQty || item.step || 1)) {
       if (confirm('¿Eliminar este artículo del carrito?')) {
         cart.delete(id);
         renderCart();
         syncCardsQty(id);
       }
     } else {
-      item.qty--;
+      item.qty = next;
       cart.set(id, item);
       renderCart();
       syncCardsQty(id);
@@ -369,61 +406,73 @@ cartList.addEventListener('click', (e) => {
 
 // --------- Botones en tarjetas ---------
 function createAddButton(card){
+  const info = getCardInfo(card);
   const btn = document.createElement('button');
   btn.className = 'btn add';
-  btn.textContent = 'Agregar';
-  btn.addEventListener('click', () => switchToQtyControl(card, 1, true));
+  btn.textContent = (info.soldBy === 'weight')
+    ? `Agregar ${formatQty(info.minQty, info.step)} ${info.unitLabel}`
+    : 'Agregar';
+  btn.addEventListener('click', () => switchToQtyControl(card, info.minQty, true));
   return btn;
 }
-function createQtyControl(card, qty){
+
+function createQtyControl(card, qty, info){
+  info = info || getCardInfo(card);
   const control = document.createElement('div');
   control.className = 'qty-control';
 
-  const btnMinus = document.createElement('button');
-  btnMinus.textContent = '−';
-  const spanQty = document.createElement('span');
-  spanQty.textContent = qty;
-  const btnPlus = document.createElement('button');
-  btnPlus.textContent = '+';
+  const btnMinus = document.createElement('button'); btnMinus.textContent = '−';
+  const spanQty  = document.createElement('span');   spanQty.textContent = (info.soldBy==='weight')
+    ? `${formatQty(qty, info.step)} ${info.unitLabel}` : `${formatQty(qty, 1)}`;
+  const btnPlus  = document.createElement('button'); btnPlus.textContent = '+';
+
+  const d = decimalsFromStep(info.step);
 
   btnPlus.addEventListener('click', () => {
-    const { id, name, unit } = getCardInfo(card);
-    const current = cart.get(id) || { id, name, unit, qty: 0 };
-    current.qty++;
-    cart.set(id, current);
-    spanQty.textContent = current.qty;
+    const current = cart.get(info.id) || { ...info, qty: 0 };
+    current.qty = +(current.qty + info.step).toFixed(d);
+    cart.set(info.id, current);
+    spanQty.textContent = (info.soldBy==='weight')
+      ? `${formatQty(current.qty, info.step)} ${info.unitLabel}`
+      : `${formatQty(current.qty, 1)}`;
     renderCart();
   });
 
   btnMinus.addEventListener('click', () => {
-    const { id, name, unit } = getCardInfo(card);
-    const current = cart.get(id) || { id, name, unit, qty: 0 };
-    if (current.qty <= 1) {
+    const current = cart.get(info.id) || { ...info, qty: 0 };
+    const next = +(current.qty - info.step).toFixed(d);
+    if (next < (info.minQty || info.step)) {
       if (confirm('¿Eliminar este artículo del carrito?')) {
-        cart.delete(id);
+        cart.delete(info.id);
         renderCart();
         control.replaceWith(createAddButton(card));
       }
     } else {
-      current.qty--;
-      cart.set(id, current);
-      spanQty.textContent = current.qty;
+      current.qty = next;
+      cart.set(info.id, current);
+      spanQty.textContent = (info.soldBy==='weight')
+        ? `${formatQty(current.qty, info.step)} ${info.unitLabel}`
+        : `${formatQty(current.qty, 1)}`;
       renderCart();
     }
   });
 
+  control.append(btnMinus, spanQty, btnPlus);
   return control;
 }
-function switchToQtyControl(card, startQty = 1, addToCart = false){
-  const { id, name, unit } = getCardInfo(card);
+
+function switchToQtyControl(card, startQty, addToCart = false){
+  const info = getCardInfo(card);
+  const start = Number(startQty ?? info.minQty ?? 1);
   if (addToCart) {
-    cart.set(id, { id, name, unit, qty: startQty });
+    cart.set(info.id, { ...info, qty: start });
     renderCart();
   }
   const addBtn = card.querySelector('.btn.add');
-  const control = createQtyControl(card, cart.get(id)?.qty || startQty);
+  const control = createQtyControl(card, cart.get(info.id)?.qty || start, info);
   if (addBtn) addBtn.replaceWith(control);
 }
+
 function syncCardsQty(id){
   document.querySelectorAll('.card').forEach(card=>{
     const info = getCardInfo(card);
@@ -822,15 +871,15 @@ checkoutForm.addEventListener('submit', (e) => {
 
 // Lee items del modal del carrito (para armar ticket)
 function collectCartItems(){
-  const items = [];
-  document.querySelectorAll('#cartList .cart-item').forEach(li=>{
-    const name = li.querySelector('.name')?.textContent.trim() || '';
-    const unit = parseFloat((li.querySelector('.unit')?.textContent || '').replace(/[^0-9.]/g,'')) || 0;
-    const qty  = parseInt(li.querySelector('.count')?.textContent || '0', 10) || 0;
-    const line = +(unit * qty).toFixed(2);
-    items.push({ name, unit, qty, line });
-  });
-  return items;
+  return Array.from(cart.values()).map(it => ({
+    name: it.name,
+    unit: Number(it.unit) || 0,
+    qty:  Number(it.qty)  || 0,
+    soldBy: it.soldBy,
+    unitLabel: it.unitLabel,
+    step: it.step,
+    line: +((Number(it.unit)||0) * (Number(it.qty)||0)).toFixed(2)
+  }));
 }
 
 function buildTicket({ items, zoneName, shipping, pay, subtotal, totalDue, address, efectivo }) {
@@ -840,15 +889,18 @@ function buildTicket({ items, zoneName, shipping, pay, subtotal, totalDue, addre
   lines.push('');
 
   if (items && items.length) {
-    lines.push('*Artículos:*');
-    items.forEach(it => {
-      const u = Number(it.unit).toFixed(2);
-      const l = Number(it.line).toFixed(2);
-      lines.push(`* ${it.name}`);
-      lines.push(`> ${it.qty} x $${u} = $${l}`);
-      lines.push('');
-    });
-  }
+  lines.push('*Artículos:*');
+  items.forEach(it => {
+    const u = Number(it.unit).toFixed(2);
+    const l = Number(it.line).toFixed(2);
+    const qtyTxt = (it.soldBy === 'weight')
+      ? `${formatQty(it.qty, it.step)} ${it.unitLabel || 'kg'}`
+      : `${formatQty(it.qty, 1)}`;
+    lines.push(`* ${it.name}`);
+    lines.push(`> ${qtyTxt} x $${u} = $${l}`);
+    lines.push('');
+  });
+}
 
   const isFree = Number(shipping) === 0;
   const envioTag = isFree ? `${zoneName || 'Zona'}` : (zoneName || 'Zona');

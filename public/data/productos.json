@@ -1,22 +1,1514 @@
 {
   "products": [
     {
-      "id": "p_1755910941405",
-      "name": "Sabritas Sal 42g",
-      "price": 20,
-      "category": "Botanas",
-      "subcategory": "Sabritas",
+      "id": "p_1756057198852",
+      "name": "Coca Cola 2.5lt Retornable",
+      "price": 39,
+      "category": "Sodas/Jugos",
+      "subcategory": "Coca-Cola",
+      "image": "/img/sodasjugos/cocaretornable25lt.jpg",
+      "active": true
+    },
+    {
+      "id": "p_1756057494624",
+      "name": "Coca Cola 1.5lt Retornable",
+      "price": 27,
+      "category": "Sodas/Jugos",
+      "subcategory": "Coca-Cola",
+      "image": "/img/sodasjugos/coca15retornable.webp",
+      "active": true
+    },
+    {
+      "id": "p_1756057600790",
+      "name": "Del Valle Fruts Citrus Punch 2.5lt",
+      "price": 41,
+      "category": "Sodas/Jugos",
+      "subcategory": "Coca-Cola",
+      "image": "",
+      "active": false
+    },
+    {
+      "id": "p_1756057963951",
+      "name": "Fresca Toronja 2.5lt",
+      "price": 43,
+      "category": "Sodas/Jugos",
+      "subcategory": "Coca-Cola",
+      "image": "/img/sodasjugos/fresca25lt.png",
+      "active": true
+    },
+    {
+      "id": "p_1756075426036",
+      "name": "Coca Cola Zero 2.5lt",
+      "price": 47,
+      "category": "Sodas/Jugos",
+      "subcategory": "Coca-Cola",
+      "image": "/img/sodasjugos/cocazero25lt.webp",
+      "active": true
+    },
+    {
+      "id": "p_1756075526614",
+      "name": "Sprite Lima Limón 2.5lt",
+      "price": 43,
+      "category": "Sodas/Jugos",
+      "subcategory": "Coca-Cola",
+      "image": "/img/sodasjugos/spritelimalimon25lt.webp",
+      "active": true
+    },
+    {
+      "id": "p_1756075677970",
+      "name": "Coca Cola Original 2.5lt",
+      "price": 47,
+      "category": "Sodas/Jugos",
+      "subcategory": "Coca-Cola",
+      "image": "/img/sodasjugos/cocaoriginal25lt.webp",
+      "active": true
+    },
+    {
+      "id": "p_1756075756014",
+      "name": "Coca Cola Original 1.25lt",
+      "price": 25,
+      "category": "Sodas/Jugos",
+      "subcategory": "Coca-Cola",
+      "image": "/img/sodasjugos/cocaoriginal125ml.webp",
+      "active": true
+    },
+    {
+      "id": "p_1756075938949",
+      "name": "Agua Ciel Natural 1.5lt",
+      "price": 18,
+      "category": "Sodas/Jugos",
+      "subcategory": "Coca-Cola",
+      "image": "/img/sodasjugos/cielnatural15lt.webp",
+      "active": true
+    },
+    {
+      "id": "p_1756076054900",
+      "name": "Topo Chico Agua Mineral Original 1.5lt",
+      "price": 28,
+      "category": "Sodas/Jugos",
+      "subcategory": "Coca-Cola",
+      "image": "/img/sodasjugos/topochicooriginal15lt.webp",
+      "active": true
+    },
+    {
+      "id": "p_1756076197226",
+      "name": "Coca Cola Original 500ml Vidrio/Retornable",
+      "price": 14,
+      "category": "Sodas/Jugos",
+      "subcategory": "Coca-Cola",
+      "image": "/img/sodasjugos/cocavidrio500ml.jpg",
+      "active": true
+    },
+    {
+      "id": "p_1756076465890",
+      "name": "Joya Manzana 600ml",
+      "price": 21,
+      "category": "Sodas/Jugos",
+      "subcategory": "Coca-Cola",
+      "image": "/img/sodasjugos/joyamanzana600ml.webp",
+      "active": true
+    },
+    {
+      "id": "p_1756076494573",
+      "name": "Sprite Lima Limón 600ml",
+      "price": 21,
+      "category": "Sodas/Jugos",
+      "subcategory": "Coca-Cola",
+      "image": "/img/sodasjugos/spritelimalimon600ml.jpg",
+      "active": true
+    },
+    {
+      "id": "p_1756076520380",
+      "name": "Fanta Naranja 600ml",
+      "price": 21,
+      "category": "Sodas/Jugos",
+      "subcategory": "Coca-Cola",
+      "image": "/img/sodasjugos/fantanaranja600ml.webp",
+      "active": true
+    },
+    {
+      "id": "p_1756076613546",
+      "name": "Coca Cola Original 600ml",
+      "price": 21,
+      "category": "Sodas/Jugos",
+      "subcategory": "Coca-Cola",
+      "image": "/img/sodasjugos/cocaoriginal600ml.webp",
+      "active": true
+    },
+    {
+      "id": "p_1756076699955",
+      "name": "Agua Ciel Natural 1lt",
+      "price": 15,
+      "category": "Sodas/Jugos",
+      "subcategory": "Coca-Cola",
+      "image": "/img/sodasjugos/cielnatural1lt.webp",
+      "active": true
+    },
+    {
+      "id": "p_1756076825770",
+      "name": "Topo Chico Agua Mineral Original 600ml",
+      "price": 21,
+      "category": "Sodas/Jugos",
+      "subcategory": "Coca-Cola",
+      "image": "/img/sodasjugos/topochicooriginal600ml.webp",
+      "active": true
+    },
+    {
+      "id": "p_1756079042818",
+      "name": "Pepsi Original 2.5lt Retornable",
+      "price": 35,
+      "category": "Sodas/Jugos",
+      "subcategory": "Pepsi",
+      "image": "/img/sodasjugos/pepsi25retornable.webp",
+      "active": true
+    },
+    {
+      "id": "p_1756079082471",
+      "name": "Pepsi Original 2.5lt",
+      "price": 39,
+      "category": "Sodas/Jugos",
+      "subcategory": "Pepsi",
+      "image": "/img/sodasjugos/pepsi25lt.webp",
+      "active": true
+    },
+    {
+      "id": "p_1756079149544",
+      "name": "Pepsi Original 1.5lt",
+      "price": 24,
+      "category": "Sodas/Jugos",
+      "subcategory": "Pepsi",
+      "image": "/img/sodasjugos/pepsioriginal600ml.webp",
+      "active": true
+    },
+    {
+      "id": "p_1756088024711",
+      "name": "Sprite Lima Limón 250ml",
+      "price": 10,
+      "category": "Sodas/Jugos",
+      "subcategory": "Coca-Cola",
+      "image": "/img/sodasjugos/spritelimalimon250ml.jpg",
+      "active": true
+    },
+    {
+      "id": "p_1756088062084",
+      "name": "Fanta Naranja 250ml",
+      "price": 10,
+      "category": "Sodas/Jugos",
+      "subcategory": "Coca-Cola",
+      "image": "/img/sodasjugos/fantanaranja250ml.webp",
+      "active": true
+    },
+    {
+      "id": "p_1756088104577",
+      "name": "Joya Manzana 250ml",
+      "price": 10,
+      "category": "Sodas/Jugos",
+      "subcategory": "Coca-Cola",
+      "image": "/img/sodasjugos/joyamanzana250ml.webp",
+      "active": true
+    },
+    {
+      "id": "p_1756088145224",
+      "name": "Fanta Uva 250ml",
+      "price": 10,
+      "category": "Sodas/Jugos",
+      "subcategory": "Coca-Cola",
+      "image": "/img/sodasjugos/fantauva250ml.webp",
+      "active": true
+    },
+    {
+      "id": "p_1756088347210",
+      "name": "Coca Cola Original 250ml",
+      "price": 10,
+      "category": "Sodas/Jugos",
+      "subcategory": "Coca-Cola",
+      "image": "/img/sodasjugos/cocaoriginal250ml.webp",
+      "active": false
+    },
+    {
+      "id": "p_1756089352786",
+      "name": "1kg Tortillas San Juan de los Lagos | Calientes",
+      "price": 24,
+      "category": "Tortillas",
+      "subcategory": "Calientes",
       "image": "",
       "active": true
     },
     {
-      "id": "p_1755911028114",
-      "name": "Sabritas Adobadas 42g",
+      "id": "p_1756089413055",
+      "name": "1/2kg Tortillas San Juan de los Lagos | Calientes",
+      "price": 13,
+      "category": "Tortillas",
+      "subcategory": "Calientes",
+      "image": "",
+      "active": true
+    },
+    {
+      "id": "p_1756089455610",
+      "name": "1kg Tortillas el Primo II | Calientes",
+      "price": 24,
+      "category": "Tortillas",
+      "subcategory": "Calientes",
+      "image": "",
+      "active": false
+    },
+    {
+      "id": "p_1756089484156",
+      "name": "1/2kg Tortillas El Primo II | Calientes",
+      "price": 13,
+      "category": "Tortillas",
+      "subcategory": "Calientes",
+      "image": "",
+      "active": false
+    },
+    {
+      "id": "p_1756089605199",
+      "name": "1kg Tortillas Amarillas El Primo II",
+      "price": 24,
+      "category": "Tortillas",
+      "subcategory": "Frías/Bolsa",
+      "image": "",
+      "active": true
+    },
+    {
+      "id": "p_1756089637075",
+      "name": "1kg Tortillas Blancas El Primo II",
+      "price": 24,
+      "category": "Tortillas",
+      "subcategory": "Frías/Bolsa",
+      "image": "",
+      "active": true
+    },
+    {
+      "id": "p_1756132344934",
+      "name": "Nissin Fuego Camarón Chile y Limón 64g Vaso",
+      "price": 17,
+      "category": "Sopas",
+      "subcategory": "Nissin",
+      "image": "/img/sopas/nissinfuego64gvaso.jpg",
+      "active": true
+    },
+    {
+      "id": "p_1756132398928",
+      "name": "Nissin Camarón, Habanero y Limón 64g Vaso",
+      "price": 17,
+      "category": "Sopas",
+      "subcategory": "Nissin",
+      "image": "/img/sopas/nissincamaronhabanerolimon64gvaso.jpg",
+      "active": true
+    },
+    {
+      "id": "p_1756132451792",
+      "name": "Nissin Dragón Salsa Negra y Limón 64g Vaso",
+      "price": 17,
+      "category": "Sopas",
+      "subcategory": "Nissin",
+      "image": "/img/sopas/nissindragon64gvaso.webp",
+      "active": true
+    },
+    {
+      "id": "p_1756132504871",
+      "name": "Nissin Diablo Habanero y Limón 64g Vaso",
+      "price": 17,
+      "category": "Sopas",
+      "subcategory": "Nissin",
+      "image": "/img/sopas/nissindiablo64gvaso.jpg",
+      "active": true
+    },
+    {
+      "id": "p_1756132548235",
+      "name": "Nissin Birria 64g Vaso",
+      "price": 17,
+      "category": "Sopas",
+      "subcategory": "Nissin",
+      "image": "/img/sopas/nissinbirria64gvaso.jpg",
+      "active": true
+    },
+    {
+      "id": "p_1756132600669",
+      "name": "Nissin Flamas Chile, Limón y Queso 64g Vaso",
+      "price": 17,
+      "category": "Sopas",
+      "subcategory": "Nissin",
+      "image": "/img/sopas/nissinflamas64gvaso.webp",
+      "active": true
+    },
+    {
+      "id": "p_1756132638614",
+      "name": "Nissin Carne Res 64g Vaso",
+      "price": 17,
+      "category": "Sopas",
+      "subcategory": "Nissin",
+      "image": "/img/sopas/nissinres64gvaso.jpg",
+      "active": true
+    },
+    {
+      "id": "p_1756132671793",
+      "name": "Nissin Camarón 64g Vaso",
+      "price": 17,
+      "category": "Sopas",
+      "subcategory": "Nissin",
+      "image": "/img/sopas/nissincamaron.jpg",
+      "active": true
+    },
+    {
+      "id": "p_1756132705002",
+      "name": "Nissin Pollo Picante 64g Vaso",
+      "price": 17,
+      "category": "Sopas",
+      "subcategory": "Nissin",
+      "image": "/img/sopas/nissin.webp",
+      "active": true
+    },
+    {
+      "id": "p_1756132734139",
+      "name": "Nissin Pollo 64g Vaso",
+      "price": 17,
+      "category": "Sopas",
+      "subcategory": "Nissin",
+      "image": "/img/sopas/nissinpollo64gvaso.jpg",
+      "active": true
+    },
+    {
+      "id": "p_1756132764119",
+      "name": "Nissin Camarón Picante 64g",
+      "price": 17,
+      "category": "Sopas",
+      "subcategory": "Nissin",
+      "image": "/img/sopas/nissincamaronpicante64gvaso.webp",
+      "active": true
+    },
+    {
+      "id": "p_1756132818919",
+      "name": "Maruchan Camarón y Chile Piquín 64g Vaso",
+      "price": 19,
+      "category": "Sopas",
+      "subcategory": "Maruchan",
+      "image": "/img/sopas/maruchanpiquin64g.webp",
+      "active": true
+    },
+    {
+      "id": "p_1756132861522",
+      "name": "Maruchan Camarón, Limón y Habanero 64g Vaso",
+      "price": 19,
+      "category": "Sopas",
+      "subcategory": "Maruchan",
+      "image": "/img/sopas/maruchanhabanero64g.webp",
+      "active": true
+    },
+    {
+      "id": "p_1756132973262",
+      "name": "Spaghetti Yemina 200g",
+      "price": 10,
+      "category": "Sopas",
+      "subcategory": "Pastas",
+      "image": "",
+      "active": true
+    },
+    {
+      "id": "p_1756133028846",
+      "name": "La Moderna Fideo #2 200g",
+      "price": 10,
+      "category": "Sopas",
+      "subcategory": "Pastas",
+      "image": "",
+      "active": true
+    },
+    {
+      "id": "p_1756133708619",
+      "name": "Rancheritos 40g",
+      "price": 14,
+      "category": "Botanas",
+      "subcategory": "Sabritas",
+      "image": "/img/botanas/rancheritos40g.webp",
+      "active": true
+    },
+    {
+      "id": "p_1756133796356",
+      "name": "Churrumais Limoncito 36g",
+      "price": 14,
+      "category": "Botanas",
+      "subcategory": "Sabritas",
+      "image": "/img/botanas/churrumais36g.webp",
+      "active": true
+    },
+    {
+      "id": "p_1756133832958",
+      "name": "Fritos Limón y Sal 38g",
+      "price": 14,
+      "category": "Botanas",
+      "subcategory": "Sabritas",
+      "image": "/img/botanas/fritoslimonsal38g.webp",
+      "active": true
+    },
+    {
+      "id": "p_1756133874602",
+      "name": "Doritos Dinamita Chile y Limón 70g",
+      "price": 20,
+      "category": "Botanas",
+      "subcategory": "Sabritas",
+      "image": "/img/botanas/doritosdinamita70g.webp",
+      "active": true
+    },
+    {
+      "id": "p_1756133914867",
+      "name": "Doritos Dinamita Flamin Hot 70g",
       "price": 20,
       "category": "Botanas",
       "subcategory": "Sabritas",
       "image": "",
+      "active": false
+    },
+    {
+      "id": "p_1756133966209",
+      "name": "Doritos Pizzerola 58g",
+      "price": 20,
+      "category": "Botanas",
+      "subcategory": "Sabritas",
+      "image": "/img/botanas/doritospizzerola58g.webp",
       "active": true
+    },
+    {
+      "id": "p_1756133992063",
+      "name": "Doritos Nacho 58g",
+      "price": 20,
+      "category": "Botanas",
+      "subcategory": "Sabritas",
+      "image": "/img/botanas/doritosnacho58g.webp",
+      "active": true
+    },
+    {
+      "id": "p_1756134037080",
+      "name": "Doritos Xtra Flaming Hot 58g",
+      "price": 20,
+      "category": "Botanas",
+      "subcategory": "Sabritas",
+      "image": "/img/botanas/doritosflaming58g.jpg",
+      "active": true
+    },
+    {
+      "id": "p_1756134076277",
+      "name": "Ruffles Original 48g",
+      "price": 20,
+      "category": "Botanas",
+      "subcategory": "Sabritas",
+      "image": "/img/botanas/rufflesoriginal48g.webp",
+      "active": true
+    },
+    {
+      "id": "p_1756134126133",
+      "name": "Sabritas Sal Original 42g",
+      "price": 20,
+      "category": "Botanas",
+      "subcategory": "Sabritas",
+      "image": "/img/botanas/sabritassal42g.jpg",
+      "active": true
+    },
+    {
+      "id": "p_1756134163571",
+      "name": "Sabritas Xtra Flaming Hot 44g",
+      "price": 20,
+      "category": "Botanas",
+      "subcategory": "Sabritas",
+      "image": "/img/botanas/sabritasflaming44g.png",
+      "active": true
+    },
+    {
+      "id": "p_1756134202862",
+      "name": "Sabritas Adobadas 42g",
+      "price": 20,
+      "category": "Botanas",
+      "subcategory": "Sabritas",
+      "image": "/img/botanas/sabritasadobadas42g.webp",
+      "active": true
+    },
+    {
+      "id": "p_1756134247363",
+      "name": "Sabritas Habanero 44g",
+      "price": 20,
+      "category": "Botanas",
+      "subcategory": "Sabritas",
+      "image": "/img/botanas/sabritahabanero44g.jpg",
+      "active": true
+    },
+    {
+      "id": "p_1756134282407",
+      "name": "Sabritas Crema y Especias 44g",
+      "price": 20,
+      "category": "Botanas",
+      "subcategory": "Sabritas",
+      "image": "/img/botanas/sabritascremaespecias44g.png",
+      "active": true
+    },
+    {
+      "id": "p_1756134307845",
+      "name": "Sabritas Limón 42g",
+      "price": 20,
+      "category": "Botanas",
+      "subcategory": "Sabritas",
+      "image": "/img/botanas/sabritaslimon42g.webp",
+      "active": true
+    },
+    {
+      "id": "p_1756134353368",
+      "name": "Doritos Incógnita 58g",
+      "price": 20,
+      "category": "Botanas",
+      "subcategory": "Sabritas",
+      "image": "/img/botanas/doritoincognita58g.png",
+      "active": true
+    },
+    {
+      "id": "p_1756134409966",
+      "name": "Doritos 3D 50g",
+      "price": 20,
+      "category": "Botanas",
+      "subcategory": "Sabritas",
+      "image": "/img/botanas/doritos3d50g.jpg",
+      "active": true
+    },
+    {
+      "id": "p_1756134441926",
+      "name": "Cheetos Poffs 44g",
+      "price": 20,
+      "category": "Botanas",
+      "subcategory": "Sabritas",
+      "image": "/img/botanas/cheetospoff44g.jpg",
+      "active": true
+    },
+    {
+      "id": "p_1756134481371",
+      "name": "Fritos Limón y Sal 70g",
+      "price": 16,
+      "category": "Botanas",
+      "subcategory": "Sabritas",
+      "image": "/img/botanas/fritoslimonysal70g.webp",
+      "active": true
+    },
+    {
+      "id": "p_1756134534559",
+      "name": "Cheetos Torciditos Queso/Chile 58g",
+      "price": 16,
+      "category": "Botanas",
+      "subcategory": "Sabritas",
+      "image": "/img/botanas/cheetosqueso58g.jpg",
+      "active": true
+    },
+    {
+      "id": "p_1756134567392",
+      "name": "Cheetos Colmillos 31g",
+      "price": 16,
+      "category": "Botanas",
+      "subcategory": "Sabritas",
+      "image": "/img/botanas/cheetoscolmillo31g.webp",
+      "active": true
+    },
+    {
+      "id": "p_1756134604563",
+      "name": "Cheetos Palomitas 29g",
+      "price": 16,
+      "category": "Botanas",
+      "subcategory": "Sabritas",
+      "image": "/img/botanas/cheetospalomita29g.webp",
+      "active": true
+    },
+    {
+      "id": "p_1756134941449",
+      "name": "Takis Fuego 70g",
+      "price": 19,
+      "category": "Botanas",
+      "subcategory": "Barcel",
+      "image": "/img/botanas/takisfuego70g.webp",
+      "active": true
+    },
+    {
+      "id": "p_1756134998285",
+      "name": "Runners Fuego 72g",
+      "price": 18,
+      "category": "Botanas",
+      "subcategory": "Barcel",
+      "image": "/img/botanas/runnerfuego72g.webp",
+      "active": true
+    },
+    {
+      "id": "p_1756141059876",
+      "name": "+1kg Hielo Bolsa",
+      "price": 10,
+      "category": "Congelador/Nevera",
+      "subcategory": "Hielo",
+      "image": "",
+      "active": true
+    },
+    {
+      "id": "p_1756159114043",
+      "name": "1kg Pedigree Adulto",
+      "price": 40,
+      "category": "Mascotas",
+      "subcategory": "Alimento Croquetas",
+      "image": "",
+      "active": true
+    },
+    {
+      "id": "p_1756159151141",
+      "name": "1/2kg Pedigree Adulto",
+      "price": 22,
+      "category": "Mascotas",
+      "subcategory": "Alimento Croquetas",
+      "image": "",
+      "active": true
+    },
+    {
+      "id": "p_1756159188464",
+      "name": "1kg Pedigree Cachorro",
+      "price": 47,
+      "category": "Mascotas",
+      "subcategory": "Alimento Croquetas",
+      "image": "",
+      "active": true
+    },
+    {
+      "id": "p_1756159224963",
+      "name": "1/2kg Pedigree Cachorro",
+      "price": 25,
+      "category": "Mascotas",
+      "subcategory": "Alimento Croquetas",
+      "image": "",
+      "active": true
+    },
+    {
+      "id": "p_1756171344943",
+      "name": "Bollo Gourmet Kinder Delice",
+      "price": 18,
+      "category": "Congelador/Nevera",
+      "subcategory": "Bollos",
+      "image": "",
+      "active": true
+    },
+    {
+      "id": "p_1756171386465",
+      "name": "Bollo Gourmet Ferrero",
+      "price": 18,
+      "category": "Congelador/Nevera",
+      "subcategory": "Bollos",
+      "image": "",
+      "active": true
+    },
+    {
+      "id": "p_1756223267069",
+      "name": "Alpura Deslactosada 1lt",
+      "price": 31,
+      "category": "Lácteos",
+      "subcategory": "Alpura",
+      "image": "",
+      "active": true
+    },
+    {
+      "id": "p_1756223320099",
+      "name": "Alpura Entera Clásica 1lt",
+      "price": 31,
+      "category": "Lácteos",
+      "subcategory": "Alpura",
+      "image": "",
+      "active": true
+    },
+    {
+      "id": "p_1756231725576",
+      "name": "Santa Clara Light 1lt",
+      "price": 30,
+      "category": "Lácteos",
+      "subcategory": "Santa Clara",
+      "image": "",
+      "active": true
+    },
+    {
+      "id": "p_1756231750274",
+      "name": "Santa Clara Entera 1lt",
+      "price": 30,
+      "category": "Lácteos",
+      "subcategory": "Santa Clara",
+      "image": "",
+      "active": true
+    },
+    {
+      "id": "p_1756231834187",
+      "name": "Lala Deslactosada 1lt",
+      "price": 33,
+      "category": "Lácteos",
+      "subcategory": "Lala",
+      "image": "",
+      "active": true
+    },
+    {
+      "id": "p_1756231924610",
+      "name": "Alpura Vaquitas Fresa 200ml",
+      "price": 13,
+      "category": "Lácteos",
+      "subcategory": "Alpura",
+      "image": "",
+      "active": false
+    },
+    {
+      "id": "p_1756231954171",
+      "name": "Alpura Vaquitas Vainilla 200ml",
+      "price": 13,
+      "category": "Lácteos",
+      "subcategory": "Alpura",
+      "image": "",
+      "active": false
+    },
+    {
+      "id": "p_1756231985905",
+      "name": "Alpura Vaquitas Chocolate 200ml",
+      "price": 13,
+      "category": "Lácteos",
+      "subcategory": "Alpura",
+      "image": "",
+      "active": true
+    },
+    {
+      "id": "p_1756232060823",
+      "name": "Yomi Lala Vainilla 960ml",
+      "price": 35,
+      "category": "Lácteos",
+      "subcategory": "Lala",
+      "image": "",
+      "active": true
+    },
+    {
+      "id": "p_1756232637793",
+      "name": "Cremax Vainilla 213g PAKETÓN",
+      "price": 30,
+      "category": "Galletas/Pan",
+      "subcategory": "Gamesa",
+      "image": "/img/galletaspan/paketonvainilla213g.webp",
+      "active": true
+    },
+    {
+      "id": "p_1756232698866",
+      "name": "Cremax Chocolate 213g PAKETÓN",
+      "price": 30,
+      "category": "Galletas/Pan",
+      "subcategory": "Gamesa",
+      "image": "/img/galletaspan/paketonchocolate213g.webp",
+      "active": true
+    },
+    {
+      "id": "p_1756232744987",
+      "name": "Cremax Fresa 213g PAKETÓN",
+      "price": 30,
+      "category": "Galletas/Pan",
+      "subcategory": "Gamesa",
+      "image": "/img/galletaspan/paketonfresa213g.webp",
+      "active": true
+    },
+    {
+      "id": "p_1756232819405",
+      "name": "Ricanelas 113g",
+      "price": 20,
+      "category": "Galletas/Pan",
+      "subcategory": "Gamesa",
+      "image": "/img/galletaspan/ricanelas113g.webp",
+      "active": true
+    },
+    {
+      "id": "p_1756232854982",
+      "name": "Florentinas Cajeta 110g",
+      "price": 20,
+      "category": "Galletas/Pan",
+      "subcategory": "Gamesa",
+      "image": "/img/galletaspan/florentinascajeta110g.webp",
+      "active": true
+    },
+    {
+      "id": "p_1756232889105",
+      "name": "Florentinas Fresa 110g",
+      "price": 20,
+      "category": "Galletas/Pan",
+      "subcategory": "Gamesa",
+      "image": "/img/galletaspan/florentinasfresa110g.webp",
+      "active": true
+    },
+    {
+      "id": "p_1756232958376",
+      "name": "Marías Clásicas 185g",
+      "price": 20,
+      "category": "Galletas/Pan",
+      "subcategory": "Gamesa",
+      "image": "/img/galletaspan/mariasclasicas185g.webp",
+      "active": true
+    },
+    {
+      "id": "p_1756233028732",
+      "name": "Saladitas 140g",
+      "price": 20,
+      "category": "Galletas/Pan",
+      "subcategory": "Gamesa",
+      "image": "/img/galletaspan/saladitas140g.webp",
+      "active": true
+    },
+    {
+      "id": "p_1756318723424",
+      "name": "Príncipe Avellana Tentación 126g",
+      "price": 22,
+      "category": "Galletas/Pan",
+      "subcategory": "Marinela",
+      "image": "/img/galletaspan/principeavellana126g.webp",
+      "active": true
+    },
+    {
+      "id": "p_1756318756389",
+      "name": "Príncipe Relleno Chocolate 126g",
+      "price": 22,
+      "category": "Galletas/Pan",
+      "subcategory": "Marinela",
+      "image": "/img/galletaspan/principerellenochocolate126g.webp",
+      "active": true
+    },
+    {
+      "id": "p_1756318781285",
+      "name": "Príncipe Relleno Limón 126g",
+      "price": 22,
+      "category": "Galletas/Pan",
+      "subcategory": "Marinela",
+      "image": "/img/galletaspan/principerellenolimon126g.webp",
+      "active": true
+    },
+    {
+      "id": "p_1756319279868",
+      "name": "Joya Durazno 1.5lt",
+      "price": 28,
+      "category": "Sodas/Jugos",
+      "subcategory": "Coca-Cola",
+      "image": "",
+      "active": true
+    },
+    {
+      "id": "p_1756319300314",
+      "name": "Sprite Lima Limón 1.5lt",
+      "price": 28,
+      "category": "Sodas/Jugos",
+      "subcategory": "Coca-Cola",
+      "image": "",
+      "active": true
+    },
+    {
+      "id": "p_1756319492839",
+      "name": "Santa Clara Fresa 180ml",
+      "price": 12,
+      "category": "Lácteos",
+      "subcategory": "Santa Clara",
+      "image": "",
+      "active": true
+    },
+    {
+      "id": "p_1756319521470",
+      "name": "Santa Clara Chocolate 180ml",
+      "price": 12,
+      "category": "Lácteos",
+      "subcategory": "Santa Clara",
+      "image": "",
+      "active": true
+    },
+    {
+      "id": "p_1756319542358",
+      "name": "Santa Clara Vainilla 180ml",
+      "price": 12,
+      "category": "Lácteos",
+      "subcategory": "Santa Clara",
+      "image": "",
+      "active": true
+    },
+    {
+      "id": "p_1756319714087",
+      "name": "Be Light Mango 1.5lt",
+      "price": 23,
+      "category": "Sodas/Jugos",
+      "subcategory": "Pepsi",
+      "image": "",
+      "active": true
+    },
+    {
+      "id": "p_1756319740674",
+      "name": "Be Light Toronja 1.5lt",
+      "price": 23,
+      "category": "Sodas/Jugos",
+      "subcategory": "Pepsi",
+      "image": "",
+      "active": true
+    },
+    {
+      "id": "p_1756319763718",
+      "name": "Be Light Limón 1.5lt",
+      "price": 23,
+      "category": "Sodas/Jugos",
+      "subcategory": "Pepsi",
+      "image": "",
+      "active": true
+    },
+    {
+      "id": "p_1756319840070",
+      "name": "Epura Natural 1.5lt",
+      "price": 17,
+      "category": "Sodas/Jugos",
+      "subcategory": "Pepsi",
+      "image": "",
+      "active": true
+    },
+    {
+      "id": "p_1756319859413",
+      "name": "Epura Natural 1lt",
+      "price": 15,
+      "category": "Sodas/Jugos",
+      "subcategory": "Pepsi",
+      "image": "",
+      "active": true
+    },
+    {
+      "id": "p_1756319889230",
+      "name": "Epura Bebé 5lt",
+      "price": 36,
+      "category": "Sodas/Jugos",
+      "subcategory": "Pepsi",
+      "image": "",
+      "active": true
+    },
+    {
+      "id": "p_1756333177688",
+      "name": "Yogurt Fresa 242g Yoplait",
+      "price": 19,
+      "category": "Lácteos",
+      "subcategory": "Yoplait",
+      "image": "",
+      "active": true
+    },
+    {
+      "id": "p_1756333214730",
+      "name": "Yoghurt Durazno 220g Yoplait",
+      "price": 19,
+      "category": "Lácteos",
+      "subcategory": "Yoplait",
+      "image": "",
+      "active": true
+    },
+    {
+      "id": "p_1756413739501",
+      "name": "Dog Chow Pollo Arroz 85g",
+      "price": 12,
+      "category": "Mascotas",
+      "subcategory": "Alimento/Húmedos/Sobres",
+      "image": "",
+      "active": true
+    },
+    {
+      "id": "p_1756413776309",
+      "name": "Dog Chow Pollo Zanahoria 85g",
+      "price": 12,
+      "category": "Mascotas",
+      "subcategory": "Alimento/Húmedos/Sobres",
+      "image": "",
+      "active": true
+    },
+    {
+      "id": "p_1756419220414",
+      "name": "Raid Max 400ml",
+      "price": 90,
+      "category": "Hogar",
+      "subcategory": "Insecticidas",
+      "image": "",
+      "active": true
+    },
+    {
+      "id": "p_1756419266098",
+      "name": "Raid Max 226ml",
+      "price": 70,
+      "category": "Hogar",
+      "subcategory": "Insecticidas",
+      "image": "",
+      "active": true
+    },
+    {
+      "id": "p_1756422753741",
+      "name": "Blanca Nieves 250g",
+      "price": 15,
+      "category": "Hogar",
+      "subcategory": "Detergentes Polvo",
+      "image": "",
+      "active": true
+    },
+    {
+      "id": "p_1756422813792",
+      "name": "Foca 250g",
+      "price": 15,
+      "category": "Hogar",
+      "subcategory": "Detergentes Polvo",
+      "image": "",
+      "active": true
+    },
+    {
+      "id": "p_1756422849547",
+      "name": "Roma 250g",
+      "price": 15,
+      "category": "Hogar",
+      "subcategory": "Detergentes Polvo",
+      "image": "",
+      "active": true
+    },
+    {
+      "id": "p_1756423223941",
+      "name": "Bolsa Basura Negra | Mediana",
+      "price": 6,
+      "category": "Hogar",
+      "subcategory": "Bolsas",
+      "image": "",
+      "active": true
+    },
+    {
+      "id": "p_1756423242656",
+      "name": "Bolsa Basura Negra | Grande",
+      "price": 10,
+      "category": "Hogar",
+      "subcategory": "Bolsas",
+      "image": "",
+      "active": true
+    },
+    {
+      "id": "p_1756424040366",
+      "name": "Joya Manzana 2.5lt",
+      "price": 43,
+      "category": "Sodas/Jugos",
+      "subcategory": "Coca-Cola",
+      "image": "",
+      "active": true
+    },
+    {
+      "id": "p_1756424167478",
+      "name": "Joya Ponche Frutas 2.5lt",
+      "price": 43,
+      "category": "Sodas/Jugos",
+      "subcategory": "Coca-Cola",
+      "image": "/img/sodasjugos/joyaponhce25lt.webp",
+      "active": true
+    },
+    {
+      "id": "p_1756426342978",
+      "name": "Jumex Durazno 413ml Vidrio",
+      "price": 18,
+      "category": "Sodas/Jugos",
+      "subcategory": "Jumex",
+      "image": "/img/sodasjugos/jumexduraznovidrio413ml.webp",
+      "active": true
+    },
+    {
+      "id": "p_1756426367033",
+      "name": "Jumex Mango 413ml Vidrio",
+      "price": 18,
+      "category": "Sodas/Jugos",
+      "subcategory": "Jumex",
+      "image": "/img/sodasjugos/jumexmangovidrio413ml.webp",
+      "active": true
+    },
+    {
+      "id": "p_1756426628949",
+      "name": "Pinol Original 500ml",
+      "price": 24,
+      "category": "Hogar",
+      "subcategory": "Desinfectantes/Cloros",
+      "image": "",
+      "active": true
+    },
+    {
+      "id": "p_1756483879381",
+      "name": "Coca Cola Zero 600ml",
+      "price": 21,
+      "category": "Sodas/Jugos",
+      "subcategory": "Coca-Cola",
+      "image": "/img/sodasjugos/cocazero600ml.webp",
+      "active": true
+    },
+    {
+      "id": "p_1756490719861",
+      "name": "Joya Durazno 600ml",
+      "price": 21,
+      "category": "Sodas/Jugos",
+      "subcategory": "Coca-Cola",
+      "image": "/img/sodasjugos/joyadurazno600ml.webp",
+      "active": true
+    },
+    {
+      "id": "p_1756498391684",
+      "name": "Principe Chocolate Blanco 126g",
+      "price": 22,
+      "category": "Galletas/Pan",
+      "subcategory": "Marinela",
+      "image": "/img/galletaspan/principechocolateblanco126g.webp",
+      "active": true
+    },
+    {
+      "id": "p_1756498417039",
+      "name": "Polvorones Naranja 148g",
+      "price": 22,
+      "category": "Galletas/Pan",
+      "subcategory": "Marinela",
+      "image": "/img/galletaspan/polvorones148g.webp",
+      "active": true
+    },
+    {
+      "id": "p_1756498435844",
+      "name": "Canelitas 120g",
+      "price": 22,
+      "category": "Galletas/Pan",
+      "subcategory": "Marinela",
+      "image": "/img/galletaspan/canelitas120g.webp",
+      "active": true
+    },
+    {
+      "id": "p_1756498463426",
+      "name": "Triki Trakes 85g",
+      "price": 22,
+      "category": "Galletas/Pan",
+      "subcategory": "Marinela",
+      "image": "/img/galletaspan/trikitrakes85g.png",
+      "active": true
+    },
+    {
+      "id": "p_1756498601946",
+      "name": "Canelitas Pastelito 58g",
+      "price": 12,
+      "category": "Galletas/Pan",
+      "subcategory": "Marinela",
+      "image": "/img/galletaspan/canelitaspastelito58g.webp",
+      "active": true
+    },
+    {
+      "id": "p_1756498704880",
+      "name": "Emperador Piruetas Limón 115g",
+      "price": 20,
+      "category": "Galletas/Pan",
+      "subcategory": "Gamesa",
+      "image": "/img/galletaspan/emperadorpiruetas115g.webp",
+      "active": true
+    },
+    {
+      "id": "p_1756498746669",
+      "name": "Emperador Chocolate Avellana 109g",
+      "price": 20,
+      "category": "Galletas/Pan",
+      "subcategory": "Gamesa",
+      "image": "",
+      "active": true
+    },
+    {
+      "id": "p_1756498770941",
+      "name": "Emperador Nuez 109g",
+      "price": 20,
+      "category": "Galletas/Pan",
+      "subcategory": "Gamesa",
+      "image": "/img/galletaspan/emperadornuez109g.webp",
+      "active": true
+    },
+    {
+      "id": "p_1756498808454",
+      "name": "Cremax Fresa 113g",
+      "price": 20,
+      "category": "Galletas/Pan",
+      "subcategory": "Gamesa",
+      "image": "/img/galletaspan/cremaxfresa113g.webp",
+      "active": true
+    },
+    {
+      "id": "p_1756498829082",
+      "name": "Cremax Vainilla 113g",
+      "price": 20,
+      "category": "Galletas/Pan",
+      "subcategory": "Gamesa",
+      "image": "/img/galletaspan/cremaxvainilla113g.webp",
+      "active": false
+    },
+    {
+      "id": "p_1756498847200",
+      "name": "Cremax Chocolate 113g",
+      "price": 20,
+      "category": "Galletas/Pan",
+      "subcategory": "Gamesa",
+      "image": "/img/galletaspan/cremaxchocolate113g.webp",
+      "active": false
+    },
+    {
+      "id": "p_1756498898058",
+      "name": "Fruts Fresa 130g",
+      "price": 25,
+      "category": "Galletas/Pan",
+      "subcategory": "Gamesa",
+      "image": "/img/galletaspan/frutsfresa130g.webp",
+      "active": true
+    },
+    {
+      "id": "p_1756498994064",
+      "name": "Doradas 199g PAKOMPARTIR",
+      "price": 29,
+      "category": "Galletas/Pan",
+      "subcategory": "Gamesa",
+      "image": "/img/galletaspan/doradas199g.webp",
+      "active": true
+    },
+    {
+      "id": "p_1756499058384",
+      "name": "Papitas Salsa Picante 90g",
+      "price": 19,
+      "category": "Botanas",
+      "subcategory": "Totis",
+      "image": "/img/botanas/papitassalsapicante90g.jpg",
+      "active": true
+    },
+    {
+      "id": "p_1756499084243",
+      "name": "Papitas Adobadas 90g",
+      "price": 19,
+      "category": "Botanas",
+      "subcategory": "Totis",
+      "image": "/img/botanas/papitasadobadas90g.jpg",
+      "active": true
+    },
+    {
+      "id": "p_1756499241684",
+      "name": "Papitas Elote Preparado 90g",
+      "price": 19,
+      "category": "Botanas",
+      "subcategory": "Totis",
+      "image": "/img/botanas/papitaselote90g.webp",
+      "active": true
+    },
+    {
+      "id": "p_1756499285446",
+      "name": "Totopos Nachos 120g",
+      "price": 17,
+      "category": "Botanas",
+      "subcategory": "Totis",
+      "image": "/img/botanas/totoposnacho120g.jpg",
+      "active": true
+    },
+    {
+      "id": "p_1756499319388",
+      "name": "Totopos Salsa Negra 120g",
+      "price": 17,
+      "category": "Botanas",
+      "subcategory": "Totis",
+      "image": "/img/botanas/totopossalsanegra120g.webp",
+      "active": true
+    },
+    {
+      "id": "p_1756499391962",
+      "name": "Que Totis Twitters Queso Chile 100g",
+      "price": 17,
+      "category": "Botanas",
+      "subcategory": "Totis",
+      "image": "/img/botanas/twisterquesochile.jpg",
+      "active": true
+    },
+    {
+      "id": "p_1756499432279",
+      "name": "Donitas Chile y Limón 28g",
+      "price": 10,
+      "category": "Botanas",
+      "subcategory": "Totis",
+      "image": "/img/botanas/donitaschile28g.webp",
+      "active": true
+    },
+    {
+      "id": "p_1756499461571",
+      "name": "Donitas Limón y Sal 28g",
+      "price": 10,
+      "category": "Botanas",
+      "subcategory": "Totis",
+      "image": "/img/botanas/donitas28g.webp",
+      "active": true
+    },
+    {
+      "id": "p_1756499576125",
+      "name": "Be Light Jamaica 1.5lt",
+      "price": 23,
+      "category": "Sodas/Jugos",
+      "subcategory": "Pepsi",
+      "image": "",
+      "active": true
+    },
+    {
+      "id": "p_1756499606804",
+      "name": "Mirinda Naranja 600ml",
+      "price": 20,
+      "category": "Sodas/Jugos",
+      "subcategory": "Pepsi",
+      "image": "",
+      "active": true
+    },
+    {
+      "id": "p_1756499641406",
+      "name": "Squirt Toronja 600ml",
+      "price": 20,
+      "category": "Sodas/Jugos",
+      "subcategory": "Pepsi",
+      "image": "",
+      "active": true
+    },
+    {
+      "id": "p_1756499704656",
+      "name": "Jumex Naranjada 600ml Frutzzo",
+      "price": 19,
+      "category": "Sodas/Jugos",
+      "subcategory": "Pepsi",
+      "image": "",
+      "active": true
+    },
+    {
+      "id": "p_1756499731639",
+      "name": "Jumex Mandarinada 600ml Frutzzo",
+      "price": 19,
+      "category": "Sodas/Jugos",
+      "subcategory": "Pepsi",
+      "image": "",
+      "active": true
+    },
+    {
+      "id": "p_1756499796142",
+      "name": "Jumex Fresh Conga 600ml",
+      "price": 19,
+      "category": "Sodas/Jugos",
+      "subcategory": "Pepsi",
+      "image": "",
+      "active": true
+    },
+    {
+      "id": "p_1756499823155",
+      "name": "Jumex Fresh Cítricos 600ml",
+      "price": 19,
+      "category": "Sodas/Jugos",
+      "subcategory": "Pepsi",
+      "image": "",
+      "active": true
+    },
+    {
+      "id": "p_1756499882699",
+      "name": "Té Negro Limón 600ml Lipton",
+      "price": 20,
+      "category": "Sodas/Jugos",
+      "subcategory": "Pepsi",
+      "image": "",
+      "active": true
+    },
+    {
+      "id": "p_1756499917088",
+      "name": "Pepsi Original 355ml Lata",
+      "price": 20,
+      "category": "Sodas/Jugos",
+      "subcategory": "Pepsi",
+      "image": "",
+      "active": true
+    },
+    {
+      "id": "p_1756499954611",
+      "name": "Gatorade Uva 1lt",
+      "price": 33,
+      "category": "Sodas/Jugos",
+      "subcategory": "Pepsi",
+      "image": "",
+      "active": true
+    },
+    {
+      "id": "p_1756499981779",
+      "name": "Gatorade Moras 1lt",
+      "price": 33,
+      "category": "Sodas/Jugos",
+      "subcategory": "Pepsi",
+      "image": "",
+      "active": true
+    },
+    {
+      "id": "p_1756500003519",
+      "name": "Gatorade Ponche Frutas 1lt",
+      "price": 33,
+      "category": "Sodas/Jugos",
+      "subcategory": "Pepsi",
+      "image": "",
+      "active": true
+    },
+    {
+      "id": "p_1756500079516",
+      "name": "Alpura Vaquitas Chocolate 1lt",
+      "price": 34,
+      "category": "Lácteos",
+      "subcategory": "Alpura",
+      "image": "",
+      "active": true
+    },
+    {
+      "id": "p_1756517384729",
+      "name": "Tomate",
+      "price": 22,
+      "category": "Cocina",
+      "subcategory": "Verduras",
+      "image": "",
+      "active": true,
+
+      "soldBy": "weight",           // "unit" por defecto, "weight" para a granel
+      "unitLabel": "kg",            // etiqueta que mostramos junto a la cantidad
+      "step": 0.25,                 // de cuánto en cuánto sumar/restar (0.25 kg)
+      "minQty": 0.25                // mínima cantidad al agregar (0.25 kg)
+    },
+    {
+      "id": "p_1756517434562",
+      "name": "Cebolla",
+      "price": 27,
+      "category": "Cocina",
+      "subcategory": "Verduras",
+      "image": "",
+      "active": true,
+
+      "soldBy": "weight",           // "unit" por defecto, "weight" para a granel
+      "unitLabel": "kg",            // etiqueta que mostramos junto a la cantidad
+      "step": 0.25,                 // de cuánto en cuánto sumar/restar (0.25 kg)
+      "minQty": 0.25                // mínima cantidad al agregar (0.25 kg)
+    },
+    {
+      "id": "p_1756517463346",
+      "name": "Chile Serrano",
+      "price": 79,
+      "category": "Cocina",
+      "subcategory": "Verduras",
+      "image": "",
+      "active": true,
+
+      "soldBy": "weight",           // "unit" por defecto, "weight" para a granel
+      "unitLabel": "kg",            // etiqueta que mostramos junto a la cantidad
+      "step": 0.25,                 // de cuánto en cuánto sumar/restar (0.25 kg)
+      "minQty": 0.25                // mínima cantidad al agregar (0.25 kg)
+    },
+    {
+      "id": "p_1756517489895",
+      "name": "Papa",
+      "price": 35,
+      "category": "Cocina",
+      "subcategory": "Verduras",
+      "image": "",
+      "active": true,
+
+      "soldBy": "weight",           // "unit" por defecto, "weight" para a granel
+      "unitLabel": "kg",            // etiqueta que mostramos junto a la cantidad
+      "step": 0.25,                 // de cuánto en cuánto sumar/restar (0.25 kg)
+      "minQty": 0.25                // mínima cantidad al agregar (0.25 kg)
+    },
+    {
+      "id": "p_1756517524378",
+      "name": "Aguacate",
+      "price": 85,
+      "category": "Cocina",
+      "subcategory": "Verduras",
+      "image": "",
+      "active": true,
+
+      "soldBy": "weight",           // "unit" por defecto, "weight" para a granel
+      "unitLabel": "kg",            // etiqueta que mostramos junto a la cantidad
+      "step": 0.25,                 // de cuánto en cuánto sumar/restar (0.25 kg)
+      "minQty": 0.25                // mínima cantidad al agregar (0.25 kg)
     }
   ]
 }
