@@ -254,10 +254,11 @@
   </div>
 </div>
 
-<!-- Modal: Editar producto -->
+<!-- Formulario: Editar producto -->
 <div id="modalEditProd" class="modal oculto">
-  <div class="modal-contenido" style="max-width:560px;">
-    <h3>Editar producto</h3>
+  <div class="modal-contenido">
+    <button id="btnCerrarEditarProd" class="cerrar-modal">✕</button>
+    <h2>Editar producto</h2>
 
     <label>Nombre</label>
     <input id="editProdName" class="modal-input" type="text" placeholder="Nombre del producto">
@@ -274,13 +275,27 @@
     <label>URL de imagen</label>
     <input id="editProdImage" class="modal-input" type="url" placeholder="https://...">
 
+    <!-- Selección de unidad: pieza o kg -->
+    <label>Vender por:</label>
+    <select id="editProdUnit" class="modal-input">
+      <option value="unit">Pieza</option>
+      <option value="weight">Kg</option>
+    </select>
+    <!-- Opciones de peso (step y minQty) -->
+    <div id="editKgOptions" style="display:none;">
+      <label>Step (cantidad mínima que se puede agregar)</label>
+      <input id="editProdStep" class="modal-input" type="number" step="0.01" min="0.01" placeholder="Ej. 0.25" />
+
+      <label>Min. Qty (cantidad mínima de compra)</label>
+      <input id="editProdMinQty" class="modal-input" type="number" step="0.01" min="0.01" placeholder="Ej. 0.25" />
+    </div>
+
     <div class="actions" style="display:flex; gap:10px; justify-content:flex-end; margin-top:12px;">
       <button id="btnCancelEditProd" class="btn-cancelar" type="button">Cancelar</button>
       <button id="btnSaveEditProd" class="btn-guardar" type="button" disabled>Guardar cambios</button>
     </div>
   </div>
 </div>
-
 
 <!-- Toast -->
 <div id="mensajeGuardado" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#4ade80;color:#1e293b;padding:1rem 1.5rem;border-radius:10px;box-shadow:0 0 15px rgba(0,0,0,.3);z-index:10000;align-items:center;gap:1rem;font-size:1rem;">

@@ -123,6 +123,21 @@ const kgOptions = document.getElementById('kgOptions');
 const inputProdStep = document.getElementById('inputProdStep');
 const inputProdMinQty = document.getElementById('inputProdMinQty');
 
+// Referencias para los nuevos elementos en el modal de edición
+const editProdUnit = document.getElementById('editProdUnit');
+const editKgOptions = document.getElementById('editKgOptions');
+const editProdStep = document.getElementById('editProdStep');
+const editProdMinQty = document.getElementById('editProdMinQty');
+
+// Mostrar/ocultar opciones según la unidad seleccionada en la edición
+editProdUnit?.addEventListener('change', () => {
+  if (editProdUnit.value === 'weight') {
+    editKgOptions.style.display = 'block';  // Mostrar opciones de peso
+  } else {
+    editKgOptions.style.display = 'none';   // Ocultar opciones de peso
+  }
+});
+
 // Mostrar/ocultar opciones según la unidad seleccionada
 inputProdUnit?.addEventListener('change', () => {
   if (inputProdUnit.value === 'weight') {
@@ -344,16 +359,19 @@ async function initProductosPanel(){
   }
 }
 
-function openProductEditModal(prod){
-  editingProdId = prod.id || null;
+// Validar formulario de edición
+function validateEditProdForm() {
+  const nameOk = (editProdName.value || '').trim().length > 0;
+  const priceVal = parseFloat(String(editProdPrice.value || '').replace(',', '.'));
+  const priceOk = Number.isFinite(priceVal) && priceVal >= 0;
+  const catOk = (editProdCategory.value || '').trim().length > 0;
+  const subOk = editProdSubcategory.disabled ? true : (editProdSubcategory.value || '').trim().length > 0;
 
-  editProdName.value  = prod.name || '';
-  editProdPrice.value = Number(prod.price || 0).toFixed(2);
-  editProdImage.value = prod.image || '';
-
-  fillEditCatAndSub(editProdCategory, editProdSubcategory, prod.category || '', prod.subcategory || '');
-  validateEditProdForm();
-  abrirModal(modalEditProd);
+  const ok = nameOk && priceOk && catOk && subOk;
+  if (btnSaveEditProd) {
+    btnSaveEditProd.disabled = !ok;
+    btnSaveEditProd.setAttribute('aria-disabled', String(!ok));
+  }
 }
 
 function validateEditProdForm(){
@@ -393,14 +411,19 @@ modalEditProd?.addEventListener('click', (e) => {
   if (e.target === modalEditProd && cont && !cont.contains(e.target)) cerrarModal(modalEditProd);
 });
 
+// Guardar los cambios cuando el usuario edita el producto
 btnSaveEditProd?.addEventListener('click', async () => {
   if (btnSaveEditProd.disabled) return;
 
-  const name  = (editProdName.value || '').trim();
+  const name = (editProdName.value || '').trim();
   const price = parseFloat(String(editProdPrice.value || '').replace(',', '.')) || 0;
-  const cat   = (editProdCategory.value || '').trim();
-  const sub   = (editProdSubcategory.value || '').trim();
+  const cat = (editProdCategory.value || '').trim();
+  const sub = (editProdSubcategory.value || '').trim();
   const image = (editProdImage.value || '').trim();
+
+  const unit = editProdUnit.value;
+  const step = unit === 'weight' ? parseFloat(editProdStep.value) : null;
+  const minQty = unit === 'weight' ? parseFloat(editProdMinQty.value) : null;
 
   try {
     let idx = productsCache.findIndex(p => (p.id || '') === (editingProdId || ''));
@@ -415,7 +438,10 @@ btnSaveEditProd?.addEventListener('click', async () => {
       price: +price.toFixed(2),
       category: cat,
       subcategory: sub,
-      image
+      image,
+      soldBy: unit,
+      step,
+      minQty
     };
 
     await apiPut(API_PRODUCTOS, { products: productsCache });
