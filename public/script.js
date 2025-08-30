@@ -87,14 +87,11 @@ function normalize(str){ return (str || '').toString().toLowerCase().trim(); }
 function getCardInfo(card){
   const name = card.querySelector('h3')?.textContent.trim() || '';
   const unit = parseMoney(card.querySelector('.price')?.textContent);
-  const id = name; // simple por ahora
-
-  // NUEVO: leer dataset para peso
+  const id = name;
   const soldBy    = card.dataset.soldby || 'unit';
   const unitLabel = card.dataset.unitlabel || (soldBy==='weight' ? 'kg' : 'pza');
-  const step      = parseFloat(card.dataset.step) || (soldBy==='weight' ? 0.25 : 1);
-  const minQty    = parseFloat(card.dataset.minqty) || step;
-
+  const step      = parseFloat(card.dataset.step || '1') || 1;
+  const minQty    = parseFloat(card.dataset.minqty || (soldBy==='weight' ? '0.25' : '1')) || 1;
   return { id, name, unit, soldBy, unitLabel, step, minQty };
 }
 
@@ -227,17 +224,19 @@ function renderProductGrid(products){
     const minQty    = Number(p.minQty ?? step);
 
     return `
-      <article class="card"
-        data-category="${cat}" data-subcategory="${sub}"
-        data-soldby="${soldBy}" data-unitlabel="${unitLabel}"
-        data-step="${step}" data-minqty="${minQty}">
-        <img src="${img}" alt="${name}">
-        <div class="info">
-          <h3>${name}</h3>
-          <p class="price">$${price.toFixed(2)}</p>
-          <button class="btn add">Agregar</button>
-        </div>
-      </article>
+    <article class="card"
+    data-category="${cat}" data-subcategory="${sub}"
+    data-soldby="${p.soldBy || 'unit'}"
+    data-unitlabel="${p.unitLabel || 'pza'}"
+    data-step="${p.step ?? 1}"
+    data-minqty="${p.minQty ?? ((p.soldBy==='weight') ? 0.25 : 1)}">
+    <img src="${img}" alt="${name}">
+    <div class="info">
+      <h3>${name}</h3>
+      <p class="price">$${price.toFixed(2)}</p>
+      <button class="btn add">Agregar</button>
+    </div>
+    </article>
     `;
   }).join('');
 }
@@ -368,6 +367,7 @@ function clearCart() {
 }
 
 // Control qty en carrito
+// Control qty en carrito (respeta step/minQty y soldBy)
 cartList.addEventListener('click', (e) => {
   const minus = e.target.closest('.cart-minus');
   const plus  = e.target.closest('.cart-plus');
@@ -379,30 +379,46 @@ cartList.addEventListener('click', (e) => {
   const item = cart.get(id);
   if (!item) return;
 
-  const d = decimalsFromStep(item.step || 1);
+  // Lee step/minQty guardados en el item (con defaults seguros)
+  const step   = (typeof item.step === 'number' && item.step > 0) ? item.step : 1;
+  const minQty = (typeof item.minQty === 'number' && item.minQty > 0)
+                  ? item.minQty
+                  : ((item.soldBy === 'weight') ? 0.25 : 1);
+
+  // helpers para evitar flotantes raros y forzar enteros en piezas
+  const snap = (n) => +n.toFixed(3);            // 0.30000000004 -> 0.3
+  const clampUnits = (n) => Math.max(1, Math.round(n));
 
   if (plus) {
-    item.qty = +(item.qty + (item.step || 1)).toFixed(d);
+    let q = snap((item.qty || minQty) + step);
+    if (item.soldBy !== 'weight') q = clampUnits(q); // piezas -> entero
+    item.qty = q;
     cart.set(id, item);
     renderCart();
     syncCardsQty(id);
+    return;
   }
+
   if (minus) {
-    const next = +(item.qty - (item.step || 1)).toFixed(d);
-    if (next < (item.minQty || item.step || 1)) {
+    const next = snap((item.qty || minQty) - step);
+    // Si bajaría de la mínima, pedimos confirmar para eliminar
+    if (next < (minQty - 1e-6)) {
       if (confirm('¿Eliminar este artículo del carrito?')) {
         cart.delete(id);
         renderCart();
         syncCardsQty(id);
       }
     } else {
-      item.qty = next;
+      let q = next;
+      if (item.soldBy !== 'weight') q = clampUnits(q); // piezas -> entero
+      item.qty = q;
       cart.set(id, item);
       renderCart();
       syncCardsQty(id);
     }
   }
 });
+
 
 // --------- Botones en tarjetas ---------
 function createAddButton(card){
@@ -416,60 +432,56 @@ function createAddButton(card){
   return btn;
 }
 
-function createQtyControl(card, qty, info){
-  info = info || getCardInfo(card);
+function createQtyControl(card, qty){
   const control = document.createElement('div');
   control.className = 'qty-control';
+  const { id, name, unit, soldBy, unitLabel, step, minQty } = getCardInfo(card);
+  const isDecimal = (step % 1) !== 0;
+  const fmt = v => isDecimal ? (+v).toFixed(2).replace(/\.00$/,'') : String(v);
 
   const btnMinus = document.createElement('button'); btnMinus.textContent = '−';
-  const spanQty  = document.createElement('span');   spanQty.textContent = (info.soldBy==='weight')
-    ? `${formatQty(qty, info.step)} ${info.unitLabel}` : `${formatQty(qty, 1)}`;
-  const btnPlus  = document.createElement('button'); btnPlus.textContent = '+';
-
-  const d = decimalsFromStep(info.step);
+  const spanQty  = document.createElement('span');   spanQty.textContent  = fmt(qty);
+  const btnPlus  = document.createElement('button'); btnPlus.textContent  = '+';
 
   btnPlus.addEventListener('click', () => {
-    const current = cart.get(info.id) || { ...info, qty: 0 };
-    current.qty = +(current.qty + info.step).toFixed(d);
-    cart.set(info.id, current);
-    spanQty.textContent = (info.soldBy==='weight')
-      ? `${formatQty(current.qty, info.step)} ${info.unitLabel}`
-      : `${formatQty(current.qty, 1)}`;
+    const cur = cart.get(id) || { id, name, unit, soldBy, unitLabel, step, minQty, qty: 0 };
+    cur.qty = +(cur.qty + step).toFixed(3);
+    if (soldBy === 'unit') cur.qty = Math.round(cur.qty);
+    cart.set(id, cur);
+    spanQty.textContent = fmt(cur.qty);
     renderCart();
   });
 
   btnMinus.addEventListener('click', () => {
-    const current = cart.get(info.id) || { ...info, qty: 0 };
-    const next = +(current.qty - info.step).toFixed(d);
-    if (next < (info.minQty || info.step)) {
+    const cur = cart.get(id) || { id, name, unit, soldBy, unitLabel, step, minQty, qty: 0 };
+    const next = +(cur.qty - step).toFixed(3);
+    if (next < minQty + 1e-6) {
       if (confirm('¿Eliminar este artículo del carrito?')) {
-        cart.delete(info.id);
+        cart.delete(id);
         renderCart();
         control.replaceWith(createAddButton(card));
       }
     } else {
-      current.qty = next;
-      cart.set(info.id, current);
-      spanQty.textContent = (info.soldBy==='weight')
-        ? `${formatQty(current.qty, info.step)} ${info.unitLabel}`
-        : `${formatQty(current.qty, 1)}`;
+      cur.qty = next;
+      if (soldBy === 'unit') cur.qty = Math.max(1, Math.round(cur.qty));
+      cart.set(id, cur);
+      spanQty.textContent = fmt(cur.qty);
       renderCart();
     }
   });
 
-  control.append(btnMinus, spanQty, btnPlus);
   return control;
 }
 
-function switchToQtyControl(card, startQty, addToCart = false){
+function switchToQtyControl(card, startQty = 1, addToCart = false){
   const info = getCardInfo(card);
-  const start = Number(startQty ?? info.minQty ?? 1);
+  const start = addToCart ? info.minQty : (cart.get(info.id)?.qty || info.minQty);
   if (addToCart) {
     cart.set(info.id, { ...info, qty: start });
     renderCart();
   }
   const addBtn = card.querySelector('.btn.add');
-  const control = createQtyControl(card, cart.get(info.id)?.qty || start, info);
+  const control = createQtyControl(card, cart.get(info.id)?.qty || start);
   if (addBtn) addBtn.replaceWith(control);
 }
 
@@ -871,15 +883,19 @@ checkoutForm.addEventListener('submit', (e) => {
 
 // Lee items del modal del carrito (para armar ticket)
 function collectCartItems(){
-  return Array.from(cart.values()).map(it => ({
-    name: it.name,
-    unit: Number(it.unit) || 0,
-    qty:  Number(it.qty)  || 0,
-    soldBy: it.soldBy,
-    unitLabel: it.unitLabel,
-    step: it.step,
-    line: +((Number(it.unit)||0) * (Number(it.qty)||0)).toFixed(2)
-  }));
+  const items = [];
+  document.querySelectorAll('#cartList .cart-item').forEach(li=>{
+    const name = li.querySelector('.name')?.textContent.trim() || '';
+    const unit = parseFloat((li.querySelector('.unit')?.textContent || '').replace(/[^0-9.]/g,'')) || 0;
+
+    // 👇 Acepta decimales y textos tipo "0.75 kg"
+    const rawQty = (li.querySelector('.count')?.textContent || '0').trim();
+    const qty = parseFloat(rawQty.replace(',', '.')) || 0;
+
+    const line = +(unit * qty).toFixed(2);
+    items.push({ name, unit, qty, line });
+  });
+  return items;
 }
 
 function buildTicket({ items, zoneName, shipping, pay, subtotal, totalDue, address, efectivo }) {
