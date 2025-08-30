@@ -1448,10 +1448,10 @@
       "subcategory": "Verduras",
       "image": "",
       "active": true,
-      "soldBy": "weight",           // "unit" por defecto, "weight" para a granel
-      "unitLabel": "kg",            // etiqueta que mostramos junto a la cantidad
-      "step": 0.25,                 // de cuánto en cuánto sumar/restar (0.25 kg)
-      "minQty": 0.25                // mínima cantidad al agregar (0.25 kg)
+      "soldBy": "weight",
+      "unitLabel": "kg",
+      "step": 0.25,
+      "minQty": 0.25
     },
     {
       "id": "p_1756517434562",
@@ -1461,10 +1461,10 @@
       "subcategory": "Verduras",
       "image": "",
       "active": true,
-      "soldBy": "weight",           // "unit" por defecto, "weight" para a granel
-      "unitLabel": "kg",            // etiqueta que mostramos junto a la cantidad
-      "step": 0.25,                 // de cuánto en cuánto sumar/restar (0.25 kg)
-      "minQty": 0.25                // mínima cantidad al agregar (0.25 kg)
+      "soldBy": "weight",
+      "unitLabel": "kg",
+      "step": 0.25,
+      "minQty": 0.25
     },
     {
       "id": "p_1756517463346",
@@ -1474,10 +1474,10 @@
       "subcategory": "Verduras",
       "image": "",
       "active": true,
-      "soldBy": "weight",           // "unit" por defecto, "weight" para a granel
-      "unitLabel": "kg",            // etiqueta que mostramos junto a la cantidad
-      "step": 0.25,                 // de cuánto en cuánto sumar/restar (0.25 kg)
-      "minQty": 0.25                // mínima cantidad al agregar (0.25 kg)
+      "soldBy": "weight",
+      "unitLabel": "kg",
+      "step": 0.25,
+      "minQty": 0.25
     },
     {
       "id": "p_1756517489895",
@@ -1487,10 +1487,10 @@
       "subcategory": "Verduras",
       "image": "",
       "active": true,
-      "soldBy": "weight",           // "unit" por defecto, "weight" para a granel
-      "unitLabel": "kg",            // etiqueta que mostramos junto a la cantidad
-      "step": 0.25,                 // de cuánto en cuánto sumar/restar (0.25 kg)
-      "minQty": 0.25                // mínima cantidad al agregar (0.25 kg)
+      "soldBy": "weight",
+      "unitLabel": "kg",
+      "step": 0.25,
+      "minQty": 0.25
     },
     {
       "id": "p_1756517524378",
@@ -1500,10 +1500,10 @@
       "subcategory": "Verduras",
       "image": "",
       "active": true,
-      "soldBy": "weight",           // "unit" por defecto, "weight" para a granel
-      "unitLabel": "kg",            // etiqueta que mostramos junto a la cantidad
-      "step": 0.25,                 // de cuánto en cuánto sumar/restar (0.25 kg)
-      "minQty": 0.25                // mínima cantidad al agregar (0.25 kg)
+      "soldBy": "weight",
+      "unitLabel": "kg",
+      "step": 0.25,
+      "minQty": 0.25                
     }
   ]
 }
