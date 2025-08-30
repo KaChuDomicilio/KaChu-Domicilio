@@ -734,10 +734,15 @@ function renderProductosTable(list){
   });
 }
 // Función para abrir el modal de edición de producto y cargar los datos actuales
+// Función para abrir el modal de edición de producto y cargar los datos actuales
 function openProductEditModal(producto) {
   editingProdId = producto.id;
   editProdName.value = producto.name;
-  editProdPrice.value = producto.price.toFixed(2);
+  
+  // Asegurarnos de que el precio sea un número antes de usar toFixed
+  const price = Number(producto.price);
+  editProdPrice.value = !isNaN(price) ? price.toFixed(2) : '';  // Si no es un número, dejamos el campo vacío
+
   fillEditCatAndSub(editProdCategory, editProdSubcategory, producto.category, producto.subcategory);
   editProdImage.value = producto.image || '';
   
@@ -757,6 +762,7 @@ function openProductEditModal(producto) {
   validateEditProdForm();
   abrirModal(modalEditProd);
 }
+
 tablaProductosBody?.addEventListener('change', async (e) => {
   const chk = e.target.closest('.prod-active');
   if (!chk) return;
