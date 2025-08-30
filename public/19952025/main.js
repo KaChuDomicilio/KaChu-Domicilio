@@ -1,4 +1,3 @@
-// === main.js (KaChu Panel) ===
 let srvInitialActive = true; // recordará el estado con que se abre el modal
 
 // Helpers
@@ -147,73 +146,6 @@ inputProdUnit?.addEventListener('change', () => {
   }
 });
 
-async function loadServicio(){
-  try{
-    const r = await fetch(API_SERVICIO, { cache:'no-store' });
-    if (!r.ok) throw new Error(await r.text());
-    return await r.json(); // {active, message, image}
-  }catch(_){
-    return { active: true, message: "", image: "" };
-  }
-}
-
-function setServicioFormState(activeOn){
-  const disableFields = !!activeOn;
-  srvMessage.disabled = disableFields;
-  srvImage.disabled   = disableFields;
-
-  const changed = (srvActive.checked !== srvInitialActive);
-  btnSrvSave.disabled = !(changed || !srvActive.checked);
-}
-
-async function openServicioModal(){
-  const data = await loadServicio();
-  srvActive.checked  = !!data.active;
-  srvMessage.value   = data.message || "";
-  srvImage.value     = data.image || "";
-
-  srvInitialActive = !!data.active;
-
-  setServicioFormState(srvActive.checked);
-  abrirModal(modalServicio);
-}
-
-optServicio?.addEventListener('click', () => {
-  cerrarMenu?.();
-  openServicioModal().catch(err => {
-    console.error(err); mostrarToast?.('Error cargando estado del servicio');
-  });
-});
-
-srvActive?.addEventListener('change', () => {
-  setServicioFormState(srvActive.checked);
-});
-
-btnSrvCancel?.addEventListener('click', () => {
-  cerrarModal(modalServicio);
-});
-
-btnSrvSave?.addEventListener('click', async () => {
-  if (btnSrvSave.disabled) return;
-  try {
-    const payload = {
-      active: !!srvActive.checked,
-      message: (srvMessage.value || '').trim(),
-      image: (srvImage.value || '').trim()
-    };
-    await apiPut(API_SERVICIO, payload);
-    mostrarToast?.(payload.active ? 'Servicio ACTIVADO' : 'Servicio DESACTIVADO');
-    cerrarModal(modalServicio);
-  } catch (err) {
-    console.error(err);
-    mostrarToast?.('Error al guardar el estado del servicio');
-  }
-});
-
-
-function numeroDesdeTexto(v){ return parseFloat(String(v||'').replace(',', '.')); }
-function normalizeStr(s){ return (s||'').toString().trim(); }
-
 // ---- Add Product helpers (solo existentes)
 function fillProdSelectorsFromCategories(){
   selProdCategory.innerHTML =
@@ -257,7 +189,7 @@ btnProducto?.addEventListener('click', async () => {
   if (formProducto) formProducto.style.display = 'block';
 
   if (!categoriesCache.length){
-    const payload = await apiGet(API_CATEGORIAS).catch(()=>({categories:[]}));
+    const payload = await apiGet(API_CATEGORIAS).catch(()=>({categories:[]})); 
     categoriesCache = Array.isArray(payload) ? payload : (payload.categories || []);
   }
   fillProdSelectorsFromCategories();
@@ -359,3 +291,161 @@ async function initProductosPanel(){
   }
 }
 
+function validateEditProdForm() {
+  const nameOk = (editProdName.value || '').trim().length > 0;
+  const priceVal = parseFloat(String(editProdPrice.value || '').replace(',', '.'));
+  const priceOk = Number.isFinite(priceVal) && priceVal >= 0;
+  const catOk = (editProdCategory.value || '').trim().length > 0;
+  const subOk = editProdSubcategory.disabled ? true : (editProdSubcategory.value || '').trim().length > 0;
+
+  const ok = nameOk && priceOk && catOk && subOk;
+  if (btnSaveEditProd) {
+    btnSaveEditProd.disabled = !ok;
+    btnSaveEditProd.setAttribute('aria-disabled', String(!ok));
+  }
+}
+
+function validateEditProdForm(){
+  const nameOk = (editProdName.value || '').trim().length > 0;
+  const priceVal = parseFloat(String(editProdPrice.value || '').replace(',', '.'));
+  const priceOk = Number.isFinite(priceVal) && priceVal >= 0;
+  const catOk = (editProdCategory.value || '').trim().length > 0;
+  const subOk = editProdSubcategory.disabled ? true : (editProdSubcategory.value || '').trim().length > 0;
+
+  const ok = nameOk && priceOk && catOk && subOk;
+  if (btnSaveEditProd){
+    btnSaveEditProd.disabled = !ok;
+    btnSaveEditProd.setAttribute('aria-disabled', String(!ok));
+  }
+}
+
+editProdName?.addEventListener('input', validateEditProdForm);
+editProdPrice?.addEventListener('input', validateEditProdForm);
+editProdPrice?.addEventListener('blur', () => {
+  const n = parseFloat(String(editProdPrice.value || '').replace(',', '.'));
+  if (Number.isFinite(n) && n >= 0) editProdPrice.value = n.toFixed(2);
+});
+editProdCategory?.addEventListener('change', () => {
+  fillEditCatAndSub(editProdCategory, editProdSubcategory, editProdCategory.value, '');
+  validateEditProdForm();
+});
+editProdSubcategory?.addEventListener('change', validateEditProdForm);
+
+btnCancelEditProd?.addEventListener('click', () => {
+  cerrarModal(modalEditProd);
+  editingProdId = null;
+});
+
+// Cerrar al hacer click afuera
+modalEditProd?.addEventListener('click', (e) => {
+  const cont = modalEditProd.querySelector('.modal-contenido');
+  if (e.target === modalEditProd && cont && !cont.contains(e.target)) cerrarModal(modalEditProd);
+});
+
+// Guardar los cambios cuando el usuario edita el producto
+btnSaveEditProd?.addEventListener('click', async () => {
+  if (btnSaveEditProd.disabled) return;
+
+  const name = (editProdName.value || '').trim();
+  const price = parseFloat(String(editProdPrice.value || '').replace(',', '.')) || 0;
+  const cat = (editProdCategory.value || '').trim();
+  const sub = (editProdSubcategory.value || '').trim();
+  const image = (editProdImage.value || '').trim();
+
+  const unit = editProdUnit.value;
+  const step = unit === 'weight' ? parseFloat(editProdStep.value) : null;
+  const minQty = unit === 'weight' ? parseFloat(editProdMinQty.value) : null;
+
+  try {
+    let idx = productsCache.findIndex(p => (p.id || '') === (editingProdId || ''));
+    if (idx === -1) {
+      idx = productsCache.findIndex(p => p.name === name && p.category === cat && p.subcategory === sub);
+    }
+    if (idx === -1) return mostrarToast?.('No se encontró el producto');
+
+    productsCache[idx] = {
+      ...productsCache[idx],
+      name,
+      price: +price.toFixed(2),
+      category: cat,
+      subcategory: sub,
+      image,
+      soldBy: unit,
+      step,
+      minQty
+    };
+
+    await apiPut(API_PRODUCTOS, { products: productsCache });
+    cerrarModal(modalEditProd);
+    editingProdId = null;
+    mostrarToast?.('Producto actualizado');
+    applyProductosFilters();
+  } catch (err) {
+    console.error(err);
+    mostrarToast?.('Error al guardar cambios');
+  }
+});
+
+
+// Listeners de filtros
+function attachProductosFilterListeners(){
+  if (typeof updateSubcategoryFilter !== 'function' || typeof applyProductosFilters !== 'function') return;
+
+  filterCategory?.addEventListener('change', () => {
+    updateSubcategoryFilter();
+    applyProductosFilters();
+    updateVaciarToggleUI();
+  });
+
+  filterSubcategory?.addEventListener('change', () => {
+    applyProductosFilters();
+    updateVaciarToggleUI();   // ← agregar
+  });
+
+  let searchTimer = null;
+  filterSearch?.addEventListener('input', () => {
+    clearTimeout(searchTimer);
+    if (filterCategory) filterCategory.value = '';
+    if (filterSubcategory) {
+      filterSubcategory.innerHTML = `<option value="">Selecciona subcategoría</option>`;
+      filterSubcategory.disabled = true;
+    }
+    searchTimer = setTimeout(() => {
+      applyProductosFilters();
+      updateVaciarToggleUI(); // ← agregar
+    }, 120);
+  });
+}
+
+// Boot
+function bootProductosPanel(){
+  attachProductosFilterListeners();
+  initProductosPanel().catch(err => {
+    console.error(err);
+    if (typeof mostrarToast === 'function') mostrarToast('Error al iniciar productos');
+  });
+}
+
+if (document.readyState === 'loading') {
+  window.addEventListener('DOMContentLoaded', bootProductosPanel);
+} else {
+  bootProductosPanel();
+}
+
+function fillEditCatAndSub(catSel, subSel, selectedCat = '', selectedSub = ''){
+  const cats = categoriesCache.map(c => c.name);
+  catSel.innerHTML = cats.map(c => `<option value="${c}">${c}</option>`).join('');
+  if (selectedCat && cats.includes(selectedCat)) {
+    catSel.value = selectedCat;
+  } else {
+    catSel.value = cats[0] || '';
+  }
+  const subs = (categoriesCache.find(c => c.name === catSel.value)?.subcategories) || [];
+  subSel.innerHTML = subs.map(s => `<option value="${s}">${s}</option>`).join('');
+  subSel.disabled = subs.length === 0;
+  if (selectedSub && subs.includes(selectedSub)) {
+    subSel.value = selectedSub;
+  } else if (subs.length) {
+    subSel.value = subs[0];
+  }
+}
