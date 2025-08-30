@@ -43,9 +43,15 @@ const CHECKOUT_KEY = 'kachu_checkout_v1';
 
 const cashHelp = document.getElementById('cashHelp');
 
-// (no se usan, pero las dejo por compatibilidad si luego quieres el globito de ayuda)
-function showCashBubble(msg) { if (!cashBubble) return; cashBubble.textContent = msg; cashBubble.classList.remove('hidden'); }
-function hideCashBubble() { if (!cashBubble) return; cashBubble.classList.add('hidden'); }
+function showCashBubble(msg) {
+  if (!cashBubble) return;
+  cashBubble.textContent = msg;
+  cashBubble.classList.remove('hidden');
+}
+function hideCashBubble() {
+  if (!cashBubble) return;
+  cashBubble.classList.add('hidden');
+}
 
 // --- API primero; estáticos como respaldo ---
 const API = {
@@ -78,23 +84,14 @@ function money(n){ return '$' + Number(n).toFixed(2); }
 function parseMoney(str){ return parseFloat((str||'').replace(/[^0-9.]/g,'')) || 0; }
 function normalize(str){ return (str || '').toString().toLowerCase().trim(); }
 
-function decimalsFromStep(step){
-  const s = String(step || 1);
-  return s.includes('.') ? (s.split('.')[1] || '').length : 0;
-}
-function formatQty(qty, step){
-  const d = decimalsFromStep(step || 1);
-  return Number(qty || 0).toFixed(d).replace(/\.?0+$/,''); // 1.00 -> 1 / 0.25 -> 0.25
-}
-
 function getCardInfo(card){
   const name = card.querySelector('h3')?.textContent.trim() || '';
   const unit = parseMoney(card.querySelector('.price')?.textContent);
-  const id = name; // si quieres usa un id único en datos para evitar colisiones
+  const id = name;
   const soldBy    = card.dataset.soldby || 'unit';
   const unitLabel = card.dataset.unitlabel || (soldBy==='weight' ? 'kg' : 'pza');
   const step      = parseFloat(card.dataset.step || (soldBy==='weight' ? '0.25' : '1')) || 1;
-  const minQty    = parseFloat(card.dataset.minqty || step) || 1;
+  const minQty    = parseFloat(card.dataset.minqty || step) || step;
   return { id, name, unit, soldBy, unitLabel, step, minQty };
 }
 
@@ -117,8 +114,8 @@ function loadCart(){
           qty: it.qty,
           soldBy: it.soldBy || 'unit',
           unitLabel: it.unitLabel || (it.soldBy==='weight' ? 'kg' : 'pza'),
-          step: (typeof it.step === 'number' && it.step > 0) ? it.step : (it.soldBy==='weight' ? 0.25 : 1),
-          minQty: (typeof it.minQty === 'number' && it.minQty > 0) ? it.minQty : ((it.soldBy==='weight') ? 0.25 : 1)
+          step: parseFloat(it.step) || (it.soldBy==='weight' ? 0.25 : 1),
+          minQty: parseFloat(it.minQty) || (parseFloat(it.step) || 1)
         });
       }
     });
@@ -153,8 +150,17 @@ function loadCheckout(){
   }catch(e){ console.warn('No se pudo cargar checkout:', e); }
 }
 
+function decimalsFromStep(step){
+  const s = String(step || 1);
+  return s.includes('.') ? (s.split('.')[1] || '').length : 0;
+}
+function formatQty(qty, step){
+  const d = decimalsFromStep(step || 1);
+  return Number(qty || 0).toFixed(d).replace(/\.?0+$/,'');
+}
+
 // --------- Categorías (desde categorias.json o derivadas de productos) ---------
-let categoriesMap = null; // Map<string, string[]>  // name -> [subs]
+let categoriesMap = null; // Map<string, string[]>
 
 function fillCategorySelectFromMap() {
   if (!categorySelect) return;
@@ -164,7 +170,6 @@ function fillCategorySelectFromMap() {
   subcategorySelect.innerHTML = `<option value="">Todas</option>`;
   subcategorySelect.disabled = true;
 }
-
 function fillSubcategorySelectFromMap(selectedCat) {
   const subs = categoriesMap.get(selectedCat) || [];
   subcategorySelect.innerHTML = `<option value="">Todas</option>` +
@@ -174,7 +179,6 @@ function fillSubcategorySelectFromMap(selectedCat) {
 
 // --------- Modales ---------
 btnTransferOK?.addEventListener('click', () => closeModal(modalTransfer));
-
 function openModal(modal){
   if (!modal) return;
   modal.inert = false;
@@ -182,7 +186,6 @@ function openModal(modal){
   modal.removeAttribute('aria-hidden');
   setTimeout(() => modal.querySelector('.modal__close, [data-close]')?.focus?.(), 0);
 }
-
 function closeModal(modal){
   if (!modal) return;
   const active = document.activeElement;
@@ -192,7 +195,7 @@ function closeModal(modal){
   modal.inert = true;
 }
 
-// === Placeholder de imagen (sin red y correctamente codificado) ===
+// === Placeholder de imagen ===
 function svgPlaceholder(text = 'Sin foto') {
   const svg = `
     <svg xmlns="http://www.w3.org/2000/svg" width="120" height="120">
@@ -213,7 +216,8 @@ function renderProductGrid(products){
     const sub   = p.subcategory || '';
     const name  = p.name || '';
 
-    const soldBy    = p.soldBy || 'unit';                       // 'unit' | 'weight'
+    // Datos para peso
+    const soldBy    = p.soldBy || 'unit';
     const unitLabel = p.unitLabel || (soldBy==='weight' ? 'kg' : 'pza');
     const step      = Number(p.step ?? (soldBy==='weight' ? 0.25 : 1));
     const minQty    = Number(p.minQty ?? step);
@@ -229,7 +233,7 @@ function renderProductGrid(products){
         <div class="info">
           <h3>${name}</h3>
           <p class="price">$${price.toFixed(2)}</p>
-          <button class="btn add">Agregar</button>
+          <button class="btn add">${soldBy==='weight' ? `Agregar ${formatQty(minQty, step)} ${unitLabel}` : 'Agregar'}</button>
         </div>
       </article>
     `;
@@ -275,7 +279,10 @@ function bindAddButtons(){
     const addBtn = card.querySelector('.btn.add');
     if (!addBtn || addBtn.dataset.bound === '1') return;
     addBtn.dataset.bound = '1';
-    addBtn.addEventListener('click', () => switchToQtyControl(card, 1, true));
+    addBtn.addEventListener('click', () => {
+      const info = getCardInfo(card);
+      switchToQtyControl(card, info.minQty, true);
+    });
   });
 }
 
@@ -337,7 +344,7 @@ function renderCart(){
   updateCheckoutTotalPill();
 }
 
-// Redimencionar ventana
+//Redimencionar ventana
 window.addEventListener('resize', () => {
   const needsScroll = (cartList.querySelectorAll('.cart-item').length > 4);
   cartList.classList.toggle('scroll', needsScroll);
@@ -434,6 +441,9 @@ function createQtyControl(card, qty){
   const spanQty  = document.createElement('span');   spanQty.textContent  = fmt(qty);
   const btnPlus  = document.createElement('button'); btnPlus.textContent  = '+';
 
+  // 👇 ¡Esto faltaba! Meter los hijos al control:
+  control.append(btnMinus, spanQty, btnPlus);
+
   btnPlus.addEventListener('click', () => {
     const cur = cart.get(id) || { id, name, unit, soldBy, unitLabel, step, minQty, qty: 0 };
     cur.qty = +(cur.qty + step).toFixed(3);
@@ -488,8 +498,12 @@ function syncCardsQty(id){
       if (!qtyControl) {
         switchToQtyControl(card, item.qty, false);
       } else {
-        // solo número en la tarjeta; la unidad se muestra en el modal del carrito
-        qtyControl.querySelector('span').textContent = formatQty(item.qty, item.step);
+        const span = qtyControl.querySelector('span');
+        if (span) {
+          span.textContent = (item.soldBy==='weight')
+            ? formatQty(item.qty, item.step)
+            : formatQty(item.qty, 1);
+        }
       }
     } else {
       if (qtyControl) qtyControl.replaceWith(createAddButton(card));
@@ -516,7 +530,7 @@ function applyFilters(){
   const cards = getCards();
   let visibleCount = 0;
 
-  // 1) con búsqueda: ignora selects
+  // 1) si hay búsqueda, manda la búsqueda
   if (searchVal) {
     hideEmpty();
     if (categorySelect.value !== '' || subcategorySelect.value !== '') {
@@ -598,6 +612,7 @@ async function loadProducts() {
     const all = Array.isArray(json) ? json : (Array.isArray(json.products) ? json.products : []);
     if (!all.length) throw new Error('productos vacío o con formato inesperado');
 
+    // Normaliza "active": si falta, se considera true
     const normalized = all.map(p => ({ ...p, active: (p?.active === false ? false : true) }));
     const visible = normalized.filter(p => p.active);
 
@@ -742,7 +757,6 @@ function validateCheckout() {
   const base = subtotal + shipping;
   const totalDue = pay === 'Tarjeta' ? +(base * 1.043).toFixed(2) : +base.toFixed(2);
 
-  // Validación de efectivo y mensaje en <small>
   let cashOk = true;
   if (pay === 'Efectivo') {
     const raw  = cashGiven.value.trim();
@@ -873,21 +887,21 @@ checkoutForm.addEventListener('submit', (e) => {
 function collectCartItems(){
   const items = [];
   document.querySelectorAll('#cartList .cart-item').forEach(li=>{
-    const id = li.dataset.id || '';
+    const id   = li.dataset.id || '';
+    const meta = cart.get(id) || {};
     const name = li.querySelector('.name')?.textContent.trim() || '';
     const unit = parseFloat((li.querySelector('.unit')?.textContent || '').replace(/[^0-9.]/g,'')) || 0;
 
-    // acepta decimales y “0.75 kg”
     const rawQty = (li.querySelector('.count')?.textContent || '0').trim();
     const qty = parseFloat(rawQty.replace(',', '.')) || 0;
 
-    const inCart = cart.get(id) || {};
-    const soldBy    = inCart.soldBy || 'unit';
-    const unitLabel = inCart.unitLabel || (soldBy==='weight' ? 'kg' : 'pza');
-    const step      = typeof inCart.step === 'number' ? inCart.step : (soldBy==='weight' ? 0.25 : 1);
-
     const line = +(unit * qty).toFixed(2);
-    items.push({ id, name, unit, qty, line, soldBy, unitLabel, step });
+    items.push({
+      id, name, unit, qty, line,
+      soldBy: meta.soldBy || 'unit',
+      unitLabel: meta.unitLabel || (meta.soldBy==='weight' ? 'kg' : 'pza'),
+      step: meta.step || 1
+    });
   });
   return items;
 }
@@ -950,7 +964,6 @@ function openWhatsAppWithMessage(text){
     : `https://wa.me/?text=`;
   const url = base + encodeURIComponent(text);
   const win = window.open(url, '_blank', 'noopener');
-  // if (!win) window.location.href = url;
 }
 
 // Control de “Continuar”
@@ -962,7 +975,6 @@ function toggleContinueButton(){
 
 // --------- INIT ---------
 window.addEventListener('DOMContentLoaded', async () => {
-  // --- Fijar topbar y ajustar el desplazamiento del contenido ---
   (function fixTopbarOffset(){
     const topbar = document.querySelector('.topbar');
     if (!topbar) return;
@@ -976,7 +988,6 @@ window.addEventListener('DOMContentLoaded', async () => {
     if (document.readyState !== 'loading') applyOffset();
   })();
 
-  // 0) Checar estado del servicio ANTES de montar catálogo
   try {
     const service = await loadServiceStatus();
     if (!service.active) {
@@ -987,7 +998,6 @@ window.addEventListener('DOMContentLoaded', async () => {
     console.error('Service status error', err);
   }
 
-  // 1) Flujo del catálogo
   loadCart();
   renderCart();
   validateCheckout();
@@ -1002,7 +1012,7 @@ window.addEventListener('DOMContentLoaded', async () => {
   }
 });
 
-// ===== Social FABs (1 solo logo) =====
+// ===== Social FABs =====
 (function(){
   function closeAll(except=null){
     document.querySelectorAll('.social-fabs .fab').forEach(f=>{
