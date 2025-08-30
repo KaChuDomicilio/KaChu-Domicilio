@@ -43,15 +43,9 @@ const CHECKOUT_KEY = 'kachu_checkout_v1';
 
 const cashHelp = document.getElementById('cashHelp');
 
-function showCashBubble(msg) {
-  if (!cashBubble) return;
-  cashBubble.textContent = msg;
-  cashBubble.classList.remove('hidden');
-}
-function hideCashBubble() {
-  if (!cashBubble) return;
-  cashBubble.classList.add('hidden');
-}
+// (no se usan, pero las dejo por compatibilidad si luego quieres el globito de ayuda)
+function showCashBubble(msg) { if (!cashBubble) return; cashBubble.textContent = msg; cashBubble.classList.remove('hidden'); }
+function hideCashBubble() { if (!cashBubble) return; cashBubble.classList.add('hidden'); }
 
 // --- API primero; estáticos como respaldo ---
 const API = {
@@ -79,19 +73,28 @@ async function fetchFirstOk(urls){
 }
 
 // --------- Helpers ---------
-const cart = new Map(); // id -> { id, name, unit, qty }
+const cart = new Map(); // id -> { id, name, unit, qty, soldBy, unitLabel, step, minQty }
 function money(n){ return '$' + Number(n).toFixed(2); }
 function parseMoney(str){ return parseFloat((str||'').replace(/[^0-9.]/g,'')) || 0; }
 function normalize(str){ return (str || '').toString().toLowerCase().trim(); }
 
+function decimalsFromStep(step){
+  const s = String(step || 1);
+  return s.includes('.') ? (s.split('.')[1] || '').length : 0;
+}
+function formatQty(qty, step){
+  const d = decimalsFromStep(step || 1);
+  return Number(qty || 0).toFixed(d).replace(/\.?0+$/,''); // 1.00 -> 1 / 0.25 -> 0.25
+}
+
 function getCardInfo(card){
   const name = card.querySelector('h3')?.textContent.trim() || '';
   const unit = parseMoney(card.querySelector('.price')?.textContent);
-  const id = name;
+  const id = name; // si quieres usa un id único en datos para evitar colisiones
   const soldBy    = card.dataset.soldby || 'unit';
   const unitLabel = card.dataset.unitlabel || (soldBy==='weight' ? 'kg' : 'pza');
-  const step      = parseFloat(card.dataset.step || '1') || 1;
-  const minQty    = parseFloat(card.dataset.minqty || (soldBy==='weight' ? '0.25' : '1')) || 1;
+  const step      = parseFloat(card.dataset.step || (soldBy==='weight' ? '0.25' : '1')) || 1;
+  const minQty    = parseFloat(card.dataset.minqty || step) || 1;
   return { id, name, unit, soldBy, unitLabel, step, minQty };
 }
 
@@ -108,11 +111,14 @@ function loadCart(){
     arr.forEach(it => {
       if(it && it.id && it.qty > 0){
         cart.set(it.id, {
-          id: it.id, name: it.name, unit: it.unit, qty: it.qty,
+          id: it.id,
+          name: it.name,
+          unit: it.unit,
+          qty: it.qty,
           soldBy: it.soldBy || 'unit',
           unitLabel: it.unitLabel || (it.soldBy==='weight' ? 'kg' : 'pza'),
-          step: parseFloat(it.step) || (it.soldBy==='weight' ? 0.25 : 1),
-          minQty: parseFloat(it.minQty) || (parseFloat(it.step)||1)
+          step: (typeof it.step === 'number' && it.step > 0) ? it.step : (it.soldBy==='weight' ? 0.25 : 1),
+          minQty: (typeof it.minQty === 'number' && it.minQty > 0) ? it.minQty : ((it.soldBy==='weight') ? 0.25 : 1)
         });
       }
     });
@@ -146,15 +152,6 @@ function loadCheckout(){
     cashField.classList.toggle('hidden', data.pay !== 'Efectivo');
   }catch(e){ console.warn('No se pudo cargar checkout:', e); }
 }
-function decimalsFromStep(step){
-  const s = String(step || 1);
-  return s.includes('.') ? (s.split('.')[1] || '').length : 0;
-}
-function formatQty(qty, step){
-  const d = decimalsFromStep(step || 1);
-  // muestra “1” en vez de “1.00”, pero “0.25” cuando toca
-  return Number(qty || 0).toFixed(d).replace(/\.?0+$/,'');
-}
 
 // --------- Categorías (desde categorias.json o derivadas de productos) ---------
 let categoriesMap = null; // Map<string, string[]>  // name -> [subs]
@@ -164,7 +161,6 @@ function fillCategorySelectFromMap() {
   const cats = Array.from(categoriesMap.keys()).sort();
   categorySelect.innerHTML = `<option value="">Todas</option>` +
     cats.map(c => `<option>${c}</option>`).join('');
-  // Reset subcategoría
   subcategorySelect.innerHTML = `<option value="">Todas</option>`;
   subcategorySelect.disabled = true;
 }
@@ -181,9 +177,9 @@ btnTransferOK?.addEventListener('click', () => closeModal(modalTransfer));
 
 function openModal(modal){
   if (!modal) return;
-  modal.inert = false;                     // permitimos foco
+  modal.inert = false;
   modal.classList.add('open');
-  modal.removeAttribute('aria-hidden');    // visible para a11y
+  modal.removeAttribute('aria-hidden');
   setTimeout(() => modal.querySelector('.modal__close, [data-close]')?.focus?.(), 0);
 }
 
@@ -192,8 +188,8 @@ function closeModal(modal){
   const active = document.activeElement;
   if (active && modal.contains(active)) active.blur();
   modal.classList.remove('open');
-  modal.setAttribute('aria-hidden','true'); // oculto para a11y
-  modal.inert = true;                       // bloquea foco/tab
+  modal.setAttribute('aria-hidden','true');
+  modal.inert = true;
 }
 
 // === Placeholder de imagen (sin red y correctamente codificado) ===
@@ -217,33 +213,32 @@ function renderProductGrid(products){
     const sub   = p.subcategory || '';
     const name  = p.name || '';
 
-    // NUEVO: datos para peso
-    const soldBy    = p.soldBy || 'unit';            // 'unit' | 'weight'
+    const soldBy    = p.soldBy || 'unit';                       // 'unit' | 'weight'
     const unitLabel = p.unitLabel || (soldBy==='weight' ? 'kg' : 'pza');
     const step      = Number(p.step ?? (soldBy==='weight' ? 0.25 : 1));
     const minQty    = Number(p.minQty ?? step);
 
     return `
-    <article class="card"
-    data-category="${cat}" data-subcategory="${sub}"
-    data-soldby="${p.soldBy || 'unit'}"
-    data-unitlabel="${p.unitLabel || 'pza'}"
-    data-step="${p.step ?? 1}"
-    data-minqty="${p.minQty ?? ((p.soldBy==='weight') ? 0.25 : 1)}">
-    <img src="${img}" alt="${name}">
-    <div class="info">
-      <h3>${name}</h3>
-      <p class="price">$${price.toFixed(2)}</p>
-      <button class="btn add">Agregar</button>
-    </div>
-    </article>
+      <article class="card"
+        data-category="${cat}" data-subcategory="${sub}"
+        data-soldby="${soldBy}"
+        data-unitlabel="${unitLabel}"
+        data-step="${step}"
+        data-minqty="${minQty}">
+        <img src="${img}" alt="${name}">
+        <div class="info">
+          <h3>${name}</h3>
+          <p class="price">$${price.toFixed(2)}</p>
+          <button class="btn add">Agregar</button>
+        </div>
+      </article>
     `;
   }).join('');
 }
 
-// Derivar filtros desde productos si no hay categorias.json (FALTABA)
+// Derivar filtros desde productos si no hay categorias.json
 function buildCategoryFilters(products){
-  if (categoriesMap && categoriesMap.size) return; // ya tenemos categorias.json
+  if (categoriesMap && categoriesMap.size) return;
 
   const cats = new Set();
   const subsByCat = new Map();
@@ -274,7 +269,7 @@ function buildCategoryFilters(products){
   }
 }
 
-// Enlazar “Agregar” en cada tarjeta (FALTABA)
+// Enlazar “Agregar” en cada tarjeta
 function bindAddButtons(){
   document.querySelectorAll('.card').forEach(card => {
     const addBtn = card.querySelector('.btn.add');
@@ -305,9 +300,10 @@ function renderCart(){
       <div class="row">
         <div class="qty">
           <button class="chip cart-minus">-</button>
-          <span class="count">${it.soldBy==='weight'
-            ? `${formatQty(it.qty, it.step)} ${it.unitLabel}`
-            : `${formatQty(it.qty, 1)}`
+          <span class="count">${
+            it.soldBy==='weight'
+              ? `${formatQty(it.qty, it.step)} ${it.unitLabel}`
+              : `${formatQty(it.qty, 1)}`
           }</span>
           <button class="chip cart-plus">+</button>
         </div>
@@ -341,7 +337,7 @@ function renderCart(){
   updateCheckoutTotalPill();
 }
 
-//Redimencionar ventana
+// Redimencionar ventana
 window.addEventListener('resize', () => {
   const needsScroll = (cartList.querySelectorAll('.cart-item').length > 4);
   cartList.classList.toggle('scroll', needsScroll);
@@ -366,7 +362,6 @@ function clearCart() {
   });
 }
 
-// Control qty en carrito
 // Control qty en carrito (respeta step/minQty y soldBy)
 cartList.addEventListener('click', (e) => {
   const minus = e.target.closest('.cart-minus');
@@ -379,19 +374,17 @@ cartList.addEventListener('click', (e) => {
   const item = cart.get(id);
   if (!item) return;
 
-  // Lee step/minQty guardados en el item (con defaults seguros)
   const step   = (typeof item.step === 'number' && item.step > 0) ? item.step : 1;
   const minQty = (typeof item.minQty === 'number' && item.minQty > 0)
                   ? item.minQty
                   : ((item.soldBy === 'weight') ? 0.25 : 1);
 
-  // helpers para evitar flotantes raros y forzar enteros en piezas
-  const snap = (n) => +n.toFixed(3);            // 0.30000000004 -> 0.3
+  const snap = (n) => +n.toFixed(3);
   const clampUnits = (n) => Math.max(1, Math.round(n));
 
   if (plus) {
     let q = snap((item.qty || minQty) + step);
-    if (item.soldBy !== 'weight') q = clampUnits(q); // piezas -> entero
+    if (item.soldBy !== 'weight') q = clampUnits(q);
     item.qty = q;
     cart.set(id, item);
     renderCart();
@@ -401,7 +394,6 @@ cartList.addEventListener('click', (e) => {
 
   if (minus) {
     const next = snap((item.qty || minQty) - step);
-    // Si bajaría de la mínima, pedimos confirmar para eliminar
     if (next < (minQty - 1e-6)) {
       if (confirm('¿Eliminar este artículo del carrito?')) {
         cart.delete(id);
@@ -410,7 +402,7 @@ cartList.addEventListener('click', (e) => {
       }
     } else {
       let q = next;
-      if (item.soldBy !== 'weight') q = clampUnits(q); // piezas -> entero
+      if (item.soldBy !== 'weight') q = clampUnits(q);
       item.qty = q;
       cart.set(id, item);
       renderCart();
@@ -418,7 +410,6 @@ cartList.addEventListener('click', (e) => {
     }
   }
 });
-
 
 // --------- Botones en tarjetas ---------
 function createAddButton(card){
@@ -497,7 +488,8 @@ function syncCardsQty(id){
       if (!qtyControl) {
         switchToQtyControl(card, item.qty, false);
       } else {
-        qtyControl.querySelector('span').textContent = item.qty;
+        // solo número en la tarjeta; la unidad se muestra en el modal del carrito
+        qtyControl.querySelector('span').textContent = formatQty(item.qty, item.step);
       }
     } else {
       if (qtyControl) qtyControl.replaceWith(createAddButton(card));
@@ -524,7 +516,7 @@ function applyFilters(){
   const cards = getCards();
   let visibleCount = 0;
 
-  // 1) si hay búsqueda, manda la búsqueda (ignora selects)
+  // 1) con búsqueda: ignora selects
   if (searchVal) {
     hideEmpty();
     if (categorySelect.value !== '' || subcategorySelect.value !== '') {
@@ -584,7 +576,6 @@ async function loadCategories() {
     const { json } = await fetchFirstOk(API.categorias);
     const list = Array.isArray(json) ? json : (Array.isArray(json.categories) ? json.categories : []);
     if (!list.length) throw new Error('categorias.json vacío o con formato inesperado');
-    // Construye el Map
     categoriesMap = new Map();
     list.forEach(item => {
       const name = item.name || item.category || '';
@@ -607,9 +598,7 @@ async function loadProducts() {
     const all = Array.isArray(json) ? json : (Array.isArray(json.products) ? json.products : []);
     if (!all.length) throw new Error('productos vacío o con formato inesperado');
 
-    // Normaliza "active": si falta, se considera true (compatibilidad)
     const normalized = all.map(p => ({ ...p, active: (p?.active === false ? false : true) }));
-    // Solo productos ACTIVOS
     const visible = normalized.filter(p => p.active);
 
     renderProductGrid(visible);
@@ -710,7 +699,7 @@ let transferNoticeShown = false;
 btnContinue.addEventListener('click', () => {
   if (btnContinue.disabled) return;
   closeModal(modalCart);
-  transferNoticeShown = false;     // ← reset cada vez que se entra al checkout
+  transferNoticeShown = false;
   openModal(modalCheckout);
 });
 
@@ -831,7 +820,6 @@ function attachTransferNotice() {
           transferNoticeShown = true;
         }
       } else {
-        // si cambia a Efectivo/Tarjeta, permite volver a mostrar si regresa a Transferencia
         transferNoticeShown = false;
       }
     });
@@ -885,15 +873,21 @@ checkoutForm.addEventListener('submit', (e) => {
 function collectCartItems(){
   const items = [];
   document.querySelectorAll('#cartList .cart-item').forEach(li=>{
+    const id = li.dataset.id || '';
     const name = li.querySelector('.name')?.textContent.trim() || '';
     const unit = parseFloat((li.querySelector('.unit')?.textContent || '').replace(/[^0-9.]/g,'')) || 0;
 
-    // 👇 Acepta decimales y textos tipo "0.75 kg"
+    // acepta decimales y “0.75 kg”
     const rawQty = (li.querySelector('.count')?.textContent || '0').trim();
     const qty = parseFloat(rawQty.replace(',', '.')) || 0;
 
+    const inCart = cart.get(id) || {};
+    const soldBy    = inCart.soldBy || 'unit';
+    const unitLabel = inCart.unitLabel || (soldBy==='weight' ? 'kg' : 'pza');
+    const step      = typeof inCart.step === 'number' ? inCart.step : (soldBy==='weight' ? 0.25 : 1);
+
     const line = +(unit * qty).toFixed(2);
-    items.push({ name, unit, qty, line });
+    items.push({ id, name, unit, qty, line, soldBy, unitLabel, step });
   });
   return items;
 }
@@ -905,18 +899,18 @@ function buildTicket({ items, zoneName, shipping, pay, subtotal, totalDue, addre
   lines.push('');
 
   if (items && items.length) {
-  lines.push('*Artículos:*');
-  items.forEach(it => {
-    const u = Number(it.unit).toFixed(2);
-    const l = Number(it.line).toFixed(2);
-    const qtyTxt = (it.soldBy === 'weight')
-      ? `${formatQty(it.qty, it.step)} ${it.unitLabel || 'kg'}`
-      : `${formatQty(it.qty, 1)}`;
-    lines.push(`* ${it.name}`);
-    lines.push(`> ${qtyTxt} x $${u} = $${l}`);
-    lines.push('');
-  });
-}
+    lines.push('*Artículos:*');
+    items.forEach(it => {
+      const u = Number(it.unit).toFixed(2);
+      const l = Number(it.line).toFixed(2);
+      const qtyTxt = (it.soldBy === 'weight')
+        ? `${formatQty(it.qty, it.step)} ${it.unitLabel || 'kg'}`
+        : `${formatQty(it.qty, 1)}`;
+      lines.push(`* ${it.name}`);
+      lines.push(`> ${qtyTxt} x $${u} = $${l}`);
+      lines.push('');
+    });
+  }
 
   const isFree = Number(shipping) === 0;
   const envioTag = isFree ? `${zoneName || 'Zona'}` : (zoneName || 'Zona');
