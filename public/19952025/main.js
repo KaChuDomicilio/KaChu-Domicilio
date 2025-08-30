@@ -359,30 +359,17 @@ async function initProductosPanel(){
   }
 }
 
-// Validar formulario de edición
+// Función para validar el formulario de edición
 function validateEditProdForm() {
   const nameOk = (editProdName.value || '').trim().length > 0;
-  const priceVal = parseFloat(String(editProdPrice.value || '').replace(',', '.'));
-  const priceOk = Number.isFinite(priceVal) && priceVal >= 0;
+  const priceVal = parseFloat(editProdPrice.value);
+  const priceOk = Number.isFinite(priceVal) && priceVal > 0;
   const catOk = (editProdCategory.value || '').trim().length > 0;
   const subOk = editProdSubcategory.disabled ? true : (editProdSubcategory.value || '').trim().length > 0;
+  const unitOk = editProdUnit.value !== ''; // Validar que haya una opción seleccionada
 
-  const ok = nameOk && priceOk && catOk && subOk;
+  const ok = nameOk && priceOk && catOk && subOk && unitOk;
   if (btnSaveEditProd) {
-    btnSaveEditProd.disabled = !ok;
-    btnSaveEditProd.setAttribute('aria-disabled', String(!ok));
-  }
-}
-
-function validateEditProdForm(){
-  const nameOk = (editProdName.value || '').trim().length > 0;
-  const priceVal = parseFloat(String(editProdPrice.value || '').replace(',', '.'));
-  const priceOk = Number.isFinite(priceVal) && priceVal >= 0;
-  const catOk = (editProdCategory.value || '').trim().length > 0;
-  const subOk = editProdSubcategory.disabled ? true : (editProdSubcategory.value || '').trim().length > 0;
-
-  const ok = nameOk && priceOk && catOk && subOk;
-  if (btnSaveEditProd){
     btnSaveEditProd.disabled = !ok;
     btnSaveEditProd.setAttribute('aria-disabled', String(!ok));
   }
@@ -415,12 +402,11 @@ modalEditProd?.addEventListener('click', (e) => {
 btnSaveEditProd?.addEventListener('click', async () => {
   if (btnSaveEditProd.disabled) return;
 
-  const name = (editProdName.value || '').trim();
-  const price = parseFloat(String(editProdPrice.value || '').replace(',', '.')) || 0;
-  const cat = (editProdCategory.value || '').trim();
-  const sub = (editProdSubcategory.value || '').trim();
-  const image = (editProdImage.value || '').trim();
-
+  const name = editProdName.value.trim();
+  const price = parseFloat(editProdPrice.value);
+  const cat = editProdCategory.value.trim();
+  const sub = editProdSubcategory.value.trim();
+  const image = editProdImage.value.trim();
   const unit = editProdUnit.value;
   const step = unit === 'weight' ? parseFloat(editProdStep.value) : null;
   const minQty = unit === 'weight' ? parseFloat(editProdMinQty.value) : null;
@@ -428,14 +414,13 @@ btnSaveEditProd?.addEventListener('click', async () => {
   try {
     let idx = productsCache.findIndex(p => (p.id || '') === (editingProdId || ''));
     if (idx === -1) {
-      idx = productsCache.findIndex(p => p.name === name && p.category === cat && p.subcategory === sub);
+      return mostrarToast?.('Producto no encontrado');
     }
-    if (idx === -1) return mostrarToast?.('No se encontró el producto');
 
     productsCache[idx] = {
       ...productsCache[idx],
       name,
-      price: +price.toFixed(2),
+      price: price.toFixed(2),
       category: cat,
       subcategory: sub,
       image,
@@ -748,7 +733,30 @@ function renderProductosTable(list){
     tablaProductosBody.appendChild(tr);
   });
 }
+// Función para abrir el modal de edición de producto y cargar los datos actuales
+function openProductEditModal(producto) {
+  editingProdId = producto.id;
+  editProdName.value = producto.name;
+  editProdPrice.value = producto.price.toFixed(2);
+  fillEditCatAndSub(editProdCategory, editProdSubcategory, producto.category, producto.subcategory);
+  editProdImage.value = producto.image || '';
+  
+  // Cargar la unidad de venta (pieza o peso)
+  editProdUnit.value = producto.soldBy || 'unit';
 
+  // Mostrar las opciones de peso si es por peso
+  if (producto.soldBy === 'weight') {
+    editKgOptions.style.display = 'block';
+    editProdStep.value = producto.step || '';
+    editProdMinQty.value = producto.minQty || '';
+  } else {
+    editKgOptions.style.display = 'none';
+  }
+
+  // Habilitar el botón de guardar solo si los datos son válidos
+  validateEditProdForm();
+  abrirModal(modalEditProd);
+}
 tablaProductosBody?.addEventListener('change', async (e) => {
   const chk = e.target.closest('.prod-active');
   if (!chk) return;
