@@ -308,9 +308,9 @@ function renderCart(){
         <div class="qty">
           <button class="chip cart-minus">-</button>
           <span class="count">${
-            it.soldBy==='weight'
-              ? `${formatQty(it.qty, it.step)} ${it.unitLabel}`
-              : `${formatQty(it.qty, 1)}`
+            it.soldBy === 'weight'
+              ? `${formatQty(it.qty, it.step)} ${it.unitLabel}`  // Para productos por peso
+              : `${formatQty(it.qty, 1)}` // Para piezas
           }</span>
           <button class="chip cart-plus">+</button>
         </div>
@@ -441,7 +441,6 @@ function createQtyControl(card, qty){
   const spanQty  = document.createElement('span');   spanQty.textContent  = fmt(qty);
   const btnPlus  = document.createElement('button'); btnPlus.textContent  = '+';
 
-  // 👇 ¡Esto faltaba! Meter los hijos al control:
   control.append(btnMinus, spanQty, btnPlus);
 
   btnPlus.addEventListener('click', () => {
@@ -487,7 +486,7 @@ function switchToQtyControl(card, startQty = 1, addToCart = false){
 }
 
 function syncCardsQty(id){
-  document.querySelectorAll('.card').forEach(card=>{
+  document.querySelectorAll('.card').forEach(card => {
     const info = getCardInfo(card);
     if (info.id !== id) return;
 
@@ -500,9 +499,9 @@ function syncCardsQty(id){
       } else {
         const span = qtyControl.querySelector('span');
         if (span) {
-          span.textContent = (item.soldBy==='weight')
-            ? formatQty(item.qty, item.step)
-            : formatQty(item.qty, 1);
+          span.textContent = (item.soldBy === 'weight') 
+            ? formatQty(item.qty, item.step)  // Para peso
+            : formatQty(item.qty, 1);         // Para piezas
         }
       }
     } else {
