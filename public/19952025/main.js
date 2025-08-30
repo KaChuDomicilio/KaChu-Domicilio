@@ -117,6 +117,21 @@ const srvImage      = document.getElementById('srvImage');
 const btnSrvCancel  = document.getElementById('btnSrvCancel');
 const btnSrvSave    = document.getElementById('btnSrvSave');
 
+// Referencias para los nuevos elementos
+const inputProdUnit = document.getElementById('inputProdUnit');
+const kgOptions = document.getElementById('kgOptions');
+const inputProdStep = document.getElementById('inputProdStep');
+const inputProdMinQty = document.getElementById('inputProdMinQty');
+
+// Mostrar/ocultar opciones según la unidad seleccionada
+inputProdUnit?.addEventListener('change', () => {
+  if (inputProdUnit.value === 'weight') {
+    kgOptions.style.display = 'block';  // Mostrar opciones de peso
+  } else {
+    kgOptions.style.display = 'none';   // Ocultar opciones de peso
+  }
+});
+
 async function loadServicio(){
   try{
     const r = await fetch(API_SERVICIO, { cache:'no-store' });
@@ -268,19 +283,28 @@ btnGuardarProducto?.addEventListener('click', async (e) => {
   const name  = normalizeStr(inputProdName.value);
   const price = +(numeroDesdeTexto(inputProdPrice.value) || 0).toFixed(2);
   const image = normalizeStr(inputProdImage.value);
-  const active= !!chkProdActive.checked;
+  const active = !!chkProdActive.checked;
 
   const cat = normalizeStr(selProdCategory.value);
   const sub = normalizeStr(selProdSubcategory.value);
 
-  try{
-    const id = `p_${Date.now()}`;
-    const producto = { id, name, price, category: cat, subcategory: sub, image, active };
+  // Datos adicionales para productos por peso
+  const unit = inputProdUnit.value;
+  const step = unit === 'weight' ? parseFloat(inputProdStep.value) : null;
+  const minQty = unit === 'weight' ? parseFloat(inputProdMinQty.value) : null;
 
-    if (!productsCache.length){
-      const payload = await apiGet(API_PRODUCTOS).catch(()=>({products:[]}));
+  try {
+    const id = `p_${Date.now()}`;
+    const producto = {
+      id, name, price, category: cat, subcategory: sub, image, active, 
+      soldBy: unit, step, minQty
+    };
+
+    if (!productsCache.length) {
+      const payload = await apiGet(API_PRODUCTOS).catch(() => ({ products: [] }));
       productsCache = Array.isArray(payload) ? payload : (payload.products || []);
     }
+
     productsCache.push(producto);
     await apiPut(API_PRODUCTOS, { products: productsCache });
 
@@ -291,8 +315,7 @@ btnGuardarProducto?.addEventListener('click', async (e) => {
     fillFilterSelectors();
     applyProductosFilters();
     updateVaciarToggleUI();
-
-  }catch(err){
+  } catch (err) {
     console.error(err);
     mostrarToast?.('Error al guardar producto');
   }
