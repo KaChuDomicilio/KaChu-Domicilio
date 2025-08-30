@@ -1,3 +1,4 @@
+// === main.js (KaChu Panel) ===
 let srvInitialActive = true; // recordará el estado con que se abre el modal
 
 // Helpers
@@ -9,37 +10,63 @@ const menuBtn        = $('.menu-btn');
 const menuLateral    = $('#menuLateral');
 const menuOverlay    = $('#menuOverlay');
 
-// Referencias de formularios y botones
 const btnAgregar     = $('#btnAgregar');
 const modalAgregar   = $('#modalAgregar');
 const menuOpciones   = $('#menuOpciones');
 const formZona       = $('#formZona');
 const btnZona        = $('#btnZona');
 const btnCancelarZona= $('#btnCancelarZona');
-const btnGuardarZona = $('#btnGuardarZona'); 
+const btnGuardarZona = $('#btnGuardarZona'); // activado/desactivado por validación
 const inputNombreZona= $('#inputNombreZona');
 const inputCostoZona = $('#inputCostoZona');
 
-// Referencias de zonas
 const btnAbrirZonas  = $('#btnAbrirZonas');
 const modalZonas     = $('#modalZonas');
 const btnCerrarZonas = $('#btnCerrarZonas');
 const tablaZonasBody = $('#tablaZonasBody');
 
-// Modal de edición de zona
 const modalEditarZona      = $('#modalEditarZona');
 const btnCerrarEditarZona  = $('#btnCerrarEditarZona');
 const editNombreZona       = $('#editNombreZona');
 const editCostoZona        = $('#editCostoZona');
-const btnGuardarZonaEditada= $('#btnGuardarZonaEditada');
+const btnGuardarZonaEditada= $('#btnGuardarZonaEditada'); // sin lógica
+const btnCancelarEditarZona = $('#btnCancelarEditarZona');
 
-// Toast de guardado
 const toast        = $('#mensajeGuardado');
 const toastClose   = $('#cerrarMensaje');
 
-// API de zonas y categorías
 const API_ZONAS = '/api/data/zonas';
+// API de categorías (mismo patrón que zonas)
 const API_CATEGORIAS = '/api/data/categorias';
+
+// Refs del formulario Cat/Subcat
+const btnCatSub = document.getElementById('btnCatSub');
+const formCatSub = document.getElementById('formCatSub');
+
+const selCategoriaExistente = document.getElementById('selCategoriaExistente');
+const inputNuevaCategoria   = document.getElementById('inputNuevaCategoria');
+
+const selSubcategoriaExistente = document.getElementById('selSubcategoriaExistente');
+const inputNuevaSubcategoria   = document.getElementById('inputNuevaSubcategoria');
+
+const btnGuardarCatSub = document.getElementById('btnGuardarCatSub');
+const btnCancelarCatSub = document.getElementById('btnCancelarCatSub');
+
+// Categorías/Subcategorías (modal de edición)
+const btnCats        = document.getElementById('btnCats');
+const modalCats      = document.getElementById('modalCats');
+const btnCerrarCats  = document.getElementById('btnCerrarCats');
+const tablaCatsBody  = document.getElementById('tablaCatsBody');
+const catTitle       = document.getElementById('catTitle');
+const subcatList     = document.getElementById('subcatList');
+const inputNuevaSubcat = document.getElementById('inputNuevaSubcat');
+const btnAgregarSubcat = document.getElementById('btnAgregarSubcat');
+
+let selectedCat = '';         // categoría actualmente seleccionada en el modal
+
+let toastTimer = null;
+
+// APIs
 const API_PRODUCTOS   = '/api/data/productos';
 
 // Refs admin productos
@@ -47,15 +74,14 @@ const filterCategory     = document.getElementById('filterCategory');
 const filterSubcategory  = document.getElementById('filterSubcategory');
 const filterSearch       = document.getElementById('filterSearch');
 
-// Tabla de productos
 const tablaProductosBody = document.getElementById('tablaProductosBody');
 const productosEmpty     = document.getElementById('productosEmpty');
 
 // Estado en memoria
-let productsCache   = []; 
-let categoriesCache = []; 
+let productsCache   = []; // {id,name,price,category,subcategory,image,active}
+let categoriesCache = []; // {name, subcategories[]}
 
-// Modal de edición de productos
+// ====== [PRODUCTOS] Modal edición ======
 const modalEditProd       = document.getElementById('modalEditProd');
 const editProdName        = document.getElementById('editProdName');
 const editProdPrice       = document.getElementById('editProdPrice');
@@ -65,13 +91,39 @@ const editProdImage       = document.getElementById('editProdImage');
 const btnCancelEditProd   = document.getElementById('btnCancelEditProd');
 const btnSaveEditProd     = document.getElementById('btnSaveEditProd');
 
-// Refs para unidades de medida
+let editingProdId = null; // id del producto que estamos editando
+
+// ----- (+) Agregar producto (SOLO con categorías/sub existentes)
+const btnProducto          = document.getElementById('btnProducto');
+const formProducto         = document.getElementById('formProducto');
+
+const inputProdName        = document.getElementById('inputProdName');
+const inputProdPrice       = document.getElementById('inputProdPrice');
+const selProdCategory      = document.getElementById('selProdCategory');
+const selProdSubcategory   = document.getElementById('selProdSubcategory');
+const inputProdImage       = document.getElementById('inputProdImage');   // opcional
+const chkProdActive        = document.getElementById('chkProdActive');
+
+const btnGuardarProducto   = document.getElementById('btnGuardarProducto');
+const btnCancelarProducto  = document.getElementById('btnCancelarProducto');
+
+const API_SERVICIO = '/api/data/servicio';
+
+const optServicio   = document.getElementById('optServicio');
+const modalServicio = document.getElementById('modalServicio');
+const srvActive     = document.getElementById('srvActive');
+const srvMessage    = document.getElementById('srvMessage');
+const srvImage      = document.getElementById('srvImage');
+const btnSrvCancel  = document.getElementById('btnSrvCancel');
+const btnSrvSave    = document.getElementById('btnSrvSave');
+
+// Referencias para los nuevos elementos
 const inputProdUnit = document.getElementById('inputProdUnit');
 const kgOptions = document.getElementById('kgOptions');
 const inputProdStep = document.getElementById('inputProdStep');
 const inputProdMinQty = document.getElementById('inputProdMinQty');
 
-// Refs para los nuevos elementos en el modal de edición
+// Referencias para los nuevos elementos en el modal de edición
 const editProdUnit = document.getElementById('editProdUnit');
 const editKgOptions = document.getElementById('editKgOptions');
 const editProdStep = document.getElementById('editProdStep');
@@ -80,32 +132,32 @@ const editProdMinQty = document.getElementById('editProdMinQty');
 // Mostrar/ocultar opciones según la unidad seleccionada en la edición
 editProdUnit?.addEventListener('change', () => {
   if (editProdUnit.value === 'weight') {
-    editKgOptions.style.display = 'block';  
+    editKgOptions.style.display = 'block';  // Mostrar opciones de peso
   } else {
-    editKgOptions.style.display = 'none';  
+    editKgOptions.style.display = 'none';   // Ocultar opciones de peso
   }
 });
 
-// Mostrar/ocultar opciones según la unidad seleccionada al agregar
+// Mostrar/ocultar opciones según la unidad seleccionada
 inputProdUnit?.addEventListener('change', () => {
   if (inputProdUnit.value === 'weight') {
-    kgOptions.style.display = 'block';  
+    kgOptions.style.display = 'block';  // Mostrar opciones de peso
   } else {
-    kgOptions.style.display = 'none';   
+    kgOptions.style.display = 'none';   // Ocultar opciones de peso
   }
 });
 
-async function loadServicio() {
-  try {
+async function loadServicio(){
+  try{
     const r = await fetch(API_SERVICIO, { cache:'no-store' });
     if (!r.ok) throw new Error(await r.text());
     return await r.json(); // {active, message, image}
-  } catch (_) {
+  }catch(_){
     return { active: true, message: "", image: "" };
   }
 }
 
-function setServicioFormState(activeOn) {
+function setServicioFormState(activeOn){
   const disableFields = !!activeOn;
   srvMessage.disabled = disableFields;
   srvImage.disabled   = disableFields;
@@ -114,7 +166,7 @@ function setServicioFormState(activeOn) {
   btnSrvSave.disabled = !(changed || !srvActive.checked);
 }
 
-async function openServicioModal() {
+async function openServicioModal(){
   const data = await loadServicio();
   srvActive.checked  = !!data.active;
   srvMessage.value   = data.message || "";
@@ -129,8 +181,7 @@ async function openServicioModal() {
 optServicio?.addEventListener('click', () => {
   cerrarMenu?.();
   openServicioModal().catch(err => {
-    console.error(err); 
-    mostrarToast?.('Error cargando estado del servicio');
+    console.error(err); mostrarToast?.('Error cargando estado del servicio');
   });
 });
 
@@ -159,8 +210,12 @@ btnSrvSave?.addEventListener('click', async () => {
   }
 });
 
+
+function numeroDesdeTexto(v){ return parseFloat(String(v||'').replace(',', '.')); }
+function normalizeStr(s){ return (s||'').toString().trim(); }
+
 // ---- Add Product helpers (solo existentes)
-function fillProdSelectorsFromCategories() {
+function fillProdSelectorsFromCategories(){
   selProdCategory.innerHTML =
     `<option value="">Selecciona…</option>` +
     categoriesCache.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
@@ -169,12 +224,12 @@ function fillProdSelectorsFromCategories() {
   selProdSubcategory.disabled = true;
 }
 
-function prepararFormProducto() {
+function prepararFormProducto(){
   inputProdName.value = '';
   inputProdPrice.value = '';
   inputProdImage.value = '';
   if (selProdCategory) selProdCategory.value = '';
-  if (selProdSubcategory) {
+  if (selProdSubcategory){
     selProdSubcategory.innerHTML = `<option value="">Selecciona…</option>`;
     selProdSubcategory.disabled = true;
   }
@@ -182,10 +237,10 @@ function prepararFormProducto() {
   validarFormProducto();
 }
 
-function validarFormProducto() {
+function validarFormProducto(){
   const nameOk = normalizeStr(inputProdName.value).length > 0;
   const price  = numeroDesdeTexto(inputProdPrice.value);
-  const priceOk = Number.isFinite(price) && price > 0; 
+  const priceOk= Number.isFinite(price) && price > 0; // mínimo 0.01
 
   const catOk  = normalizeStr(selProdCategory.value).length > 0;
   const subOk  = !selProdSubcategory.disabled && normalizeStr(selProdSubcategory.value).length > 0;
@@ -201,8 +256,8 @@ btnProducto?.addEventListener('click', async () => {
   if (formCatSub)   formCatSub.style.display   = 'none';
   if (formProducto) formProducto.style.display = 'block';
 
-  if (!categoriesCache.length) {
-    const payload = await apiGet(API_CATEGORIAS).catch(() => ({ categories: [] }));
+  if (!categoriesCache.length){
+    const payload = await apiGet(API_CATEGORIAS).catch(()=>({categories:[]}));
     categoriesCache = Array.isArray(payload) ? payload : (payload.categories || []);
   }
   fillProdSelectorsFromCategories();
@@ -212,7 +267,7 @@ btnProducto?.addEventListener('click', async () => {
 
 selProdCategory?.addEventListener('change', () => {
   const selected = normalizeStr(selProdCategory.value);
-  if (!selected) {
+  if (!selected){
     selProdSubcategory.innerHTML = `<option value="">Selecciona…</option>`;
     selProdSubcategory.disabled = true;
     validarFormProducto();
@@ -226,7 +281,6 @@ selProdCategory?.addEventListener('change', () => {
   selProdSubcategory.disabled = subs.length === 0;
   validarFormProducto();
 });
-
 selProdSubcategory?.addEventListener('change', validarFormProducto);
 
 inputProdName?.addEventListener('input', validarFormProducto);
@@ -235,7 +289,7 @@ inputProdPrice?.addEventListener('blur', () => {
   const n = numeroDesdeTexto(inputProdPrice.value);
   if (Number.isFinite(n) && n > 0) inputProdPrice.value = n.toFixed(2);
 });
-inputProdImage?.addEventListener('input', () => {}); 
+inputProdImage?.addEventListener('input', () => {}); // opcional, no afecta validación
 
 btnGuardarProducto?.addEventListener('click', async (e) => {
   e.preventDefault();
@@ -270,8 +324,9 @@ btnGuardarProducto?.addEventListener('click', async (e) => {
     await apiPut(API_PRODUCTOS, { products: productsCache });
 
     mostrarToast?.('Producto agregado');
-    prepararFormProducto();
+    prepararFormProducto(); // listo para siguiente alta
 
+    // Refresca filtros/tabla/switch global
     fillFilterSelectors();
     applyProductosFilters();
     updateVaciarToggleUI();
@@ -287,3 +342,20 @@ btnCancelarProducto?.addEventListener('click', (e) => {
   if (menuOpciones) menuOpciones.style.display = 'block';
   prepararFormProducto();
 });
+
+
+// ================== [PRODUCTOS] INIT + LISTENERS + LOAD ==================
+
+async function initProductosPanel(){
+  try{
+    await Promise.all([ loadCategoriasAdmin(), loadProductosAdmin() ]);
+
+    fillFilterSelectors();
+    applyProductosFilters();
+    updateVaciarToggleUI();
+  } catch (err){
+    console.error(err);
+    if (typeof mostrarToast === 'function') mostrarToast('Error al cargar productos');
+  }
+}
+
