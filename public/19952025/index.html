@@ -10,7 +10,6 @@
     <li><button id="optServicio" class="menu-item">Activar/Desactivar servicio</button></li>
     <li><button id="btnCats" class="menu-item">Editar/Eliminar Categorías/Subcategorías</button></li>
     <li><button id="btnAbrirZonas">Editar / Eliminar Zona</button></li>
-   
   </ul>
 </div>
 <div id="menuOverlay" class="menu-overlay"></div>
@@ -60,7 +59,6 @@
   </div>
 </section>
 
-
 <!-- Botón flotante + -->
 <button class="boton-flotante" id="btnAgregar">+</button>
 
@@ -72,7 +70,6 @@
       <button class="modal-opcion" id="btnProducto">Agregar producto</button>
       <button class="modal-opcion" id="btnZona">Agregar Zona</button>
       <button class="modal-opcion" id="btnCatSub">Agregar Categoría/Subcategoría</button>
-
     </div>
 
     <!-- Form Zona -->
@@ -88,82 +85,105 @@
 
     <!-- Formulario Cat/Subcat (oculto por defecto) -->
     <div id="formCatSub" style="display:none; text-align:left;">
-        <h2>Agregar Categoría/Subcategoría</h2>
+      <h2>Agregar Categoría/Subcategoría</h2>
+      <label>Categoría existente:</label>
+      <select id="selCategoriaExistente" class="modal-input">
+        <option value="">(ninguna)</option>
+      </select>
+      <label>Nueva categoría:</label>
+      <input id="inputNuevaCategoria" type="text" class="modal-input" placeholder="Ej. Bebidas" />
 
-        <label>Categoría existente:</label>
-        <select id="selCategoriaExistente" class="modal-input">
-          <option value="">(ninguna)</option>
-        </select>
-        <label>Nueva categoría:</label>
-        <input id="inputNuevaCategoria" type="text" class="modal-input" placeholder="Ej. Bebidas" />
-
-        <label>Subcategoría existente</label>
-        <select id="selSubcategoriaExistente" class="modal-input" disabled>
-           <option value="">(ninguna)</option>
-        </select>
-        
-        <label>Nueva subcategoría</label>
-        <input id="inputNuevaSubcategoria" type="text" class="modal-input" placeholder="Ej. Refrescos" />
-        <div class="modal-botones">
-          <button id="btnCancelarCatSub" class="btn-cancelar" type="button">Cancelar</button>
-          <button id="btnGuardarCatSub" class="btn-guardar" disabled>Guardar</button>
-        </div>
+      <label>Subcategoría existente</label>
+      <select id="selSubcategoriaExistente" class="modal-input" disabled>
+        <option value="">(ninguna)</option>
+      </select>
+      <label>Nueva subcategoría</label>
+      <input id="inputNuevaSubcategoria" type="text" class="modal-input" placeholder="Ej. Refrescos" />
+      <div class="modal-botones">
+        <button id="btnCancelarCatSub" class="btn-cancelar" type="button">Cancelar</button>
+        <button id="btnGuardarCatSub" class="btn-guardar" disabled>Guardar</button>
+      </div>
     </div>
 
     <!-- Formulario Agregar Producto -->
-<div id="formProducto" class="modal-seccion" style="display:none; text-align:left;">
-  <h2>Agregar producto</h2>
+    <div id="formProducto" class="modal-seccion" style="display:none; text-align:left;">
+      <h2>Agregar producto</h2>
 
-  <label>Nombre *</label>
-  <input id="inputProdName" class="modal-input" type="text" placeholder="Ej. Coca-Cola 600ml" required>
+      <label>Nombre *</label>
+      <input id="inputProdName" class="modal-input" type="text" placeholder="Ej. Coca-Cola 600ml" required>
 
-  <label>Precio *</label>
-  <input id="inputProdPrice" class="modal-input" type="number" step="0.01" min="0.01" placeholder="0.00" required>
+      <label>Precio *</label>
+      <input id="inputProdPrice" class="modal-input" type="number" step="0.01" min="0.01" placeholder="0.00" required>
 
-  <!-- Selección de Unidad -->
-  <label>Vender por:</label>
-  <select id="inputProdUnit" class="modal-input">
-    <option value="unit">Pieza</option>
-    <option value="weight">Kg</option>
-  </select>
+      <!-- Selección de Unidad -->
+      <label>Vender por:</label>
+      <select id="inputProdUnit" class="modal-input">
+        <option value="unit">Pieza</option>
+        <option value="weight">Kg</option>
+      </select>
 
-  <!-- Opciones para productos por kg -->
-  <div id="kgOptions" style="display:none;">
-    <label>Step (cantidad mínima que se puede agregar)</label>
-    <input id="inputProdStep" class="modal-input" type="number" step="0.01" min="0.01" placeholder="Ej. 0.25" />
+      <!-- Opciones para productos por kg -->
+      <div id="kgOptions" style="display:none;">
+        <label>Step (cantidad mínima que se puede agregar)</label>
+        <input id="inputProdStep" class="modal-input" type="number" step="0.01" min="0.01" placeholder="Ej. 0.25" />
+        <label>Min. Qty (cantidad mínima de compra)</label>
+        <input id="inputProdMinQty" class="modal-input" type="number" step="0.01" min="0.01" placeholder="Ej. 0.25" />
+      </div>
 
-    <label>Min. Qty (cantidad mínima de compra)</label>
-    <input id="inputProdMinQty" class="modal-input" type="number" step="0.01" min="0.01" placeholder="Ej. 0.25" />
-  </div>
+      <!-- ===== NUEVO: Modo de precio y Combos/Tramos ===== -->
+      <div class="divider" style="margin-top:10px;">Modo de precio</div>
+      <label>Tipo de precio</label>
+      <select id="inputPricingMode" class="modal-input">
+        <option value="base">Precio base único</option>
+        <option value="combos">Combos/Tramos (por kg o por pieza)</option>
+      </select>
 
-  <label>Categoría (existente) *</label>
-  <select id="selProdCategory" class="modal-input" required>
-    <option value="">Selecciona…</option>
-  </select>
+      <div id="combosWrap" style="display:none; margin-top:8px;">
+        <div class="hint" style="font-size:.9rem;color:#64748b;margin-bottom:6px;">
+          Define tramos. La <b>cantidad</b> está en <span id="combosUnitLabel">pz</span> o kg según “Vender por”.
+        </div>
+        <table class="tabla" style="width:100%; border-bottom:1px solid #e2e8f0;">
+          <thead>
+            <tr>
+              <th style="width:40%;">Cantidad</th>
+              <th style="width:40%;">Precio</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="combosBody"></tbody>
+        </table>
+        <div style="display:flex; justify-content:flex-end; margin-top:8px;">
+          <button id="btnAddCombo" type="button" class="btn-accion">Agregar tramo</button>
+        </div>
+      </div>
+      <!-- ===== FIN NUEVO ===== -->
 
-  <label>Subcategoría (existente) *</label>
-  <select id="selProdSubcategory" class="modal-input" required disabled>
-    <option value="">Selecciona…</option>
-  </select>
+      <label>Categoría (existente) *</label>
+      <select id="selProdCategory" class="modal-input" required>
+        <option value="">Selecciona…</option>
+      </select>
 
-  <label>URL de imagen (opcional)</label>
-  <input id="inputProdImage" class="modal-input" type="url" placeholder="https://...">
+      <label>Subcategoría (existente) *</label>
+      <select id="selProdSubcategory" class="modal-input" required disabled>
+        <option value="">Selecciona…</option>
+      </select>
 
-  <label class="vaciar-wrap" style="margin-top:8px;">
-    <span class="vaciar-text">Activo en catálogo</span>
-    <label class="switch">
-      <input id="chkProdActive" type="checkbox" checked>
-      <span class="track"><span class="thumb"></span></span>
-    </label>
-  </label>
+      <label>URL de imagen (opcional)</label>
+      <input id="inputProdImage" class="modal-input" type="url" placeholder="https://...">
 
-  <div class="modal-botones">
-    <button id="btnCancelarProducto" class="btn-cancelar" type="button">Cancelar</button>
-    <button id="btnGuardarProducto" class="btn-guardar" type="button" disabled>Guardar</button>
-  </div>
-</div>
+      <label class="vaciar-wrap" style="margin-top:8px;">
+        <span class="vaciar-text">Activo en catálogo</span>
+        <label class="switch">
+          <input id="chkProdActive" type="checkbox" checked>
+          <span class="track"><span class="thumb"></span></span>
+        </label>
+      </label>
 
-
+      <div class="modal-botones">
+        <button id="btnCancelarProducto" class="btn-cancelar" type="button">Cancelar</button>
+        <button id="btnGuardarProducto" class="btn-guardar" type="button" disabled>Guardar</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -171,7 +191,6 @@
 <div id="modalServicio" class="modal oculto">
   <div class="modal-contenido" style="max-width:560px;">
     <h3>Activar / Desactivar servicio</h3>
-
     <div class="row" style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
       <label class="lbl">Estado del catálogo</label>
       <label class="switch">
@@ -179,20 +198,16 @@
         <span class="track"><span class="thumb"></span></span>
       </label>
     </div>
-
     <label>Mensaje para clientes</label>
     <textarea id="srvMessage" class="modal-input" rows="3" placeholder="Ej.: Estamos en mantenimiento, volvemos pronto."></textarea>
-
     <label>Imagen (URL opcional)</label>
     <input id="srvImage" class="modal-input" type="url" placeholder="https://...">
-
     <div class="actions" style="display:flex; gap:10px; justify-content:flex-end; margin-top:12px;">
       <button id="btnSrvCancel" class="btn-cancelar" type="button">Cancelar</button>
       <button id="btnSrvSave" class="btn-guardar" type="button">Guardar</button>
     </div>
   </div>
 </div>
-
 
 <!-- Modal Zonas -->
 <div id="modalZonas" class="modal-zonas oculto">
@@ -223,32 +238,22 @@
 <!-- Modal: Categorías/Subcategorías -->
 <div id="modalCats" class="modal oculto">
   <div class="contenido-zonas" style="max-width: 500px; display:flex; gap:16px;">
-    <!-- Columna izquierda: categorías -->
     <div style="flex:1 1 45%;">
       <h3>Categorías</h3>
       <table class="tabla" style="width:100%; border-bottom:1px solid #e2e8f0;">
-        <thead>
-          <tr>
-            <th>Nombre</th>
-            <th style="width:150px;">Acciones</th>
-          </tr>
-        </thead>
+        <thead><tr><th>Nombre</th><th style="width:150px;">Acciones</th></tr></thead>
         <tbody id="tablaCatsBody"></tbody>
       </table>
     </div>
-
-    <!-- Columna derecha: subcategorías de la categoría seleccionada -->
     <div style="flex:1 1 55%;">
       <h3 id="catTitle">Subcategorías</h3>
       <ul id="subcatList" class="lista-simple"></ul>
-
       <div class="acciones" style="margin-top:8px; display:flex; gap:8px;">
         <input id="inputNuevaSubcat" class="modal-input" placeholder="Nueva subcategoría">
         <button id="btnAgregarSubcat" class="btn-accion">Agregar subcategoría</button>
       </div>
     </div>
   </div>
-
   <div class="actions" style="display:flex; justify-content:flex-end; gap:10px;">
     <button id="btnCerrarCats" class="btn ghost">Cerrar</button>
   </div>
@@ -256,7 +261,7 @@
 
 <!-- Formulario: Editar producto -->
 <div id="modalEditProd" class="modal oculto">
-  <div class="modal-contenido">
+  <div class="modal-contenido" style="max-height:85vh;overflow:auto;text-align:left;">
     <button id="btnCerrarEditarProd" class="cerrar-modal">✕</button>
     <h2>Editar producto</h2>
 
@@ -285,7 +290,6 @@
     <div id="editKgOptions" style="display:none;">
       <label>Step (cantidad mínima que se puede agregar)</label>
       <input id="editProdStep" class="modal-input" type="number" step="0.01" min="0.01" placeholder="Ej. 0.25" />
-
       <label>Min. Qty (cantidad mínima de compra)</label>
       <input id="editProdMinQty" class="modal-input" type="number" step="0.01" min="0.01" placeholder="Ej. 0.25" />
     </div>

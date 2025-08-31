@@ -29,17 +29,16 @@ const modalEditarZona      = $('#modalEditarZona');
 const btnCerrarEditarZona  = $('#btnCerrarEditarZona');
 const editNombreZona       = $('#editNombreZona');
 const editCostoZona        = $('#editCostoZona');
-const btnGuardarZonaEditada= $('#btnGuardarZonaEditada'); // sin lógica
+const btnGuardarZonaEditada= $('#btnGuardarZonaEditada');
 const btnCancelarEditarZona = $('#btnCancelarEditarZona');
 
 const toast        = $('#mensajeGuardado');
 const toastClose   = $('#cerrarMensaje');
 
 const API_ZONAS = '/api/data/zonas';
-// API de categorías (mismo patrón que zonas)
 const API_CATEGORIAS = '/api/data/categorias';
 
-// Refs del formulario Cat/Subcat
+// Refs Cat/Subcat
 const btnCatSub = document.getElementById('btnCatSub');
 const formCatSub = document.getElementById('formCatSub');
 
@@ -62,8 +61,7 @@ const subcatList     = document.getElementById('subcatList');
 const inputNuevaSubcat = document.getElementById('inputNuevaSubcat');
 const btnAgregarSubcat = document.getElementById('btnAgregarSubcat');
 
-let selectedCat = '';         // categoría actualmente seleccionada en el modal
-
+let selectedCat = '';
 let toastTimer = null;
 
 // APIs
@@ -117,34 +115,44 @@ const srvImage      = document.getElementById('srvImage');
 const btnSrvCancel  = document.getElementById('btnSrvCancel');
 const btnSrvSave    = document.getElementById('btnSrvSave');
 
-// Referencias para los nuevos elementos
+// (Agregar producto) unidad y kg
 const inputProdUnit = document.getElementById('inputProdUnit');
 const kgOptions = document.getElementById('kgOptions');
 const inputProdStep = document.getElementById('inputProdStep');
 const inputProdMinQty = document.getElementById('inputProdMinQty');
 
-// Referencias para los nuevos elementos en el modal de edición
+// (Editar producto) unidad y kg
 const editProdUnit = document.getElementById('editProdUnit');
 const editKgOptions = document.getElementById('editKgOptions');
 const editProdStep = document.getElementById('editProdStep');
 const editProdMinQty = document.getElementById('editProdMinQty');
 
+// ===== NUEVO: Pricing por combos (Agregar producto) =====
+const inputPricingMode   = document.getElementById('inputPricingMode');
+const combosWrap         = document.getElementById('combosWrap');
+const combosBody         = document.getElementById('combosBody');
+const btnAddCombo        = document.getElementById('btnAddCombo');
+const combosUnitLabel    = document.getElementById('combosUnitLabel');
+let comboRows = []; // [{ qty:number, price:number }]
+// ===== FIN NUEVO =====
+
 // Mostrar/ocultar opciones según la unidad seleccionada en la edición
 editProdUnit?.addEventListener('change', () => {
   if (editProdUnit.value === 'weight') {
-    editKgOptions.style.display = 'block';  // Mostrar opciones de peso
+    editKgOptions.style.display = 'block';
   } else {
-    editKgOptions.style.display = 'none';   // Ocultar opciones de peso
+    editKgOptions.style.display = 'none';
   }
 });
 
-// Mostrar/ocultar opciones según la unidad seleccionada
+// Mostrar/ocultar opciones según la unidad seleccionada (alta)
 inputProdUnit?.addEventListener('change', () => {
   if (inputProdUnit.value === 'weight') {
-    kgOptions.style.display = 'block';  // Mostrar opciones de peso
+    kgOptions.style.display = 'block';
   } else {
-    kgOptions.style.display = 'none';   // Ocultar opciones de peso
+    kgOptions.style.display = 'none';
   }
+  updateCombosUnitUI(); // NUEVO: refrescar combos al cambiar unidad
 });
 
 async function loadServicio(){
@@ -210,7 +218,6 @@ btnSrvSave?.addEventListener('click', async () => {
   }
 });
 
-
 function numeroDesdeTexto(v){ return parseFloat(String(v||'').replace(',', '.')); }
 function normalizeStr(s){ return (s||'').toString().trim(); }
 
@@ -234,18 +241,119 @@ function prepararFormProducto(){
     selProdSubcategory.disabled = true;
   }
   chkProdActive.checked = true;
+
+  // NUEVO: reset combos
+  if (inputPricingMode) inputPricingMode.value = 'base';
+  if (combosWrap) combosWrap.style.display = 'none';
+  comboRows = [];
+  if (combosBody) combosBody.innerHTML = '';
+  updateCombosUnitUI();
+
   validarFormProducto();
 }
 
+// ===== NUEVO: Combos helpers =====
+function renderCombos(){
+  combosBody.innerHTML = '';
+  comboRows.forEach((c, idx) => {
+    const stepQty = (inputProdUnit.value === 'weight')
+      ? (parseFloat(inputProdStep.value) || 0.01)
+      : 1;
+
+    const tr = document.createElement('tr');
+    tr.className = 'combo-row';
+    tr.innerHTML = `
+      <td>
+        <input type="number" class="modal-input combo-qty"
+               min="0.01" step="${stepQty}"
+               value="${(c.qty ?? '').toString()}"
+               placeholder="${inputProdUnit.value === 'weight' ? 'kg' : 'pz'}">
+      </td>
+      <td>
+        <input type="number" class="modal-input combo-price"
+               min="0.01" step="0.01"
+               value="${(c.price ?? '').toString()}"
+               placeholder="$0.00">
+      </td>
+      <td>
+        <button type="button" class="btn-accion btn-del-combo" data-idx="${idx}" style="background:#ef4444">Eliminar</button>
+      </td>
+    `;
+    combosBody.appendChild(tr);
+  });
+}
+
+function validateCombos(){
+  const unit    = inputProdUnit.value;
+  const stepVal = (unit === 'weight') ? (parseFloat(inputProdStep.value) || 0) : 1;
+  let ok = true;
+  const seen = new Set();
+
+  $$('.combo-row', combosBody).forEach(row => {
+    const qtyInput   = $('.combo-qty', row);
+    const priceInput = $('.combo-price', row);
+
+    const qty   = parseFloat(String(qtyInput.value).replace(',', '.'));
+    const price = parseFloat(String(priceInput.value).replace(',', '.'));
+
+    const validQty   = Number.isFinite(qty) && qty > 0;
+    const validPrice = Number.isFinite(price) && price > 0;
+
+    let validStep = true;
+    if (unit === 'weight' && stepVal > 0) {
+      const mult = Math.round(qty / stepVal);
+      validStep = Math.abs(qty - mult * stepVal) < 1e-6;
+    } else if (unit === 'unit') {
+      validStep = Math.abs(qty - Math.round(qty)) < 1e-6; // enteros
+    }
+
+    let unique = true;
+    if (validQty) {
+      if (seen.has(qty)) unique = false; else seen.add(qty);
+    }
+
+    qtyInput.style.borderColor   = (validQty && validStep && unique) ? '#cbd5e1' : '#ef4444';
+    priceInput.style.borderColor = validPrice ? '#cbd5e1' : '#ef4444';
+
+    ok = ok && validQty && validPrice && validStep && unique;
+  });
+
+  return ok && combosBody.children.length > 0;
+}
+
+function readCombosFromDOM(){
+  const rows = $$('.combo-row', combosBody);
+  const combos = rows.map(row => {
+    const qty   = parseFloat(String($('.combo-qty', row).value).replace(',', '.'));
+    const price = parseFloat(String($('.combo-price', row).value).replace(',', '.'));
+    return { qty, price: +Number(price).toFixed(2) };
+  }).filter(x => Number.isFinite(x.qty) && x.qty > 0 && Number.isFinite(x.price) && x.price > 0);
+
+  combos.sort((a,b) => b.qty - a.qty); // DESC
+  return combos;
+}
+
+function updateCombosUnitUI(){
+  if (combosUnitLabel) combosUnitLabel.textContent = (inputProdUnit.value === 'weight') ? 'kg' : 'pz';
+  renderCombos();
+  validarFormProducto();
+}
+// ===== FIN NUEVO =====
+
 function validarFormProducto(){
   const nameOk = normalizeStr(inputProdName.value).length > 0;
-  const price  = numeroDesdeTexto(inputProdPrice.value);
-  const priceOk= Number.isFinite(price) && price > 0; // mínimo 0.01
+
+  const isCombos = (inputPricingMode?.value === 'combos');
+  const priceRaw = numeroDesdeTexto(inputProdPrice.value);
+  const priceOk  = isCombos ? true : (Number.isFinite(priceRaw) && priceRaw > 0);
 
   const catOk  = normalizeStr(selProdCategory.value).length > 0;
   const subOk  = !selProdSubcategory.disabled && normalizeStr(selProdSubcategory.value).length > 0;
 
-  const ok = nameOk && priceOk && catOk && subOk;
+  let combosOk = true;
+  if (isCombos) combosOk = validateCombos();
+
+  const ok = nameOk && priceOk && catOk && subOk && combosOk;
   btnGuardarProducto.disabled = !ok;
   btnGuardarProducto.setAttribute('aria-disabled', String(!ok));
 }
@@ -289,14 +397,49 @@ inputProdPrice?.addEventListener('blur', () => {
   const n = numeroDesdeTexto(inputProdPrice.value);
   if (Number.isFinite(n) && n > 0) inputProdPrice.value = n.toFixed(2);
 });
-inputProdImage?.addEventListener('input', () => {}); // opcional, no afecta validación
+inputProdImage?.addEventListener('input', () => {}); // opcional
+
+// ===== NUEVO: listeners de combos =====
+inputPricingMode?.addEventListener('change', () => {
+  const isCombos = inputPricingMode.value === 'combos';
+  combosWrap.style.display = isCombos ? 'block' : 'none';
+  validarFormProducto();
+});
+
+btnAddCombo?.addEventListener('click', () => {
+  const defQty = (inputProdUnit.value === 'weight')
+    ? (parseFloat(inputProdStep.value) || 0.5)
+    : 1;
+  comboRows.push({ qty: defQty, price: 0 });
+  renderCombos();
+  validarFormProducto();
+});
+
+combosBody?.addEventListener('input', (e) => {
+  if (e.target.classList.contains('combo-qty') || e.target.classList.contains('combo-price')) {
+    validarFormProducto();
+  }
+});
+combosBody?.addEventListener('click', (e) => {
+  const btn = e.target.closest('.btn-del-combo');
+  if (!btn) return;
+  const idx = +btn.dataset.idx;
+  comboRows.splice(idx, 1);
+  renderCombos();
+  validarFormProducto();
+});
+
+inputProdStep?.addEventListener('input', () => {
+  if (inputProdUnit.value === 'weight') { renderCombos(); validarFormProducto(); }
+});
+// ===== FIN NUEVO =====
 
 btnGuardarProducto?.addEventListener('click', async (e) => {
   e.preventDefault();
   if (btnGuardarProducto.disabled) return;
 
   const name  = normalizeStr(inputProdName.value);
-  const price = +(numeroDesdeTexto(inputProdPrice.value) || 0).toFixed(2);
+  const basePrice = +(numeroDesdeTexto(inputProdPrice.value) || 0).toFixed(2);
   const image = normalizeStr(inputProdImage.value);
   const active = !!chkProdActive.checked;
 
@@ -308,11 +451,27 @@ btnGuardarProducto?.addEventListener('click', async (e) => {
   const step = unit === 'weight' ? parseFloat(inputProdStep.value) : null;
   const minQty = unit === 'weight' ? parseFloat(inputProdMinQty.value) : null;
 
+  // NUEVO: pricing mode y combos
+  const pricingMode = inputPricingMode?.value || 'base';
+  let priceCombos = [];
+  let priceForDisplay = basePrice;
+
+  if (pricingMode === 'combos') {
+    priceCombos = readCombosFromDOM();
+    const asc = priceCombos.slice().sort((a,b) => a.qty - b.qty);
+    priceForDisplay = asc[0]?.price ?? 0; // precio representativo (el tramo más chico)
+  }
+
   try {
     const id = `p_${Date.now()}`;
     const producto = {
-      id, name, price, category: cat, subcategory: sub, image, active, 
-      soldBy: unit, step, minQty
+      id, name,
+      price: +Number(priceForDisplay || 0).toFixed(2),
+      category: cat, subcategory: sub, image, active,
+      soldBy: unit, step, minQty,
+      // NUEVO:
+      pricingMode,
+      priceCombos
     };
 
     if (!productsCache.length) {
@@ -324,7 +483,7 @@ btnGuardarProducto?.addEventListener('click', async (e) => {
     await apiPut(API_PRODUCTOS, { products: productsCache });
 
     mostrarToast?.('Producto agregado');
-    prepararFormProducto(); // listo para siguiente alta
+    prepararFormProducto();
 
     // Refresca filtros/tabla/switch global
     fillFilterSelectors();
@@ -343,13 +502,11 @@ btnCancelarProducto?.addEventListener('click', (e) => {
   prepararFormProducto();
 });
 
-
 // ================== [PRODUCTOS] INIT + LISTENERS + LOAD ==================
 
 async function initProductosPanel(){
   try{
     await Promise.all([ loadCategoriasAdmin(), loadProductosAdmin() ]);
-
     fillFilterSelectors();
     applyProductosFilters();
     updateVaciarToggleUI();
@@ -359,15 +516,14 @@ async function initProductosPanel(){
   }
 }
 
-// Función para validar el formulario de edición
+// Validación formulario edición
 function validateEditProdForm() {
   const nameOk = (editProdName.value || '').trim().length > 0;
   const priceVal = parseFloat(editProdPrice.value);
   const priceOk = Number.isFinite(priceVal) && priceVal > 0;
   const catOk = (editProdCategory.value || '').trim().length > 0;
   const subOk = editProdSubcategory.disabled ? true : (editProdSubcategory.value || '').trim().length > 0;
-  const unitOk = editProdUnit.value !== ''; // Validar que haya una opción seleccionada
-
+  const unitOk = editProdUnit.value !== '';
   const ok = nameOk && priceOk && catOk && subOk && unitOk;
   if (btnSaveEditProd) {
     btnSaveEditProd.disabled = !ok;
@@ -398,7 +554,7 @@ modalEditProd?.addEventListener('click', (e) => {
   if (e.target === modalEditProd && cont && !cont.contains(e.target)) cerrarModal(modalEditProd);
 });
 
-// Guardar los cambios cuando el usuario edita el producto
+// Guardar cambios (editar)
 btnSaveEditProd?.addEventListener('click', async () => {
   if (btnSaveEditProd.disabled) return;
 
@@ -413,14 +569,12 @@ btnSaveEditProd?.addEventListener('click', async () => {
 
   try {
     let idx = productsCache.findIndex(p => (p.id || '') === (editingProdId || ''));
-    if (idx === -1) {
-      return mostrarToast?.('Producto no encontrado');
-    }
+    if (idx === -1) return mostrarToast?.('Producto no encontrado');
 
     productsCache[idx] = {
       ...productsCache[idx],
       name,
-      price: price.toFixed(2),
+      price: +price.toFixed(2),
       category: cat,
       subcategory: sub,
       image,
@@ -440,8 +594,7 @@ btnSaveEditProd?.addEventListener('click', async () => {
   }
 });
 
-
-// Listeners de filtros
+// Filtros
 function attachProductosFilterListeners(){
   if (typeof updateSubcategoryFilter !== 'function' || typeof applyProductosFilters !== 'function') return;
 
@@ -453,7 +606,7 @@ function attachProductosFilterListeners(){
 
   filterSubcategory?.addEventListener('change', () => {
     applyProductosFilters();
-    updateVaciarToggleUI();   // ← agregar
+    updateVaciarToggleUI();
   });
 
   let searchTimer = null;
@@ -466,7 +619,7 @@ function attachProductosFilterListeners(){
     }
     searchTimer = setTimeout(() => {
       applyProductosFilters();
-      updateVaciarToggleUI(); // ← agregar
+      updateVaciarToggleUI();
     }, 120);
   });
 }
@@ -489,21 +642,14 @@ if (document.readyState === 'loading') {
 function fillEditCatAndSub(catSel, subSel, selectedCat = '', selectedSub = ''){
   const cats = categoriesCache.map(c => c.name);
   catSel.innerHTML = cats.map(c => `<option value="${c}">${c}</option>`).join('');
-  if (selectedCat && cats.includes(selectedCat)) {
-    catSel.value = selectedCat;
-  } else {
-    catSel.value = cats[0] || '';
-  }
+  if (selectedCat && cats.includes(selectedCat)) catSel.value = selectedCat;
+  else catSel.value = cats[0] || '';
   const subs = (categoriesCache.find(c => c.name === catSel.value)?.subcategories) || [];
   subSel.innerHTML = subs.map(s => `<option value="${s}">${s}</option>`).join('');
   subSel.disabled = subs.length === 0;
-  if (selectedSub && subs.includes(selectedSub)) {
-    subSel.value = selectedSub;
-  } else if (subs.length) {
-    subSel.value = subs[0];
-  }
+  if (selectedSub && subs.includes(selectedSub)) subSel.value = selectedSub;
+  else if (subs.length) subSel.value = subs[0];
 }
-
 
 async function apiGet(url) {
   const r = await fetch(url, { cache: 'no-store' });
@@ -586,7 +732,6 @@ function countActiveProductsInScope(cat, sub){
 function updateVaciarToggleUI(){
   if (!toggleVaciarCatalogo) return;
   const { cat, sub, isValid } = getCurrentScope();
-  // Si no hay categoría y subcategoría seleccionadas, inhabilita el switch
   if (!isValid) {
     toggleVaciarCatalogo.checked  = false;
     toggleVaciarCatalogo.disabled = true;
@@ -595,9 +740,7 @@ function updateVaciarToggleUI(){
   }
   const totalInScope  = countTotalInScope(cat, sub);
   const activeInScope = countActiveProductsInScope(cat, sub);
-  // "Encendido" cuando hay al menos un producto activo en ese ámbito
   toggleVaciarCatalogo.checked  = activeInScope > 0;
-  // Deshabilitado si no hay productos en el ámbito o ya están todos inactivos
   toggleVaciarCatalogo.disabled = (totalInScope === 0) || (activeInScope === 0);
 
   if (totalInScope === 0) {
@@ -615,13 +758,11 @@ toggleVaciarCatalogo?.addEventListener('change', async () => {
     updateVaciarToggleUI();
     return;
   }
-  // Si intentan "encenderlo", impedimos (igual que antes) y pedimos reactivar individuales
   if (toggleVaciarCatalogo.checked){
     toggleVaciarCatalogo.checked = false;
     mostrarToast?.(`Activa al menos un producto en "${cat} / ${sub}" desde la tabla`);
     return;
   }
-  // Apagar = desactivar TODOS los productos del ámbito
   if (!confirm(`¿Desactivar TODOS los productos de "${cat} / ${sub}"?`)) {
     updateVaciarToggleUI();
     return;
@@ -733,23 +874,20 @@ function renderProductosTable(list){
     tablaProductosBody.appendChild(tr);
   });
 }
-// Función para abrir el modal de edición de producto y cargar los datos actuales
-// Función para abrir el modal de edición de producto y cargar los datos actuales
+
+// Abrir modal de edición de producto
 function openProductEditModal(producto) {
   editingProdId = producto.id;
   editProdName.value = producto.name;
-  
-  // Asegurarnos de que el precio sea un número antes de usar toFixed
+
   const price = Number(producto.price);
-  editProdPrice.value = !isNaN(price) ? price.toFixed(2) : '';  // Si no es un número, dejamos el campo vacío
+  editProdPrice.value = !isNaN(price) ? price.toFixed(2) : '';
 
   fillEditCatAndSub(editProdCategory, editProdSubcategory, producto.category, producto.subcategory);
   editProdImage.value = producto.image || '';
   
-  // Cargar la unidad de venta (pieza o peso)
+  // unidad
   editProdUnit.value = producto.soldBy || 'unit';
-
-  // Mostrar las opciones de peso si es por peso
   if (producto.soldBy === 'weight') {
     editKgOptions.style.display = 'block';
     editProdStep.value = producto.step || '';
@@ -758,7 +896,6 @@ function openProductEditModal(producto) {
     editKgOptions.style.display = 'none';
   }
 
-  // Habilitar el botón de guardar solo si los datos son válidos
   validateEditProdForm();
   abrirModal(modalEditProd);
 }
@@ -829,7 +966,6 @@ tablaProductosBody?.addEventListener('click', async (e) => {
   }
 });
 
-
 // ================== Menú hamburguesa ==================
 function abrirMenu() {
   if (!menuLateral || !menuOverlay) return;
@@ -845,25 +981,16 @@ menuBtn?.addEventListener('click', abrirMenu);
 menuOverlay?.addEventListener('click', cerrarMenu);
 
 // ================== Utilidades de modal ==================
-function abrirModal(modalEl) {
-  if (!modalEl) return;
-  modalEl.classList.remove('oculto');
-}
-function cerrarModal(modalEl) {
-  if (!modalEl) return;
-  modalEl.classList.add('oculto');
-}
+function abrirModal(modalEl) { if (!modalEl) return; modalEl.classList.remove('oculto'); }
+function cerrarModal(modalEl) { if (!modalEl) return; modalEl.classList.add('oculto'); }
 
 function renderCategoriasTabla() {
   tablaCatsBody.innerHTML = '';
   categoriesCache.forEach(c => {
     const tr = document.createElement('tr');
     tr.dataset.cat = c.name;
-
     tr.innerHTML = `
-      <td>
-        <button class="btn-link select-cat">${c.name}</button>
-      </td>
+      <td><button class="btn-link select-cat">${c.name}</button></td>
       <td>
         <button class="btn-accion btn-edit-cat">Editar</button>
         <button class="btn-accion btn-del-cat" style="background:#ef4444">Eliminar</button>
@@ -922,10 +1049,7 @@ tablaCatsBody?.addEventListener('click', async (e) => {
   if (!tr) return;
   const catName = tr.dataset.cat;
 
-  if (e.target.closest('.select-cat')) {
-    renderSubcats(catName);
-    return;
-  }
+  if (e.target.closest('.select-cat')) { renderSubcats(catName); return; }
 
   if (e.target.closest('.btn-edit-cat')) {
     const nuevo = prompt('Nuevo nombre para la categoría:', catName);
@@ -980,7 +1104,7 @@ btnAgregarSubcat?.addEventListener('click', async () => {
 
   if (cat.subcategories.some(x => x.toLowerCase() === s.toLowerCase())) {
     return mostrarToast?.('Esa subcategoría ya existe');
-    }
+  }
 
   cat.subcategories.push(s);
   try {
@@ -1038,7 +1162,6 @@ subcatList?.addEventListener('click', async (e) => {
   }
 });
 
-
 // Cierre por clic fuera del contenido
 function habilitarCierreExterior(modalEl, contentSelector = '.modal-contenido') {
   if (!modalEl) return;
@@ -1083,8 +1206,8 @@ inputCostoZona?.addEventListener('input', validarFormZona);
 btnAgregar?.addEventListener('click', () => {
   if (menuOpciones) menuOpciones.style.display = 'block';
   if (formZona)     formZona.style.display     = 'none';
-  if (formCatSub)    formCatSub.style.display    = 'none';
-  if (formProducto)  formProducto.style.display  = 'none';
+  if (formCatSub)   formCatSub.style.display   = 'none';
+  if (formProducto) formProducto.style.display  = 'none';
   abrirModal(modalAgregar);
 });
 
@@ -1103,7 +1226,7 @@ btnCancelarZona?.addEventListener('click', (e) => {
   prepararFormZona();
 });
 
-// Guardar zona REAL
+// Guardar zona
 btnGuardarZona?.addEventListener('click', async (e) => {
   e.preventDefault();
   if (btnGuardarZona.disabled) return;
@@ -1170,7 +1293,6 @@ btnGuardarZonaEditada?.addEventListener('click', async (e) => {
     mostrarToast('Error al actualizar zona');
   }
 });
-
 
 btnCancelarEditarZona?.addEventListener('click', (e) => {
   e.preventDefault();
