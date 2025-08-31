@@ -293,6 +293,32 @@
       <label>Min. Qty (cantidad mínima de compra)</label>
       <input id="editProdMinQty" class="modal-input" type="number" step="0.01" min="0.01" placeholder="Ej. 0.25" />
     </div>
+    <!-- Combos / Precios por escalón -->
+    <label class="vaciar-wrap" style="margin:10px 0;">
+      <input id="editHasCombos" type="checkbox" />
+      <span style="margin-left:6px;">Este producto tiene combos / precios por escalón</span>
+    </label>
+
+    <div id="editCombosSection" style="display:none; margin:8px 0;">
+      <div id="editCombosHelp" class="muted" style="margin-bottom:8px; line-height:1.35;">
+        <!-- Se rellena dinámicamente según la unidad -->
+      </div>
+
+      <table class="tabla" style="width:100%;" id="editCombosTable">
+        <thead>
+          <tr>
+            <th style="width:35%;">Cantidad</th>
+            <th style="width:35%;">Precio</th>
+            <th style="width:30%;">Acciones</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+
+      <div class="actions" style="display:flex; justify-content:flex-end; gap:8px; margin-top:8px;">
+        <button id="btnAddComboRow" class="btn-accion" type="button">+ Agregar fila</button>
+      </div>
+    </div>
 
     <div class="actions" style="display:flex; gap:10px; justify-content:flex-end; margin-top:12px;">
       <button id="btnCancelEditProd" class="btn-cancelar" type="button">Cancelar</button>

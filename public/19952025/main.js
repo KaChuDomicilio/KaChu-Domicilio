@@ -91,6 +91,17 @@ const btnSaveEditProd     = document.getElementById('btnSaveEditProd');
 
 let editingProdId = null; // id del producto que estamos editando
 
+// --- NUEVO: refs combos en modal edición ---
+const editHasCombos    = document.getElementById('editHasCombos');
+const editCombosSection= document.getElementById('editCombosSection');
+const editCombosHelp   = document.getElementById('editCombosHelp');
+const editCombosTable  = document.getElementById('editCombosTable');
+const btnAddComboRow   = document.getElementById('btnAddComboRow');
+
+// Estado temporal de combos mientras se edita
+let editCombos = []; // [{ qty:number, price:number }]
+
+
 // ----- (+) Agregar producto (SOLO con categorías/sub existentes)
 const btnProducto          = document.getElementById('btnProducto');
 const formProducto         = document.getElementById('formProducto');
@@ -134,6 +145,43 @@ const combosBody         = document.getElementById('combosBody');
 const btnAddCombo        = document.getElementById('btnAddCombo');
 const combosUnitLabel    = document.getElementById('combosUnitLabel');
 let comboRows = []; // [{ qty:number, price:number }]
+
+
+// Toggle de combos
+editHasCombos?.addEventListener('change', () => {
+  showCombosUI(editHasCombos.checked);
+  if (editHasCombos.checked && editCombos.length === 0) {
+    editCombos.push({ qty: currentQtyStepForUnit(), price: 0.01 });
+  }
+  renderCombosRows();
+  validateEditProdForm();
+});
+
+// Agregar fila
+btnAddComboRow?.addEventListener('click', () => {
+  const step = currentQtyStepForUnit();
+  const defaultQty = editProdUnit.value === 'weight' ? step : 1;
+  editCombos.push({ qty: defaultQty, price: 0.01 });
+  renderCombosRows();
+  validateEditProdForm();
+});
+
+// Cuando cambie "Vender por", actualizamos la ayuda, visibilidad y (opcional) recargamos combos del producto
+editProdUnit?.addEventListener('change', () => {
+  if (editProdUnit.value === 'weight') {
+    editKgOptions.style.display = 'block';
+  } else {
+    editKgOptions.style.display = 'none';
+  }
+  // Si tenía combos, los re-interpretamos para la nueva unidad (limpiamos para evitar inconsistencias)
+  if (editHasCombos.checked) {
+    editCombos = []; // vaciar para que el usuario capture formatos acordes a la unidad
+    renderCombosRows();
+  }
+  showCombosUI(editHasCombos.checked);
+  validateEditProdForm();
+});
+
 // ===== FIN NUEVO =====
 
 // Mostrar/ocultar opciones según la unidad seleccionada en la edición
@@ -338,6 +386,121 @@ function updateCombosUnitUI(){
   renderCombos();
   validarFormProducto();
 }
+function currentQtyStepForUnit() {
+  // Para peso respetamos el step configurado en el producto; default 0.25
+  if (editProdUnit.value === 'weight') {
+    const s = parseFloat(editProdStep.value);
+    return Number.isFinite(s) && s > 0 ? s : 0.25;
+  }
+  // Piezas => enteros
+  return 1;
+}
+function combosHelpText() {
+  if (editProdUnit.value === 'weight') {
+    return 'Ejemplo de escalones por <strong>kg</strong>:<br>0.5 kg = $13.00, 1 kg = $24.00. ' +
+           'Si el cliente pide 1.5 kg, se cobra (1 kg + 0.5 kg).';
+  }
+  return 'Ejemplo de combos por <strong>piezas</strong>:<br>1 pza = $14.00, 2 pzas = $20.00, 3 pzas = $34.00.';
+}
+function showCombosUI(show) {
+  if (!editCombosSection) return;
+  editCombosSection.style.display = show ? 'block' : 'none';
+  if (editCombosHelp) editCombosHelp.innerHTML = combosHelpText();
+}
+
+function renderCombosRows() {
+  if (!editCombosTable) return;
+  const tbody = editCombosTable.querySelector('tbody');
+  tbody.innerHTML = '';
+
+  const qtyStep = currentQtyStepForUnit();
+  const isWeight = editProdUnit.value === 'weight';
+
+  editCombos.forEach((row, idx) => {
+    const tr = document.createElement('tr');
+
+    const tdQty = document.createElement('td');
+    const qtyInput = document.createElement('input');
+    qtyInput.type = 'number';
+    qtyInput.min = isWeight ? String(qtyStep) : '1';
+    qtyInput.step = isWeight ? String(qtyStep) : '1';
+    qtyInput.placeholder = isWeight ? 'Ej. 0.5' : 'Ej. 2';
+    qtyInput.value = row.qty ?? '';
+    qtyInput.className = 'modal-input';
+    tdQty.appendChild(qtyInput);
+
+    const tdPrice = document.createElement('td');
+    const priceInput = document.createElement('input');
+    priceInput.type = 'number';
+    priceInput.min = '0.01';
+    priceInput.step = '0.01';
+    priceInput.placeholder = 'Ej. 24.00';
+    priceInput.value = (row.price ?? '') === '' ? '' : Number(row.price).toFixed(2);
+    priceInput.className = 'modal-input';
+    tdPrice.appendChild(priceInput);
+
+    const tdActions = document.createElement('td');
+    const btnDel = document.createElement('button');
+    btnDel.type = 'button';
+    btnDel.className = 'btn-accion';
+    btnDel.style.background = '#ef4444';
+    btnDel.textContent = 'Eliminar';
+    tdActions.appendChild(btnDel);
+
+    tr.appendChild(tdQty);
+    tr.appendChild(tdPrice);
+    tr.appendChild(tdActions);
+    tbody.appendChild(tr);
+
+    // Listeners por fila
+    qtyInput.addEventListener('input', () => {
+      const v = parseFloat(qtyInput.value);
+      editCombos[idx].qty = Number.isFinite(v) ? v : '';
+      validateEditProdForm();
+    });
+    priceInput.addEventListener('input', () => {
+      const v = parseFloat(priceInput.value);
+      editCombos[idx].price = Number.isFinite(v) ? v : '';
+      validateEditProdForm();
+    });
+    btnDel.addEventListener('click', () => {
+      editCombos.splice(idx, 1);
+      renderCombosRows();
+      validateEditProdForm();
+    });
+  });
+}
+
+function combosAreValid() {
+  if (!editHasCombos?.checked) return true; // no combos => OK
+  if (!Array.isArray(editCombos) || editCombos.length === 0) return false;
+
+  const isWeight = editProdUnit.value === 'weight';
+  const step = currentQtyStepForUnit();
+
+  return editCombos.every(r => {
+    const qtyOk   = Number.isFinite(+r.qty)   && +r.qty > 0 && (isWeight ? true : Number.isInteger(+r.qty));
+    const priceOk = Number.isFinite(+r.price) && +r.price > 0;
+    // para peso no forzamos múltiplos exactos del step (aceptamos 0.5, 1, etc.)
+    // si quisieras forzarlo: (Math.abs((+r.qty / step) - Math.round(+r.qty / step)) < 1e-6)
+    return qtyOk && priceOk;
+  });
+}
+
+function loadCombosFromProduct(producto) {
+  // Carga según unidad actual
+  if (editProdUnit.value === 'weight') {
+    const tiers = producto?.kgPricing?.tiers;
+    editCombos = Array.isArray(tiers) ? tiers.map(t => ({ qty: +t.qty, price: +t.price })) : [];
+  } else {
+    const tiers = producto?.bundlePricing?.tiers;
+    editCombos = Array.isArray(tiers) ? tiers.map(t => ({ qty: +t.qty, price: +t.price })) : [];
+  }
+  editHasCombos.checked = editCombos.length > 0;
+  showCombosUI(editHasCombos.checked);
+  renderCombosRows();
+}
+
 // ===== FIN NUEVO =====
 
 function validarFormProducto(){
@@ -524,7 +687,11 @@ function validateEditProdForm() {
   const catOk = (editProdCategory.value || '').trim().length > 0;
   const subOk = editProdSubcategory.disabled ? true : (editProdSubcategory.value || '').trim().length > 0;
   const unitOk = editProdUnit.value !== '';
-  const ok = nameOk && priceOk && catOk && subOk && unitOk;
+
+  // NUEVO: combos válidos si están activados
+  const combosOk = combosAreValid();
+
+  const ok = nameOk && priceOk && catOk && subOk && unitOk && combosOk;
   if (btnSaveEditProd) {
     btnSaveEditProd.disabled = !ok;
     btnSaveEditProd.setAttribute('aria-disabled', String(!ok));
@@ -582,6 +749,25 @@ btnSaveEditProd?.addEventListener('click', async () => {
       step,
       minQty
     };
+// --- NUEVO: persistir combos según la unidad seleccionada ---
+if (editHasCombos.checked && combosAreValid() && editCombos.length > 0) {
+  const sorted = editCombos
+    .map(r => ({ qty: +r.qty, price: +Number(r.price).toFixed(2) }))
+    .filter(r => r.qty > 0 && r.price > 0)
+    .sort((a,b) => a.qty - b.qty);
+
+  if (unit === 'weight') {
+    productsCache[idx].kgPricing = { tiers: sorted };
+    delete productsCache[idx].bundlePricing;
+  } else {
+    productsCache[idx].bundlePricing = { tiers: sorted };
+    delete productsCache[idx].kgPricing;
+  }
+} else {
+  // Si se desactiva combos, limpiar ambos campos
+  delete productsCache[idx].kgPricing;
+  delete productsCache[idx].bundlePricing;
+}
 
     await apiPut(API_PRODUCTOS, { products: productsCache });
     cerrarModal(modalEditProd);
@@ -895,7 +1081,8 @@ function openProductEditModal(producto) {
   } else {
     editKgOptions.style.display = 'none';
   }
-
+  // --- NUEVO: combos del producto (si existen)
+  loadCombosFromProduct(producto);
   validateEditProdForm();
   abrirModal(modalEditProd);
 }
