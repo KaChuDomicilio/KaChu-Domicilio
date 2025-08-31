@@ -1,4 +1,6 @@
-// ==== KaChu Catálogo – script.js (API-first, sin caché, solo activos) ====
+// ==== KaChu Catálogo – script.js ====
+// Soporta productos por pieza y por peso (step/minQty) y, opcionalmente,
+// precios por kg con escalones (ej.: 0.5kg y 1kg sumatorios).
 
 // --------- Referencias de UI ---------
 const modalCart = document.getElementById('modalCart');
@@ -43,16 +45,6 @@ const CHECKOUT_KEY = 'kachu_checkout_v1';
 
 const cashHelp = document.getElementById('cashHelp');
 
-function showCashBubble(msg) {
-  if (!cashBubble) return;
-  cashBubble.textContent = msg;
-  cashBubble.classList.remove('hidden');
-}
-function hideCashBubble() {
-  if (!cashBubble) return;
-  cashBubble.classList.add('hidden');
-}
-
 // --- API primero; estáticos como respaldo ---
 const API = {
   productos:  ['/api/data/productos',  '/public/data/productos.json',  '/data/productos.json',  'productos.json'],
@@ -61,13 +53,12 @@ const API = {
   servicio:   ['/api/data/servicio',   '/public/data/servicio.json',   '/data/servicio.json',   'servicio.json'],
 };
 
-// fetch sin caché (+timestamp para evitar CDN/browser cache)
+// fetch sin caché
 async function fetchNoCache(url){
   const u = url + (url.includes('?') ? `&t=${Date.now()}` : `?t=${Date.now()}`);
   return fetch(u, { cache: 'no-store' });
 }
-
-// intenta URLs en orden hasta obtener 200
+// intenta URLs en orden hasta 200
 async function fetchFirstOk(urls){
   for (const url of urls){
     try{
@@ -80,9 +71,57 @@ async function fetchFirstOk(urls){
 
 // --------- Helpers ---------
 const cart = new Map(); // id -> { id, name, unit, qty, soldBy, unitLabel, step, minQty }
+const pricingById = new Map(); // id -> { tiers:[{qty,price}, ...] }  (OPCIONAL)
+
 function money(n){ return '$' + Number(n).toFixed(2); }
 function parseMoney(str){ return parseFloat((str||'').replace(/[^0-9.]/g,'')) || 0; }
 function normalize(str){ return (str || '').toString().toLowerCase().trim(); }
+
+function decimalsFromStep(step){
+  const s = String(step || 1);
+  return s.includes('.') ? (s.split('.')[1] || '').length : 0;
+}
+function formatQty(qty, step){
+  const d = decimalsFromStep(step || 1);
+  return Number(qty || 0).toFixed(d).replace(/\.?0+$/,'');
+}
+
+// Calcula el total de una línea considerando tiered pricing si existe
+function computeLineTotal(item){
+  const base = +(item.unit * item.qty).toFixed(2);
+  if (item.soldBy !== 'weight') return base;
+
+  const pricing = pricingById.get(item.id);
+  if (!pricing || !Array.isArray(pricing.tiers) || !pricing.tiers.length) {
+    return base; // sin reglas => precio por kg * qty
+  }
+
+  // Greedy con los escalones declarados (ej. 1kg y 0.5kg)
+  const tiers = pricing.tiers
+    .map(t => ({ qty: Number(t.qty), price: Number(t.price) }))
+    .filter(t => t.qty > 0 && Number.isFinite(t.price))
+    .sort((a,b)=> b.qty - a.qty); // mayor primero
+
+  if (!tiers.length) return base;
+
+  let remaining = Number(item.qty);
+  let total = 0;
+  const eps = 1e-9;
+
+  for (const t of tiers){
+    const count = Math.floor((remaining + eps) / t.qty);
+    if (count > 0){
+      total += count * t.price;
+      remaining = +(remaining - count * t.qty).toFixed(3);
+    }
+  }
+  // Si queda un residuo minúsculo por redondeos, cobramos 1 escalón mínimo
+  if (remaining > eps) {
+    const minTier = tiers[tiers.length - 1];
+    total += minTier.price;
+  }
+  return +total.toFixed(2);
+}
 
 function getCardInfo(card){
   const name = card.querySelector('h3')?.textContent.trim() || '';
@@ -150,16 +189,7 @@ function loadCheckout(){
   }catch(e){ console.warn('No se pudo cargar checkout:', e); }
 }
 
-function decimalsFromStep(step){
-  const s = String(step || 1);
-  return s.includes('.') ? (s.split('.')[1] || '').length : 0;
-}
-function formatQty(qty, step){
-  const d = decimalsFromStep(step || 1);
-  return Number(qty || 0).toFixed(d).replace(/\.?0+$/,'');
-}
-
-// --------- Categorías (desde categorias.json o derivadas de productos) ---------
+// --------- Categorías ---------
 let categoriesMap = null; // Map<string, string[]>
 
 function fillCategorySelectFromMap() {
@@ -209,7 +239,7 @@ function svgPlaceholder(text = 'Sin foto') {
 // === Render de tarjetas de producto ===
 function renderProductGrid(products){
   if(!grid) return;
-  grid.innerHTML = products.map(p => {
+  const html = products.map(p => {
     const price = typeof p.price === 'number' ? p.price : parseFloat(p.price || 0);
     const img   = (p.image && String(p.image).trim()) ? p.image : svgPlaceholder('Sin foto');
     const cat   = p.category || '';
@@ -222,6 +252,22 @@ function renderProductGrid(products){
     const step      = Number(p.step ?? (soldBy==='weight' ? 0.25 : 1));
     const minQty    = Number(p.minQty ?? step);
 
+    // (OPCIONAL) Reglas por kg (tiers) => precargar en memoria
+    // Formato esperado en productos: { kgPricing: { tiers: [{qty:0.5, price:13}, {qty:1, price:24}] } }
+    if (soldBy === 'weight' && p.kgPricing && Array.isArray(p.kgPricing.tiers)) {
+      pricingById.set(name, { tiers: p.kgPricing.tiers });
+    }
+
+    // Qué mostrar como "precio" en la tarjeta:
+    // - por defecto mostramos p.price (asumimos precio por 1kg o por pieza)
+    // - si hay tiers y existe 1kg, mostramos el de 1kg; si no, usamos p.price.
+    let displayPrice = price;
+    const tiers = pricingById.get(name)?.tiers || null;
+    if (soldBy === 'weight' && tiers) {
+      const t1 = tiers.find(t => Number(t.qty) === 1);
+      if (t1) displayPrice = Number(t1.price) || price;
+    }
+
     return `
       <article class="card"
         data-category="${cat}" data-subcategory="${sub}"
@@ -232,21 +278,20 @@ function renderProductGrid(products){
         <img src="${img}" alt="${name}">
         <div class="info">
           <h3>${name}</h3>
-          <p class="price">$${price.toFixed(2)}</p>
+          <p class="price">$${Number(displayPrice).toFixed(2)}</p>
           <button class="btn add">${soldBy==='weight' ? `Agregar ${formatQty(minQty, step)} ${unitLabel}` : 'Agregar'}</button>
         </div>
       </article>
     `;
   }).join('');
+  grid.innerHTML = html;
 }
 
 // Derivar filtros desde productos si no hay categorias.json
 function buildCategoryFilters(products){
   if (categoriesMap && categoriesMap.size) return;
-
   const cats = new Set();
   const subsByCat = new Map();
-
   products.forEach(p => {
     const cat = p.category || '';
     const sub = p.subcategory || '';
@@ -256,14 +301,12 @@ function buildCategoryFilters(products){
       subsByCat.get(cat).add(sub);
     }
   });
-
   if (categorySelect){
     const current = categorySelect.value;
     categorySelect.innerHTML = `<option value="">Todas</option>` +
       Array.from(cats).sort().map(c => `<option>${c}</option>`).join('');
     if ([...cats, ''].includes(current)) categorySelect.value = current;
   }
-
   if (subcategorySelect){
     const cat = categorySelect?.value || '';
     const subs = subsByCat.get(cat) || new Set();
@@ -293,7 +336,7 @@ function renderCart(){
 
   let subtotal = 0;
   items.forEach(it=>{
-    const line = +(it.unit * it.qty).toFixed(2);
+    const line = computeLineTotal(it);
     subtotal += line;
 
     const li = document.createElement('li');
@@ -309,8 +352,8 @@ function renderCart(){
           <button class="chip cart-minus">-</button>
           <span class="count">${
             it.soldBy === 'weight'
-              ? `${formatQty(it.qty, it.step)} ${it.unitLabel}`  // Para productos por peso
-              : `${formatQty(it.qty, 1)}` // Para piezas
+              ? `${formatQty(it.qty, it.step)} ${it.unitLabel}`
+              : `${formatQty(it.qty, 1)}`
           }</span>
           <button class="chip cart-plus">+</button>
         </div>
@@ -362,7 +405,6 @@ function clearCart() {
   if (!confirm('¿Vaciar todo el carrito?')) return;
   cart.clear();
   renderCart();
-
   document.querySelectorAll('.card').forEach(card => {
     const qtyCtrl = card.querySelector('.qty-control');
     if (qtyCtrl) qtyCtrl.replaceWith(createAddButton(card));
@@ -500,8 +542,8 @@ function syncCardsQty(id){
         const span = qtyControl.querySelector('span');
         if (span) {
           span.textContent = (item.soldBy === 'weight') 
-            ? formatQty(item.qty, item.step)  // Para peso
-            : formatQty(item.qty, 1);         // Para piezas
+            ? formatQty(item.qty, item.step)
+            : formatQty(item.qty, 1);
         }
       }
     } else {
@@ -525,11 +567,9 @@ function getCards(){
 
 function applyFilters(){
   const searchVal = normalize(searchInput.value);
-
   const cards = getCards();
   let visibleCount = 0;
 
-  // 1) si hay búsqueda, manda la búsqueda
   if (searchVal) {
     hideEmpty();
     if (categorySelect.value !== '' || subcategorySelect.value !== '') {
@@ -551,7 +591,6 @@ function applyFilters(){
     return;
   }
 
-  // 2) sin búsqueda: aplicar categoría/subcategoría
   const catVal = categorySelect.value;
   const hasCategory = !!catVal;
   subcategorySelect.disabled = !hasCategory;
@@ -583,7 +622,7 @@ function applyFilters(){
   }
 }
 
-// --------- Carga de datos (API-first) ---------
+// --------- Carga de datos ---------
 async function loadCategories() {
   try {
     const { json } = await fetchFirstOk(API.categorias);
@@ -611,7 +650,7 @@ async function loadProducts() {
     const all = Array.isArray(json) ? json : (Array.isArray(json.products) ? json.products : []);
     if (!all.length) throw new Error('productos vacío o con formato inesperado');
 
-    // Normaliza "active": si falta, se considera true
+    // Normaliza "active"
     const normalized = all.map(p => ({ ...p, active: (p?.active === false ? false : true) }));
     const visible = normalized.filter(p => p.active);
 
@@ -637,8 +676,6 @@ async function loadProducts() {
 async function loadZones() {
   try {
     const { url, json } = await fetchFirstOk(API.zonas);
-    console.debug('ZONAS raw from', url, json);
-
     let zonas = [];
     if (Array.isArray(json)) {
       zonas = json;
@@ -651,11 +688,9 @@ async function loadZones() {
         zonas = Object.entries(json).map(([nombre, costo]) => ({ nombre, costo }));
       }
     }
-
     if (!Array.isArray(zonas) || !zonas.length) {
       throw new Error('zonas vacío o con formato inesperado');
     }
-
     zone.innerHTML = [
       '<option value="">Selecciona una zona…</option>',
       ...zonas.map(z => {
@@ -664,7 +699,6 @@ async function loadZones() {
         return `<option value="${nombre}|${costo.toFixed(2)}">${nombre} — $${costo.toFixed(2)}</option>`;
       })
     ].join('');
-
     console.info('Zonas cargadas desde:', url, 'Total:', zonas.length);
   } catch (e) {
     console.warn('loadZones()', e);
@@ -800,16 +834,12 @@ function resetCheckoutForm() {
 
 function updateCheckoutTotalPill(){
   if (!checkoutTotalPill) return;
-
   const subtotal = parseFloat(document.getElementById('cartTotal').textContent.replace(/[^0-9.]/g, '')) || 0;
-
   const [_, zoneCostRaw] = (zone.value || '').split('|');
   const shipping = parseFloat(zoneCostRaw || '0') || 0;
-
   const pay = checkoutForm.querySelector('input[name="pay"]:checked')?.value || '';
   const base = subtotal + shipping;
   const totalDue = pay === 'Tarjeta' ? +(base * 1.043).toFixed(2) : +base.toFixed(2);
-
   checkoutTotalPill.textContent = `Total: $${totalDue.toFixed(2)}`;
 }
 
@@ -847,17 +877,16 @@ checkoutForm.addEventListener('submit', (e) => {
     checkoutForm.reportValidity();
     return;
   }
-  const subtotal = parseFloat(document.getElementById('cartTotal').textContent.replace(/[^0-9.]/g,'')) || 0;
+  const items = getCartItemsDetailed(); // usa computeLineTotal()
+  const subtotal = items.reduce((acc, it)=> acc + it.line, 0);
 
   const [zoneName, zoneCostRaw] = (zone.value || '').split('|');
   const shipping = parseFloat(zoneCostRaw || '0') || 0;
 
   const pay = checkoutForm.querySelector('input[name="pay"]:checked')?.value || 'Efectivo';
-
   const base = subtotal + shipping;
   const totalDue = pay === 'Tarjeta' ? +(base * 1.043).toFixed(2) : +base.toFixed(2);
 
-  const items = collectCartItems();
   const addressText = address.value.trim();
 
   let efectivo = null;
@@ -882,26 +911,21 @@ checkoutForm.addEventListener('submit', (e) => {
   openModal(modalConfirm);
 });
 
-// Lee items del modal del carrito (para armar ticket)
-function collectCartItems(){
+// Devuelve items del carrito con línea calculada (tiered-aware)
+function getCartItemsDetailed(){
   const items = [];
-  document.querySelectorAll('#cartList .cart-item').forEach(li=>{
-    const id   = li.dataset.id || '';
-    const meta = cart.get(id) || {};
-    const name = li.querySelector('.name')?.textContent.trim() || '';
-    const unit = parseFloat((li.querySelector('.unit')?.textContent || '').replace(/[^0-9.]/g,'')) || 0;
-
-    const rawQty = (li.querySelector('.count')?.textContent || '0').trim();
-    const qty = parseFloat(rawQty.replace(',', '.')) || 0;
-
-    const line = +(unit * qty).toFixed(2);
+  for (const it of cart.values()){
     items.push({
-      id, name, unit, qty, line,
-      soldBy: meta.soldBy || 'unit',
-      unitLabel: meta.unitLabel || (meta.soldBy==='weight' ? 'kg' : 'pza'),
-      step: meta.step || 1
+      id: it.id,
+      name: it.name,
+      unit: Number(it.unit),
+      qty: Number(it.qty),
+      line: computeLineTotal(it),
+      soldBy: it.soldBy,
+      unitLabel: it.unitLabel,
+      step: it.step
     });
-  });
+  }
   return items;
 }
 
@@ -956,13 +980,13 @@ function buildTicket({ items, zoneName, shipping, pay, subtotal, totalDue, addre
   return lines.join('\n');
 }
 
-const STORE_WHATSAPP = '528135697787'; // MX con 52 + número
+const STORE_WHATSAPP = '528135697787';
 function openWhatsAppWithMessage(text){
   const base = STORE_WHATSAPP
     ? `https://wa.me/${STORE_WHATSAPP}?text=`
     : `https://wa.me/?text=`;
   const url = base + encodeURIComponent(text);
-  const win = window.open(url, '_blank', 'noopener');
+  window.open(url, '_blank', 'noopener');
 }
 
 // Control de “Continuar”

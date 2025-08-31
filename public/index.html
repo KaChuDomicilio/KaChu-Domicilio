@@ -6,7 +6,7 @@
   <title>Abarrotes KaChu — Catálogo</title>
   <link rel="stylesheet" href="styles.css">
   <!--<link rel="manifest" href="/manifest.json">-->
-	<link rel="manifest" href="/manifest.webmanifest">
+  <link rel="manifest" href="/manifest.webmanifest">
   <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16.png">
   <link rel="apple-touch-icon" href="/icons/apple-touch-icon-180.png">
@@ -43,55 +43,48 @@
     </div>
   </header>
 
-<!-- Rail de redes (debe quedar dentro de <body>, antes del <main>) -->
-<div class="social-fabs" aria-label="Redes sociales">
-  <!-- Facebook -->
-  <div class="fab" data-net="fb">
-    <button class="fab-btn" aria-expanded="false" title="Facebook" type="button">
-      <span class="fab-icon-wrap" aria-hidden="true">
-        <svg class="fab-icon" viewBox="0 0 24 24">
-          <path d="M22 12.06C22 6.48 17.52 2 11.94 2S2 6.48 2 12.06c0 5 3.66 9.14 8.44 9.94v-7.03H8.41V12.06h2.03V9.95c0-2 1.2-3.1 3.03-3.1.88 0 1.81.16 1.81.16v1.99h-1.02c-1 0-1.31.62-1.31 1.26v1.8h2.23l-.36 2.91h-1.87V22c4.78-.8 8.44-4.94 8.44-9.94Z"/>
-        </svg>
-      </span>
-      <span class="fab-text">
-        <span class="fab-subtitle">Síguenos en:</span>
-        <a class="fab-title" href="https://www.facebook.com/AbarrotesKaChu"
-           target="_blank" rel="noopener" data-name="Abarrotes KaChu">Abarrotes KaChu</a>
-      </span>
-    </button>
+  <!-- Rail de redes -->
+  <div class="social-fabs" aria-label="Redes sociales">
+    <div class="fab" data-net="fb">
+      <button class="fab-btn" aria-expanded="false" title="Facebook" type="button">
+        <span class="fab-icon-wrap" aria-hidden="true">
+          <svg class="fab-icon" viewBox="0 0 24 24">
+            <path d="M22 12.06C22 6.48 17.52 2 11.94 2S2 6.48 2 12.06c0 5 3.66 9.14 8.44 9.94v-7.03H8.41V12.06h2.03V9.95c0-2 1.2-3.1 3.03-3.1.88 0 1.81.16 1.81.16v1.99h-1.02c-1 0-1.31.62-1.31 1.26v1.8h2.23l-.36 2.91h-1.87V22c4.78-.8 8.44-4.94 8.44-9.94Z"/>
+          </svg>
+        </span>
+        <span class="fab-text">
+          <span class="fab-subtitle">Síguenos en:</span>
+          <a class="fab-title" href="https://www.facebook.com/AbarrotesKaChu"
+             target="_blank" rel="noopener" data-name="Abarrotes KaChu">Abarrotes KaChu</a>
+        </span>
+      </button>
+    </div>
+    <div class="fab" data-net="wa">
+      <button class="fab-btn" aria-expanded="false" title="WhatsApp" type="button">
+        <span class="fab-icon-wrap" aria-hidden="true">
+          <svg class="fab-icon" viewBox="0 0 24 24">
+            <path d="M20.52 3.48A11.86 11.86 0 0 0 12.02 0 11.97 11.97 0 0 0 2.23 17.45L0 24l6.73-2.22a11.9 11.9 0 0 0 5.3 1.27h.01c6.6 0 11.96-5.36 11.96-11.95 0-3.2-1.24-6.2-3.48-8.62ZM12.04 21.3h-.01c-1.73 0-3.43-.46-4.92-1.32l-.35-.2-4 1.31 1.32-3.9-.23-.4A9.24 9.24 0 0 1 2.8 12c0-5.09 4.15-9.24 9.25-9.24 2.47 0 4.79.96 6.53 2.7a9.17 9.17 0 0 1 2.71 6.53c0 5.1-4.15 9.26-9.25 9.26Zm5.22-6.92c-.29-.15-1.7-.84-1.96-.93-.26-.09-.45-.15-.64.15-.19.3-.74.93-.9 1.12-.17.19-.33.21-.62.08-.29-.15-1.22-.45-2.32-1.44-.86-.76-1.44-1.7-1.61-1.99-.17-.29-.02-.44.13-.59.13-.13.29-.33.43-.49.15-.17.19-.29.29-.48.1-.19.05-.36-.02-.51-.08-.15-.64-1.54-.88-2.11-.23-.55-.47-.47-.64-.48h-.55c-.19 0-.5.07-.76.36-.26.29-1 1-1 2.43 0 1.43 1.03 2.81 1.17 3 .15.19 2.02 3.08 4.92 4.33.69.3 1.22.48 1.63.62.68.22 1.3.19 1.79.12.55-.08 1.7-.7 1.94-1.38.24-.68.24-1.26.17-1.38-.07-.12-.26-.19-.55-.34Z"/>
+          </svg>
+        </span>
+        <span class="fab-text">
+          <span class="fab-subtitle">Síguenos en:</span>
+          <a class="fab-title" href="https://whatsapp.com/channel/0029VagyKOKL7UVb2wxnh502"
+             target="_blank" rel="noopener" data-name="KaChu New">KaChu New</a>
+        </span>
+      </button>
+    </div>
   </div>
-
-  <!-- WhatsApp -->
-  <div class="fab" data-net="wa">
-    <button class="fab-btn" aria-expanded="false" title="WhatsApp" type="button">
-      <span class="fab-icon-wrap" aria-hidden="true">
-        <svg class="fab-icon" viewBox="0 0 24 24">
-          <path d="M20.52 3.48A11.86 11.86 0 0 0 12.02 0 11.97 11.97 0 0 0 2.23 17.45L0 24l6.73-2.22a11.9 11.9 0 0 0 5.3 1.27h.01c6.6 0 11.96-5.36 11.96-11.95 0-3.2-1.24-6.2-3.48-8.62ZM12.04 21.3h-.01c-1.73 0-3.43-.46-4.92-1.32l-.35-.2-4 1.31 1.32-3.9-.23-.4A9.24 9.24 0 0 1 2.8 12c0-5.09 4.15-9.24 9.25-9.24 2.47 0 4.79.96 6.53 2.7a9.17 9.17 0 0 1 2.71 6.53c0 5.1-4.15 9.26-9.25 9.26Zm5.22-6.92c-.29-.15-1.7-.84-1.96-.93-.26-.09-.45-.15-.64.15-.19.3-.74.93-.9 1.12-.17.19-.33.21-.62.08-.29-.15-1.22-.45-2.32-1.44-.86-.76-1.44-1.7-1.61-1.99-.17-.29-.02-.44.13-.59.13-.13.29-.33.43-.49.15-.17.19-.29.29-.48.1-.19.05-.36-.02-.51-.08-.15-.64-1.54-.88-2.11-.23-.55-.47-.47-.64-.48h-.55c-.19 0-.5.07-.76.36-.26.29-1 1-1 2.43 0 1.43 1.03 2.81 1.17 3 .15.19 2.02 3.08 4.92 4.33.69.3 1.22.48 1.63.62.68.22 1.3.19 1.79.12.55-.08 1.7-.7 1.94-1.38.24-.68.24-1.26.17-1.38-.07-.12-.26-.19-.55-.34Z"/>
-        </svg>
-      </span>
-      <span class="fab-text">
-        <span class="fab-subtitle">Síguenos en:</span>
-        <a class="fab-title" href="https://whatsapp.com/channel/0029VagyKOKL7UVb2wxnh502"
-           target="_blank" rel="noopener" data-name="KaChu New">KaChu New</a>
-      </span>
-    </button>
-  </div>
-</div>
-
-
 
   <!-- ZONA DE PRODUCTOS -->
   <main class="container">
-    <section class="grid">
-      <!-- Tarjeta de producto (EJEMPLOS VISUALES) -->
-    </section>
-	<div id="emptyState" class="empty hidden"></div>
+    <section class="grid"></section>
+    <div id="emptyState" class="empty hidden"></div>
   </main>
 
   <!-- BOTÓN FLOTANTE CARRITO -->
   <button id="btnCart" class="fab" aria-label="Carrito">
     🛒
-    <span class="badge" id="cartBadge">2</span> <!-- demo: 2 artículos -->
+    <span class="badge" id="cartBadge">2</span>
   </button>
 
   <!-- MODAL CARRITO -->
@@ -100,15 +93,7 @@
     <div class="modal__content" role="dialog" aria-modal="true" aria-labelledby="cartTitle">
       <button class="modal__close" data-close="cart" aria-label="Cerrar">✕</button>
       <h2 id="cartTitle">Tu carrito</h2>
-
-      <!-- Lista de productos en el carrito -->
-      <ul class="cart-list" id="cartList">
-        <li class="cart-item">
-          
-          
-        </li>
-      </ul>
-
+      <ul class="cart-list" id="cartList"></ul>
       <div class="cart-total">
         <div class="sum-row">
           <span>Total:</span>
@@ -116,7 +101,6 @@
         </div>
         <p class="note">NOTA: El total cambia dependiendo zona y tipo de pago | los precios mostrados son exclusivos del catálago.</p>
       </div>
-
       <div class="actions">
         <button id="btnClearCart" class="btn ghost" disabled>Vaciar/Carrito</button>
         <button id="btnContinue" class="btn primary" disabled>Continuar</button>
@@ -124,7 +108,7 @@
     </div>
   </div>
 
-  <!-- MODAL CHECKOUT (FORMULARIO) -->
+  <!-- MODAL CHECKOUT -->
   <div id="modalCheckout" class="modal" aria-hidden="true">
     <div class="modal__overlay" data-close="checkout"></div>
     <div class="modal__content" role="dialog" aria-modal="true" aria-labelledby="checkoutTitle">
@@ -144,19 +128,17 @@
           <label><input type="radio" name="pay" value="Efectivo" required> Efectivo</label>
           <label><input type="radio" name="pay" value="Tarjeta" required> Tarjeta</label>
           <label><input type="radio" name="pay" value="Transferencia"> Transferencia</label>
-          <!-- dentro de #cashField, debajo del input -->
         </fieldset>
 
-			<!-- 👇 PÉGALO DEBAJO DEL FIELDSET DE MÉTODO DE PAGO -->
-		    <label class="field hidden" id="cashField">
-  			  <span>¿Con cuánto vas a pagar?</span>
-	    		<input type="number" id="cashGiven" placeholder="Ej. 200.00" min="0" step="0.01">
-    			<small id="cashHelp" class="cash-help"></small>
-		    </label>
+        <label class="field hidden" id="cashField">
+          <span>¿Con cuánto vas a pagar?</span>
+          <input type="number" id="cashGiven" placeholder="Ej. 200.00" min="0" step="0.01">
+          <small id="cashHelp" class="cash-help"></small>
+        </label>
 
         <label class="field">
           <span>Dirección</span>
-          <textarea id="address" rows="3" placeholder="Calle y número (entre calles)" required></textarea></label>
+          <textarea id="address" rows="3" placeholder="Calle y número (entre calles)" required></textarea>
           <span id="checkoutTotalPill" class="total-pill" style="margin-left:10px;font-weight:600;">Total: $0.00</span>
         </label>
 
@@ -168,52 +150,49 @@
             La información no se guarda en nuestros servidores. Consulta el 
             <a href="/privacidad.html" target="_blank" rel="noopener">Aviso de Privacidad</a>.
           </p>
-
-
         </div>
       </form>
     </div>
   </div>
 
-<!-- MODAL CONFIRMAR ENVÍO -->
-<div id="modalConfirm" class="modal" aria-hidden="true">
-  <div class="modal__overlay" data-close="confirm"></div>
-  <div class="modal__content" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
-    <button class="modal__close" data-close="confirm" aria-label="Cerrar">✕</button>
-    <h2 id="confirmTitle">¿Se envió correctamente tu pedido por WhatsApp?</h2>
-    <p>Si ya lo enviaste y todo bien, liberaremos tu carrito para un proximo pedido, de lo contrario tu carrito sigue tal cual como lo dejaste.</p>
-    <div class="actions" style="display:flex; gap:10px;">
-      <button id="btnConfirmNo" class="btn ghost">No, mantener</button>
-      <button id="btnConfirmYes" class="btn primary">Sí, limpiar</button>
-    </div>
-  </div>
-</div>
-
-<!-- Modal: Aviso Transferencia -->
-<div class="modal" id="modalTransferencia" aria-hidden="true">
-  <div class="modal__content">
-    <h2>Aviso para: Transferencia</h2>
-    <p style="margin:8px 0 12px; font-weight:600;">
-      Con este método de pago la entrega de tu pedido puede tardar un poco más de lo establecido.
-    </p>
-    <ol style="padding-left:18px; line-height:1.5;">
-      <li>Envía tu pedido normalmente.</li>
-      <li>Espera en el chat mientras se te envían los datos para transferir.</li>
-      <li>Realiza el pago.</li>
-      <li><strong>Deberás adjuntar captura(Obligatorio).</strong></li>
-      <li>Esperaremos a que tu transferencia se refleje en nuestra banca.</li>
-      <li>Una vez reflejada, procederemos a enviar tu pedido.</li>
-    </ol>
-    <div class="sum-row" style="margin-top:14px;">
-      <span></span>
-      <div style="display:flex; gap:8px;">
-        <button class="btn primary" id="btnTransferOK">Entendido</button>
+  <!-- MODAL CONFIRMAR ENVÍO -->
+  <div id="modalConfirm" class="modal" aria-hidden="true">
+    <div class="modal__overlay" data-close="confirm"></div>
+    <div class="modal__content" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+      <button class="modal__close" data-close="confirm" aria-label="Cerrar">✕</button>
+      <h2 id="confirmTitle">¿Se envió correctamente tu pedido por WhatsApp?</h2>
+      <p>Si ya lo enviaste y todo bien, liberaremos tu carrito para un proximo pedido, de lo contrario tu carrito sigue tal cual como lo dejaste.</p>
+      <div class="actions" style="display:flex; gap:10px;">
+        <button id="btnConfirmNo" class="btn ghost">No, mantener</button>
+        <button id="btnConfirmYes" class="btn primary">Sí, limpiar</button>
       </div>
     </div>
   </div>
-</div>
 
-  
-  <script src="script.js?v=kg2" defer></script>
+  <!-- Modal: Aviso Transferencia -->
+  <div class="modal" id="modalTransferencia" aria-hidden="true">
+    <div class="modal__content">
+      <h2>Aviso para: Transferencia</h2>
+      <p style="margin:8px 0 12px; font-weight:600;">
+        Con este método de pago la entrega de tu pedido puede tardar un poco más de lo establecido.
+      </p>
+      <ol style="padding-left:18px; line-height:1.5;">
+        <li>Envía tu pedido normalmente.</li>
+        <li>Espera en el chat mientras se te envían los datos para transferir.</li>
+        <li>Realiza el pago.</li>
+        <li><strong>Deberás adjuntar captura(Obligatorio).</strong></li>
+        <li>Esperaremos a que tu transferencia se refleje en nuestra banca.</li>
+        <li>Una vez reflejada, procederemos a enviar tu pedido.</li>
+      </ol>
+      <div class="sum-row" style="margin-top:14px;">
+        <span></span>
+        <div style="display:flex; gap:8px;">
+          <button class="btn primary" id="btnTransferOK">Entendido</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js?v=kg3-tiers" defer></script>
 </body>
 </html>
