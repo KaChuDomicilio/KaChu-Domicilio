@@ -122,15 +122,16 @@
         <option value="weight">Kg</option>
       </select>
 
-      <!-- Opciones para productos por kg -->
-      <div id="kgOptions" style="display:none;">
-        <label>Step (cantidad mínima que se puede agregar)</label>
-        <input id="inputProdStep" class="modal-input" type="number" step="0.01" min="0.01" placeholder="Ej. 0.25" />
+      <!-- Opciones de cantidad (AHORA para pieza y kg) -->
+      <div id="kgOptions">
+        <label>Step (incremento al sumar)</label>
+        <input id="inputProdStep" class="modal-input" type="number" />
         <label>Min. Qty (cantidad mínima de compra)</label>
-        <input id="inputProdMinQty" class="modal-input" type="number" step="0.01" min="0.01" placeholder="Ej. 0.25" />
+        <input id="inputProdMinQty" class="modal-input" type="number" />
+        <small class="muted">Para <b>Pieza</b> usa valores enteros (ej. Step=1, Min=1). Para <b>Kg</b> usa decimales (ej. Step=0.5, Min=0.5).</small>
       </div>
 
-      <!-- ===== NUEVO: Modo de precio y Combos/Tramos ===== -->
+      <!-- ===== Modo de precio y Combos/Tramos ===== -->
       <div class="divider" style="margin-top:10px;">Modo de precio</div>
       <label>Tipo de precio</label>
       <select id="inputPricingMode" class="modal-input">
@@ -156,7 +157,7 @@
           <button id="btnAddCombo" type="button" class="btn-accion">Agregar tramo</button>
         </div>
       </div>
-      <!-- ===== FIN NUEVO ===== -->
+      <!-- ===== FIN Modo de precio ===== -->
 
       <label>Categoría (existente) *</label>
       <select id="selProdCategory" class="modal-input" required>
@@ -286,13 +287,16 @@
       <option value="unit">Pieza</option>
       <option value="weight">Kg</option>
     </select>
-    <!-- Opciones de peso (step y minQty) -->
-    <div id="editKgOptions" style="display:none;">
-      <label>Step (cantidad mínima que se puede agregar)</label>
-      <input id="editProdStep" class="modal-input" type="number" step="0.01" min="0.01" placeholder="Ej. 0.25" />
+
+    <!-- Opciones de cantidad (AHORA para pieza y kg) -->
+    <div id="editKgOptions">
+      <label>Step (incremento al sumar)</label>
+      <input id="editProdStep" class="modal-input" type="number" />
       <label>Min. Qty (cantidad mínima de compra)</label>
-      <input id="editProdMinQty" class="modal-input" type="number" step="0.01" min="0.01" placeholder="Ej. 0.25" />
+      <input id="editProdMinQty" class="modal-input" type="number" />
+      <small class="muted">Para <b>Pieza</b> usa enteros (ej. Step=1, Min=1). Para <b>Kg</b> usa decimales (ej. 0.5).</small>
     </div>
+
     <!-- Combos / Precios por escalón -->
     <label class="vaciar-wrap" style="margin:10px 0;">
       <input id="editHasCombos" type="checkbox" />

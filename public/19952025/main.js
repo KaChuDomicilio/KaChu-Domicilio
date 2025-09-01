@@ -101,7 +101,6 @@ const btnAddComboRow   = document.getElementById('btnAddComboRow');
 // Estado temporal de combos mientras se edita
 let editCombos = []; // [{ qty:number, price:number }]
 
-
 // ----- (+) Agregar producto (SOLO con categorías/sub existentes)
 const btnProducto          = document.getElementById('btnProducto');
 const formProducto         = document.getElementById('formProducto');
@@ -126,13 +125,13 @@ const srvImage      = document.getElementById('srvImage');
 const btnSrvCancel  = document.getElementById('btnSrvCancel');
 const btnSrvSave    = document.getElementById('btnSrvSave');
 
-// (Agregar producto) unidad y kg
+// (Agregar producto) unidad y opciones de cantidad
 const inputProdUnit = document.getElementById('inputProdUnit');
 const kgOptions = document.getElementById('kgOptions');
 const inputProdStep = document.getElementById('inputProdStep');
 const inputProdMinQty = document.getElementById('inputProdMinQty');
 
-// (Editar producto) unidad y kg
+// (Editar producto) unidad y opciones de cantidad
 const editProdUnit = document.getElementById('editProdUnit');
 const editKgOptions = document.getElementById('editKgOptions');
 const editProdStep = document.getElementById('editProdStep');
@@ -145,6 +144,60 @@ const combosBody         = document.getElementById('combosBody');
 const btnAddCombo        = document.getElementById('btnAddCombo');
 const combosUnitLabel    = document.getElementById('combosUnitLabel');
 let comboRows = []; // [{ qty:number, price:number }]
+
+// ========= NUEVO: helpers para UI de cantidad (pieza y kg) =========
+function applyQtyUIForAdd() {
+  const isWeight = inputProdUnit.value === 'weight';
+
+  if (isWeight) {
+    inputProdStep.min = '0.01';
+    inputProdStep.step = '0.01';
+    inputProdStep.placeholder = 'Ej. 0.25';
+    if (!inputProdStep.value) inputProdStep.value = '0.25';
+
+    inputProdMinQty.min = '0.01';
+    inputProdMinQty.step = '0.01';
+    inputProdMinQty.placeholder = 'Ej. 0.25';
+    if (!inputProdMinQty.value) inputProdMinQty.value = '0.25';
+  } else {
+    inputProdStep.min = '1';
+    inputProdStep.step = '1';
+    inputProdStep.placeholder = 'Ej. 1';
+    if (!inputProdStep.value || Number(inputProdStep.value) < 1) inputProdStep.value = '1';
+
+    inputProdMinQty.min = '1';
+    inputProdMinQty.step = '1';
+    inputProdMinQty.placeholder = 'Ej. 1';
+    if (!inputProdMinQty.value || Number(inputProdMinQty.value) < 1) inputProdMinQty.value = '1';
+  }
+}
+
+function applyQtyUIForEdit() {
+  const isWeight = editProdUnit.value === 'weight';
+
+  if (isWeight) {
+    editProdStep.min = '0.01';
+    editProdStep.step = '0.01';
+    editProdStep.placeholder = 'Ej. 0.25';
+    if (!editProdStep.value) editProdStep.value = '0.25';
+
+    editProdMinQty.min = '0.01';
+    editProdMinQty.step = '0.01';
+    editProdMinQty.placeholder = 'Ej. 0.25';
+    if (!editProdMinQty.value) editProdMinQty.value = '0.25';
+  } else {
+    editProdStep.min = '1';
+    editProdStep.step = '1';
+    editProdStep.placeholder = 'Ej. 1';
+    if (!editProdStep.value || Number(editProdStep.value) < 1) editProdStep.value = '1';
+
+    editProdMinQty.min = '1';
+    editProdMinQty.step = '1';
+    editProdMinQty.placeholder = 'Ej. 1';
+    if (!editProdMinQty.value || Number(editProdMinQty.value) < 1) editProdMinQty.value = '1';
+  }
+}
+// ==========================================================
 
 
 // Toggle de combos
@@ -166,41 +219,26 @@ btnAddComboRow?.addEventListener('click', () => {
   validateEditProdForm();
 });
 
-// Cuando cambie "Vender por", actualizamos la ayuda, visibilidad y (opcional) recargamos combos del producto
+// Cuando cambie "Vender por" en EDICIÓN: ahora SIEMPRE mostramos opciones y solo ajustamos atributos/valores
 editProdUnit?.addEventListener('change', () => {
-  if (editProdUnit.value === 'weight') {
-    editKgOptions.style.display = 'block';
-  } else {
-    editKgOptions.style.display = 'none';
-  }
-  // Si tenía combos, los re-interpretamos para la nueva unidad (limpiamos para evitar inconsistencias)
-  if (editHasCombos.checked) {
-    editCombos = []; // vaciar para que el usuario capture formatos acordes a la unidad
+  applyQtyUIForEdit();
+  // Si tenía combos, los limpiamos para capturar en la nueva unidad
+  if (editHasCombos?.checked) {
+    editCombos = [];
     renderCombosRows();
   }
-  showCombosUI(editHasCombos.checked);
+  showCombosUI(editHasCombos?.checked);
   validateEditProdForm();
 });
 
 // ===== FIN NUEVO =====
 
-// Mostrar/ocultar opciones según la unidad seleccionada en la edición
-editProdUnit?.addEventListener('change', () => {
-  if (editProdUnit.value === 'weight') {
-    editKgOptions.style.display = 'block';
-  } else {
-    editKgOptions.style.display = 'none';
-  }
-});
+// (ANTES había otro listener que escondía/mostraba editKgOptions; ya no ocultamos nada)
 
-// Mostrar/ocultar opciones según la unidad seleccionada (alta)
+// Mostrar/ocultar opciones según la unidad seleccionada (ALTA): ahora SIEMPRE visible y solo ajustamos atributos
 inputProdUnit?.addEventListener('change', () => {
-  if (inputProdUnit.value === 'weight') {
-    kgOptions.style.display = 'block';
-  } else {
-    kgOptions.style.display = 'none';
-  }
-  updateCombosUnitUI(); // NUEVO: refrescar combos al cambiar unidad
+  applyQtyUIForAdd();
+  updateCombosUnitUI();
 });
 
 async function loadServicio(){
@@ -290,6 +328,12 @@ function prepararFormProducto(){
   }
   chkProdActive.checked = true;
 
+  // Unidad por defecto y opciones de cantidad visibles/ajustadas
+  inputProdUnit.value = 'unit';
+  inputProdStep.value = '';
+  inputProdMinQty.value = '';
+  applyQtyUIForAdd();
+
   // NUEVO: reset combos
   if (inputPricingMode) inputPricingMode.value = 'base';
   if (combosWrap) combosWrap.style.display = 'none';
@@ -313,7 +357,7 @@ function renderCombos(){
     tr.innerHTML = `
       <td>
         <input type="number" class="modal-input combo-qty"
-               min="0.01" step="${stepQty}"
+               min="${stepQty}" step="${stepQty}"
                value="${(c.qty ?? '').toString()}"
                placeholder="${inputProdUnit.value === 'weight' ? 'kg' : 'pz'}">
       </td>
@@ -387,20 +431,17 @@ function updateCombosUnitUI(){
   validarFormProducto();
 }
 function currentQtyStepForUnit() {
-  // Para peso respetamos el step configurado en el producto; default 0.25
   if (editProdUnit.value === 'weight') {
     const s = parseFloat(editProdStep.value);
     return Number.isFinite(s) && s > 0 ? s : 0.25;
   }
-  // Piezas => enteros
   return 1;
 }
 function combosHelpText() {
   if (editProdUnit.value === 'weight') {
-    return 'Ejemplo de escalones por <strong>kg</strong>:<br>0.5 kg = $13.00, 1 kg = $24.00. ' +
-           'Si el cliente pide 1.5 kg, se cobra (1 kg + 0.5 kg).';
+    return 'Ejemplo de escalones por <strong>kg</strong>:<br>0.5 kg = $13.00, 1 kg = $24.00. Si el cliente pide 1.5 kg, se cobra (1 kg + 0.5 kg).';
   }
-  return 'Ejemplo de combos por <strong>piezas</strong>:<br>1 pza = $14.00, 2 pzas = $20.00, 3 pzas = $34.00.';
+  return 'Ejemplo de combos por <strong>piezas</strong>:<br>1 pza = $45, 2 pzas = $85, 3 pzas = $130, 4 pzas = $170. Para 5 pzas se toma la mezcla más conveniente (4+1, 3+2, etc.).';
 }
 function showCombosUI(show) {
   if (!editCombosSection) return;
@@ -481,14 +522,11 @@ function combosAreValid() {
   return editCombos.every(r => {
     const qtyOk   = Number.isFinite(+r.qty)   && +r.qty > 0 && (isWeight ? true : Number.isInteger(+r.qty));
     const priceOk = Number.isFinite(+r.price) && +r.price > 0;
-    // para peso no forzamos múltiplos exactos del step (aceptamos 0.5, 1, etc.)
-    // si quisieras forzarlo: (Math.abs((+r.qty / step) - Math.round(+r.qty / step)) < 1e-6)
     return qtyOk && priceOk;
   });
 }
 
 function loadCombosFromProduct(producto) {
-  // Carga según unidad actual
   if (editProdUnit.value === 'weight') {
     const tiers = producto?.kgPricing?.tiers;
     editCombos = Array.isArray(tiers) ? tiers.map(t => ({ qty: +t.qty, price: +t.price })) : [];
@@ -513,10 +551,23 @@ function validarFormProducto(){
   const catOk  = normalizeStr(selProdCategory.value).length > 0;
   const subOk  = !selProdSubcategory.disabled && normalizeStr(selProdSubcategory.value).length > 0;
 
+  // Validar step/min segun unidad
+  let qtyOk = true;
+  const isWeight = inputProdUnit.value === 'weight';
+  const stepVal = numeroDesdeTexto(inputProdStep.value);
+  const minVal  = numeroDesdeTexto(inputProdMinQty.value);
+
+  if (isWeight) {
+    qtyOk = Number.isFinite(stepVal) && stepVal > 0 && Number.isFinite(minVal) && minVal > 0;
+  } else {
+    qtyOk = Number.isFinite(stepVal) && stepVal >= 1 && Math.round(stepVal) === stepVal &&
+            Number.isFinite(minVal) && minVal >= 1 && Math.round(minVal) === minVal;
+  }
+
   let combosOk = true;
   if (isCombos) combosOk = validateCombos();
 
-  const ok = nameOk && priceOk && catOk && subOk && combosOk;
+  const ok = nameOk && priceOk && catOk && subOk && qtyOk && combosOk;
   btnGuardarProducto.disabled = !ok;
   btnGuardarProducto.setAttribute('aria-disabled', String(!ok));
 }
@@ -593,8 +644,10 @@ combosBody?.addEventListener('click', (e) => {
 });
 
 inputProdStep?.addEventListener('input', () => {
-  if (inputProdUnit.value === 'weight') { renderCombos(); validarFormProducto(); }
+  renderCombos(); 
+  validarFormProducto();
 });
+inputProdMinQty?.addEventListener('input', validarFormProducto);
 // ===== FIN NUEVO =====
 
 btnGuardarProducto?.addEventListener('click', async (e) => {
@@ -609,10 +662,10 @@ btnGuardarProducto?.addEventListener('click', async (e) => {
   const cat = normalizeStr(selProdCategory.value);
   const sub = normalizeStr(selProdSubcategory.value);
 
-  // Datos adicionales para productos por peso
+  // Datos adicionales para productos (AHORA para ambos tipos)
   const unit = inputProdUnit.value;
-  const step = unit === 'weight' ? parseFloat(inputProdStep.value) : null;
-  const minQty = unit === 'weight' ? parseFloat(inputProdMinQty.value) : null;
+  const step = parseFloat(inputProdStep.value);
+  const minQty = parseFloat(inputProdMinQty.value);
 
   // NUEVO: pricing mode y combos
   const pricingMode = inputPricingMode?.value || 'base';
@@ -622,7 +675,7 @@ btnGuardarProducto?.addEventListener('click', async (e) => {
   if (pricingMode === 'combos') {
     priceCombos = readCombosFromDOM();
     const asc = priceCombos.slice().sort((a,b) => a.qty - b.qty);
-    priceForDisplay = asc[0]?.price ?? 0; // precio representativo (el tramo más chico)
+    priceForDisplay = asc[0]?.price ?? 0; // precio representativo
   }
 
   try {
@@ -631,7 +684,9 @@ btnGuardarProducto?.addEventListener('click', async (e) => {
       id, name,
       price: +Number(priceForDisplay || 0).toFixed(2),
       category: cat, subcategory: sub, image, active,
-      soldBy: unit, step, minQty,
+      soldBy: unit,
+      step: Number.isFinite(step) && step > 0 ? step : (unit === 'weight' ? 0.25 : 1),
+      minQty: Number.isFinite(minQty) && minQty > 0 ? minQty : (unit === 'weight' ? 0.25 : 1),
       // NUEVO:
       pricingMode,
       priceCombos
@@ -688,10 +743,23 @@ function validateEditProdForm() {
   const subOk = editProdSubcategory.disabled ? true : (editProdSubcategory.value || '').trim().length > 0;
   const unitOk = editProdUnit.value !== '';
 
+  // Validar step/min según unidad
+  const isWeight = editProdUnit.value === 'weight';
+  const eStep = parseFloat(editProdStep.value);
+  const eMin  = parseFloat(editProdMinQty.value);
+  let qtyOk = true;
+
+  if (isWeight) {
+    qtyOk = Number.isFinite(eStep) && eStep > 0 && Number.isFinite(eMin) && eMin > 0;
+  } else {
+    qtyOk = Number.isFinite(eStep) && eStep >= 1 && Math.round(eStep) === eStep &&
+            Number.isFinite(eMin) && eMin >= 1 && Math.round(eMin) === eMin;
+  }
+
   // NUEVO: combos válidos si están activados
   const combosOk = combosAreValid();
 
-  const ok = nameOk && priceOk && catOk && subOk && unitOk && combosOk;
+  const ok = nameOk && priceOk && catOk && subOk && unitOk && qtyOk && combosOk;
   if (btnSaveEditProd) {
     btnSaveEditProd.disabled = !ok;
     btnSaveEditProd.setAttribute('aria-disabled', String(!ok));
@@ -710,17 +778,6 @@ editProdCategory?.addEventListener('change', () => {
 });
 editProdSubcategory?.addEventListener('change', validateEditProdForm);
 
-btnCancelEditProd?.addEventListener('click', () => {
-  cerrarModal(modalEditProd);
-  editingProdId = null;
-});
-
-// Cerrar al hacer click afuera
-modalEditProd?.addEventListener('click', (e) => {
-  const cont = modalEditProd.querySelector('.modal-contenido');
-  if (e.target === modalEditProd && cont && !cont.contains(e.target)) cerrarModal(modalEditProd);
-});
-
 // Guardar cambios (editar)
 btnSaveEditProd?.addEventListener('click', async () => {
   if (btnSaveEditProd.disabled) return;
@@ -731,8 +788,8 @@ btnSaveEditProd?.addEventListener('click', async () => {
   const sub = editProdSubcategory.value.trim();
   const image = editProdImage.value.trim();
   const unit = editProdUnit.value;
-  const step = unit === 'weight' ? parseFloat(editProdStep.value) : null;
-  const minQty = unit === 'weight' ? parseFloat(editProdMinQty.value) : null;
+  const step = parseFloat(editProdStep.value);
+  const minQty = parseFloat(editProdMinQty.value);
 
   try {
     let idx = productsCache.findIndex(p => (p.id || '') === (editingProdId || ''));
@@ -746,8 +803,8 @@ btnSaveEditProd?.addEventListener('click', async () => {
       subcategory: sub,
       image,
       soldBy: unit,
-      step,
-      minQty
+      step: Number.isFinite(step) && step > 0 ? step : (unit === 'weight' ? 0.25 : 1),
+      minQty: Number.isFinite(minQty) && minQty > 0 ? minQty : (unit === 'weight' ? 0.25 : 1)
     };
 // --- NUEVO: persistir combos según la unidad seleccionada ---
 if (editHasCombos.checked && combosAreValid() && editCombos.length > 0) {
@@ -891,6 +948,9 @@ async function loadProductosAdmin(){
       p.id = `p_${Date.now()}_${i}`;
       touched = true;
     }
+    // Asegurar step/minQty razonables (retro-compatibilidad)
+    if (!Number.isFinite(p.step))  p.step   = (p.soldBy === 'weight' ? 0.25 : 1);
+    if (!Number.isFinite(p.minQty)) p.minQty = (p.soldBy === 'weight' ? 0.25 : 1);
   });
   if (touched) {
     try { await apiPut(API_PRODUCTOS, { products: productsCache }); } catch {}
@@ -1072,15 +1132,12 @@ function openProductEditModal(producto) {
   fillEditCatAndSub(editProdCategory, editProdSubcategory, producto.category, producto.subcategory);
   editProdImage.value = producto.image || '';
   
-  // unidad
+  // Unidad y opciones de cantidad SIEMPRE visibles
   editProdUnit.value = producto.soldBy || 'unit';
-  if (producto.soldBy === 'weight') {
-    editKgOptions.style.display = 'block';
-    editProdStep.value = producto.step || '';
-    editProdMinQty.value = producto.minQty || '';
-  } else {
-    editKgOptions.style.display = 'none';
-  }
+  editProdStep.value = (Number.isFinite(producto.step) ? producto.step : (producto.soldBy === 'weight' ? 0.25 : 1));
+  editProdMinQty.value = (Number.isFinite(producto.minQty) ? producto.minQty : (producto.soldBy === 'weight' ? 0.25 : 1));
+  applyQtyUIForEdit();
+
   // --- NUEVO: combos del producto (si existen)
   loadCombosFromProduct(producto);
   validateEditProdForm();
