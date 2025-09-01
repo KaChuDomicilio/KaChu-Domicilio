@@ -1,6 +1,6 @@
 // ==== KaChu Catálogo – script.js ====
 // Soporta productos por pieza y por peso (step/minQty) y, opcionalmente,
-// precios por kg con escalones (ej.: 0.5kg y 1kg sumatorios).
+// precios por kg y por pieza con escalones/combos.
 
 // --------- Referencias de UI ---------
 const modalCart = document.getElementById('modalCart');
@@ -71,7 +71,8 @@ async function fetchFirstOk(urls){
 
 // --------- Helpers ---------
 const cart = new Map(); // id -> { id, name, unit, qty, soldBy, unitLabel, step, minQty }
-const pricingById = new Map(); // id -> { tiers:[{qty,price}, ...] }  (OPCIONAL)
+const pricingById = new Map(); // id -> { tiers:[{qty,price}, ...] }  (legado/compat)
+const productsById = new Map(); // <-- índice completo de productos (para motor de precios)
 
 function money(n){ return '$' + Number(n).toFixed(2); }
 function parseMoney(str){ return parseFloat((str||'').replace(/[^0-9.]/g,'')) || 0; }
@@ -86,47 +87,10 @@ function formatQty(qty, step){
   return Number(qty || 0).toFixed(d).replace(/\.?0+$/,'');
 }
 
-// Calcula el total de una línea considerando tiered pricing si existe
-function computeLineTotal(item){
-  const base = +(item.unit * item.qty).toFixed(2);
-  if (item.soldBy !== 'weight') return base;
-
-  const pricing = pricingById.get(item.id);
-  if (!pricing || !Array.isArray(pricing.tiers) || !pricing.tiers.length) {
-    return base; // sin reglas => precio por kg * qty
-  }
-
-  // Greedy con los escalones declarados (ej. 1kg y 0.5kg)
-  const tiers = pricing.tiers
-    .map(t => ({ qty: Number(t.qty), price: Number(t.price) }))
-    .filter(t => t.qty > 0 && Number.isFinite(t.price))
-    .sort((a,b)=> b.qty - a.qty); // mayor primero
-
-  if (!tiers.length) return base;
-
-  let remaining = Number(item.qty);
-  let total = 0;
-  const eps = 1e-9;
-
-  for (const t of tiers){
-    const count = Math.floor((remaining + eps) / t.qty);
-    if (count > 0){
-      total += count * t.price;
-      remaining = +(remaining - count * t.qty).toFixed(3);
-    }
-  }
-  // Si queda un residuo minúsculo por redondeos, cobramos 1 escalón mínimo
-  if (remaining > eps) {
-    const minTier = tiers[tiers.length - 1];
-    total += minTier.price;
-  }
-  return +total.toFixed(2);
-}
-
 function getCardInfo(card){
   const name = card.querySelector('h3')?.textContent.trim() || '';
   const unit = parseMoney(card.querySelector('.price')?.textContent);
-  const id = name;
+  const id = name; // mantenemos id = nombre (compatibilidad)
   const soldBy    = card.dataset.soldby || 'unit';
   const unitLabel = card.dataset.unitlabel || (soldBy==='weight' ? 'kg' : 'pza');
   const step      = parseFloat(card.dataset.step || (soldBy==='weight' ? '0.25' : '1')) || 1;
@@ -189,6 +153,141 @@ function loadCheckout(){
   }catch(e){ console.warn('No se pudo cargar checkout:', e); }
 }
 
+// ======= MOTOR DE PRECIOS (combos por kg y por pieza) =======
+function _num(v, d = 0){
+  const n = parseFloat(String(v ?? '').toString().replace(',', '.'));
+  return Number.isFinite(n) ? n : d;
+}
+function _toCount(q, step){ return Math.round((q + 1e-9) / step); }
+function _roundToStep(q, step){ return _toCount(q, step) * step; }
+
+function normalizePricingFromProduct(p){
+  const unit = (p?.soldBy === 'weight') ? 'weight' : 'unit';
+  const step = unit === 'weight' ? _num(p?.step, 0.25) : 1;
+  const minQty = unit === 'weight' ? _num(p?.minQty, step) : 1;
+  const basePrice = _num(p?.price, 0);
+
+  let tiers = [];
+  if (Array.isArray(p?.bundlePricing?.tiers)) tiers = p.bundlePricing.tiers;   // por pieza
+  else if (Array.isArray(p?.kgPricing?.tiers)) tiers = p.kgPricing.tiers;      // por kg
+  else if (Array.isArray(p?.priceCombos))      tiers = p.priceCombos;          // compat panel
+
+  tiers = (tiers || [])
+    .map(t => ({ qty: _num(t.qty,0), price: _num(t.price,0) }))
+    .filter(t => t.qty > 0 && t.price > 0)
+    .sort((a,b) => a.qty - b.qty); // asc
+
+  return { unit, step, minQty, basePrice, tiers };
+}
+
+function clampQtyToStepAndMin(qty, cfg){
+  const q = Math.max(_num(qty, cfg.minQty), cfg.minQty);
+  const snapped = _roundToStep(q, cfg.step);
+  return Math.max(snapped, cfg.minQty);
+}
+
+/** Calcula el mejor precio usando combos (si existen). Devuelve números crudos. */
+function computeBestPriceRaw(product, qtyRaw){
+  const cfg = normalizePricingFromProduct(product);
+  const qty = clampQtyToStepAndMin(qtyRaw, cfg);
+
+  // Sin combos => precio lineal base
+  if (!cfg.tiers.length){
+    const total = +(qty * cfg.basePrice).toFixed(2);
+    return {
+      qty, requestedQty: qty, total,
+      breakdown: [{ qty, times: 1, price: +cfg.basePrice.toFixed(2) }],
+      pricingMode: 'base', adjusted: false
+    };
+  }
+
+  // Con combos: knapsack sin límite, resolviendo en "pasos"
+  const step = cfg.step;
+  const N = _toCount(qty, step);
+
+  const tiers = cfg.tiers
+    .map(t => ({ count: _toCount(t.qty, step), rawQty: t.qty, price: +t.price.toFixed(2) }))
+    .filter(t => t.count >= 1);
+
+  if (!tiers.length){
+    const total = +(qty * cfg.basePrice).toFixed(2);
+    return {
+      qty, requestedQty: qty, total,
+      breakdown: [{ qty, times: 1, price: +cfg.basePrice.toFixed(2) }],
+      pricingMode: 'base', adjusted: false
+    };
+  }
+
+  const INF = 1e15;
+  const dp = new Array(N + 201).fill(INF); // margen por si hay que subir
+  const choice = new Array(N + 201).fill(-1);
+  dp[0] = 0;
+
+  for (let i = 1; i < dp.length; i++){
+    for (let j = 0; j < tiers.length; j++){
+      const t = tiers[j];
+      if (i - t.count >= 0){
+        const cand = dp[i - t.count] + t.price;
+        if (cand < dp[i]) { dp[i] = cand; choice[i] = j; }
+      }
+    }
+  }
+
+  // Primer alcanzable desde N hacia arriba
+  let exact = N;
+  while (exact < dp.length && dp[exact] === INF) exact++;
+
+  if (exact >= dp.length || dp[exact] === INF){
+    const total = +(qty * cfg.basePrice).toFixed(2);
+    return {
+      qty, requestedQty: qty, total,
+      breakdown: [{ qty, times: 1, price: +cfg.basePrice.toFixed(2) }],
+      pricingMode: 'fallback', adjusted: false
+    };
+  }
+
+  // Reconstrucción
+  const used = new Map();
+  let k = exact;
+  while (k > 0){
+    const j = choice[k];
+    used.set(j, (used.get(j) || 0) + 1);
+    k -= tiers[j].count;
+  }
+
+  const adjustedQty = +(exact * step).toFixed(3);
+  let total = 0;
+  const breakdown = [];
+  for (const [j, times] of used.entries()){
+    const t = tiers[j];
+    total += times * t.price;
+    breakdown.push({ qty: t.rawQty, times, price: t.price });
+  }
+  total = +total.toFixed(2);
+
+  return {
+    qty: adjustedQty,
+    requestedQty: qty,
+    total,
+    breakdown: breakdown.sort((a,b)=> a.qty - b.qty),
+    pricingMode: 'combos',
+    adjusted: adjustedQty !== qty
+  };
+}
+
+// Wrapper por id (usa productsById); fallback a unit*qty si no hay producto indexado
+function bestPriceById(id, qty){
+  const p = productsById.get(id);
+  if (!p){
+    const it = cart.get(id);
+    const line = +((it?.unit || 0) * qty).toFixed(2);
+    return { qty, requestedQty: qty, total: line, breakdown: [], pricingMode: 'base', adjusted: false };
+  }
+  return computeBestPriceRaw(p, qty);
+}
+// ======= FIN MOTOR DE PRECIOS =======
+
+
 // --------- Categorías ---------
 let categoriesMap = null; // Map<string, string[]>
 
@@ -246,25 +345,27 @@ function renderProductGrid(products){
     const sub   = p.subcategory || '';
     const name  = p.name || '';
 
-    // Datos para peso
+    // Datos para peso/pieza
     const soldBy    = p.soldBy || 'unit';
     const unitLabel = p.unitLabel || (soldBy==='weight' ? 'kg' : 'pza');
     const step      = Number(p.step ?? (soldBy==='weight' ? 0.25 : 1));
     const minQty    = Number(p.minQty ?? step);
 
-    // (OPCIONAL) Reglas por kg (tiers) => precargar en memoria
-    // Formato esperado en productos: { kgPricing: { tiers: [{qty:0.5, price:13}, {qty:1, price:24}] } }
+    // (Legado) Si trae kgPricing lo copiamos a pricingById (no es necesario con productsById, pero no molesta)
     if (soldBy === 'weight' && p.kgPricing && Array.isArray(p.kgPricing.tiers)) {
       pricingById.set(name, { tiers: p.kgPricing.tiers });
     }
 
-    // Qué mostrar como "precio" en la tarjeta:
-    // - por defecto mostramos p.price (asumimos precio por 1kg o por pieza)
-    // - si hay tiers y existe 1kg, mostramos el de 1kg; si no, usamos p.price.
+    // Precio a mostrar en la tarjeta:
+    // - por defecto p.price
+    // - si hay tiers y existe tramo de 1 (kg o 1 pza), mostramos ese
     let displayPrice = price;
-    const tiers = pricingById.get(name)?.tiers || null;
-    if (soldBy === 'weight' && tiers) {
-      const t1 = tiers.find(t => Number(t.qty) === 1);
+    const allTiers =
+      (Array.isArray(p?.bundlePricing?.tiers) && p.bundlePricing.tiers) ||
+      (Array.isArray(p?.kgPricing?.tiers)     && p.kgPricing.tiers)     ||
+      (Array.isArray(p?.priceCombos)          && p.priceCombos)         || null;
+    if (allTiers) {
+      const t1 = allTiers.find(t => Number(t.qty) === 1);
       if (t1) displayPrice = Number(t1.price) || price;
     }
 
@@ -336,7 +437,8 @@ function renderCart(){
 
   let subtotal = 0;
   items.forEach(it=>{
-    const line = computeLineTotal(it);
+    const pricing = bestPriceById(it.id, it.qty);        // <-- motor de precios
+    const line = pricing.total;
     subtotal += line;
 
     const li = document.createElement('li');
@@ -360,6 +462,18 @@ function renderCart(){
         <span class="line-total">${money(line)}</span>
       </div>
     `;
+
+    // Nota de combos (desglose)
+    if (pricing.pricingMode === 'combos' && pricing.breakdown?.length){
+      const unitLbl = (it.soldBy === 'weight') ? (it.unitLabel || 'kg') : 'pz';
+      const parts = pricing.breakdown.map(b => `${b.times}×${b.qty} ${unitLbl} = $${b.price.toFixed(2)}`).join('  ·  ');
+      const note = document.createElement('div');
+      note.className = 'combo-note';
+      note.style.cssText = 'font-size:.85rem;color:#64748b;margin-top:2px;';
+      note.textContent = `Combos: ${parts}` + (pricing.adjusted ? ' (ajustado)' : '');
+      li.appendChild(note);
+    }
+
     cartList.appendChild(li);
   });
 
@@ -654,6 +768,14 @@ async function loadProducts() {
     const normalized = all.map(p => ({ ...p, active: (p?.active === false ? false : true) }));
     const visible = normalized.filter(p => p.active);
 
+    // Indexar productos (clave: id || name) para motor de precios
+    productsById.clear();
+    visible.forEach(p => {
+      const id = p.id || p.name;
+      p.id = id; // asegurar consistencia con id=nombre en tarjetas
+      productsById.set(id, p);
+    });
+
     renderProductGrid(visible);
     buildCategoryFilters(visible);
     bindAddButtons();
@@ -663,9 +785,10 @@ async function loadProducts() {
   } catch (e) {
     console.error('loadProducts()', e);
     const demo = [
-      { name: 'Coca-Cola 2.5lt Retornable', price: 40, category: 'Sodas',   subcategory: 'Coca-Cola', image: 'https://via.placeholder.com/120', active: true },
-      { name: 'Coca-Cola 1.5lt Retornable', price: 28, category: 'Sodas',   subcategory: 'Coca-Cola', image: 'https://via.placeholder.com/120', active: true }
+      { id:'Coca-Cola 2.5lt Retornable', name: 'Coca-Cola 2.5lt Retornable', price: 40, category: 'Sodas', subcategory: 'Coca-Cola', image: 'https://via.placeholder.com/120', active: true, soldBy:'unit' },
+      { id:'Coca-Cola 1.5lt Retornable', name: 'Coca-Cola 1.5lt Retornable', price: 28, category: 'Sodas', subcategory: 'Coca-Cola', image: 'https://via.placeholder.com/120', active: true, soldBy:'unit' }
     ];
+    demo.forEach(p=>productsById.set(p.id, p));
     renderProductGrid(demo);
     buildCategoryFilters(demo);
     bindAddButtons();
@@ -877,7 +1000,7 @@ checkoutForm.addEventListener('submit', (e) => {
     checkoutForm.reportValidity();
     return;
   }
-  const items = getCartItemsDetailed(); // usa computeLineTotal()
+  const items = getCartItemsDetailed(); // usa bestPriceById() en computeLineTotal
   const subtotal = items.reduce((acc, it)=> acc + it.line, 0);
 
   const [zoneName, zoneCostRaw] = (zone.value || '').split('|');
@@ -920,7 +1043,7 @@ function getCartItemsDetailed(){
       name: it.name,
       unit: Number(it.unit),
       qty: Number(it.qty),
-      line: computeLineTotal(it),
+      line: bestPriceById(it.id, it.qty).total, // total usando motor
       soldBy: it.soldBy,
       unitLabel: it.unitLabel,
       step: it.step
@@ -938,13 +1061,27 @@ function buildTicket({ items, zoneName, shipping, pay, subtotal, totalDue, addre
   if (items && items.length) {
     lines.push('*Artículos:*');
     items.forEach(it => {
-      const u = Number(it.unit).toFixed(2);
-      const l = Number(it.line).toFixed(2);
-      const qtyTxt = (it.soldBy === 'weight')
-        ? `${formatQty(it.qty, it.step)} ${it.unitLabel || 'kg'}`
-        : `${formatQty(it.qty, 1)}`;
+      const prod = productsById.get(it.id);
+      const pricing = prod ? computeBestPriceRaw(prod, it.qty) : { total: it.line, breakdown: [] };
+      const unitTxt = (it.soldBy === 'weight') ? (it.unitLabel || 'kg') : 'pza';
+
       lines.push(`* ${it.name}`);
-      lines.push(`> ${qtyTxt} x $${u} = $${l}`);
+      if (pricing.breakdown?.length) {
+        pricing.breakdown.forEach(b => {
+          lines.push(`> ${b.times} × ${b.qty} ${unitTxt} = $${Number(b.price).toFixed(2)}`);
+        });
+        if (pricing.adjusted && it.soldBy === 'weight') {
+          lines.push(`> Ajustado a ${pricing.qty} ${unitTxt} para cuadrar combos`);
+        }
+        lines.push(`> Total: $${Number(pricing.total).toFixed(2)}`);
+      } else {
+        const u = Number(it.unit).toFixed(2);
+        const l = Number(it.line).toFixed(2);
+        const qtyTxt = (it.soldBy === 'weight')
+          ? `${formatQty(it.qty, it.step)} ${unitTxt}`
+          : `${formatQty(it.qty, 1)}`;
+        lines.push(`> ${qtyTxt} x $${u} = $${l}`);
+      }
       lines.push('');
     });
   }
