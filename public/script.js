@@ -358,14 +358,12 @@ function renderProductGrid(products){
     const step      = Number(p.step ?? (soldBy==='weight' ? 0.25 : 1));
     const minQty    = Number(p.minQty ?? step);
 
-    // (Legado) Si trae kgPricing lo copiamos a pricingById (no es necesario con productsById, pero no molesta)
+    // (Legado)
     if (soldBy === 'weight' && p.kgPricing && Array.isArray(p.kgPricing.tiers)) {
       pricingById.set(name, { tiers: p.kgPricing.tiers });
     }
 
-    // Precio a mostrar en la tarjeta:
-    // - por defecto p.price
-    // - si hay tiers y existe tramo de 1 (kg o 1 pza), mostramos ese
+    // Precio a mostrar
     let displayPrice = price;
     const allTiers =
       (Array.isArray(p?.bundlePricing?.tiers) && p.bundlePricing.tiers) ||
@@ -376,21 +374,28 @@ function renderProductGrid(products){
       if (t1) displayPrice = Number(t1.price) || price;
     }
 
-    return `
-      <article class="card"
-        data-category="${cat}" data-subcategory="${sub}"
-        data-soldby="${soldBy}"
-        data-unitlabel="${unitLabel}"
-        data-step="${step}"
-        data-minqty="${minQty}">
-        <img src="${img}" alt="${name}">
-        <div class="info">
-          <h3>${name}</h3>
-          <p class="price">$${Number(displayPrice).toFixed(2)}</p>
-          <button class="btn add">${soldBy==='weight' ? `Agregar ${formatQty(minQty, step)} ${unitLabel}` : 'Agregar'}</button>
-        </div>
-      </article>
-    `;
+    // 🚫 Evitamos backticks anidados:
+    const addLabel = (soldBy === 'weight')
+      ? ('Agregar ' + formatQty(minQty, step) + ' ' + unitLabel)
+      : 'Agregar';
+
+    return (
+      '<article class="card"' +
+        ' data-category="' + cat + '"' +
+        ' data-subcategory="' + sub + '"' +
+        ' data-soldby="' + soldBy + '"' +
+        ' data-unitlabel="' + unitLabel + '"' +
+        ' data-step="' + step + '"' +
+        ' data-minqty="' + minQty + '"' +
+      '>' +
+        '<img src="' + img + '" alt="' + name.replace(/"/g, '&quot;') + '">' +
+        '<div class="info">' +
+          '<h3>' + name + '</h3>' +
+          '<p class="price">$' + Number(displayPrice).toFixed(2) + '</p>' +
+          '<button class="btn add">' + addLabel + '</button>' +
+        '</div>' +
+      '</article>'
+    );
   }).join('');
   grid.innerHTML = html;
 }
