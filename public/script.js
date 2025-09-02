@@ -2,6 +2,7 @@
 // Soporta productos por pieza y por peso (step/minQty) y, opcionalmente,
 // precios por kg y por pieza con escalones/combos.
 
+/* == 1) CONFIG & ESTADO: Referencias de UI, persistencia, constantes == */
 // --------- Referencias de UI ---------
 const modalCart = document.getElementById('modalCart');
 const modalCheckout = document.getElementById('modalCheckout');
@@ -45,6 +46,7 @@ const CHECKOUT_KEY = 'kachu_checkout_v1';
 
 const cashHelp = document.getElementById('cashHelp');
 
+/* == 2) CARGA DE DATOS: Endpoints + fetch con fallback == */
 // --- API primero; estáticos como respaldo ---
 const API = {
   productos:  ['/api/data/productos',  '/public/data/productos.json',  '/data/productos.json',  'productos.json'],
@@ -69,6 +71,7 @@ async function fetchFirstOk(urls){
   throw new Error('No se pudo leer ninguna URL:\n' + urls.join('\n'));
 }
 
+/* == 3) HELPERS & ESTADO EN MEMORIA (cart, índices, utilidades) == */
 // --------- Helpers ---------
 const cart = new Map(); // id -> { id, name, unit, qty, soldBy, unitLabel, step, minQty }
 const pricingById = new Map(); // id -> { tiers:[{qty,price}, ...] }  (legado/compat)
@@ -153,6 +156,7 @@ function loadCheckout(){
   }catch(e){ console.warn('No se pudo cargar checkout:', e); }
 }
 
+/* == 4) MOTOR DE PRECIOS (combos por kg/pza; cálculo de mejor precio) == */
 // ======= MOTOR DE PRECIOS (combos por kg y por pieza) =======
 function _num(v, d = 0){
   const n = parseFloat(String(v ?? '').toString().replace(',', '.'));
@@ -288,6 +292,7 @@ function bestPriceById(id, qty){
 // ======= FIN MOTOR DE PRECIOS =======
 
 
+/* == 5) CATEGORÍAS: selects y mapeos == */
 // --------- Categorías ---------
 let categoriesMap = null; // Map<string, string[]>
 
@@ -306,6 +311,7 @@ function fillSubcategorySelectFromMap(selectedCat) {
   subcategorySelect.disabled = subs.length === 0;
 }
 
+/* == 6) MODALES: abrir/cerrar y overlay transferencia == */
 // --------- Modales ---------
 btnTransferOK?.addEventListener('click', () => closeModal(modalTransfer));
 function openModal(modal){
@@ -324,6 +330,7 @@ function closeModal(modal){
   modal.inert = true;
 }
 
+/* == 7) UI: placeholder imagen, render de productos, “Agregar” == */
 // === Placeholder de imagen ===
 function svgPlaceholder(text = 'Sin foto') {
   const svg = `
@@ -430,6 +437,7 @@ function bindAddButtons(){
   });
 }
 
+/* == 8) CARRITO: render, qty +/- y sincronización con cards == */
 // --------- Render del carrito ---------
 function renderCart(){
   const items = Array.from(cart.values());
@@ -574,6 +582,7 @@ cartList.addEventListener('click', (e) => {
   }
 });
 
+/* == 9) BOTONES EN TARJETAS: crear/alternar controles de cantidad == */
 // --------- Botones en tarjetas ---------
 function createAddButton(card){
   const info = getCardInfo(card);
@@ -666,6 +675,7 @@ function syncCardsQty(id){
   });
 }
 
+/* == 10) FILTROS / BÚSQUEDA: aplicar y estados vacíos == */
 // --------- Filtros / búsqueda ---------
 function showEmpty(msg){
   emptyState.textContent = msg;
@@ -736,6 +746,7 @@ function applyFilters(){
   }
 }
 
+/* == 11) CARGA: productos, categorías, zonas, servicio == */
 // --------- Carga de datos ---------
 async function loadCategories() {
   try {
@@ -847,6 +858,7 @@ async function loadServiceStatus(){
   }
 }
 
+/* == 12) EVENTOS GLOBALES: selects, modales y validaciones == */
 // --------- Eventos globales ---------
 categorySelect.addEventListener('change', () => {
   if (categoriesMap && categoriesMap.size && categorySelect.value) {
@@ -993,6 +1005,7 @@ function attachTransferNotice() {
 }
 attachTransferNotice();
 
+/* == 13) WHATSAPP: ticket y envío == */
 checkoutForm.addEventListener('submit', (e) => {
   e.preventDefault();
   validateCheckout();
@@ -1105,7 +1118,7 @@ function buildTicket({ items, zoneName, shipping, pay, subtotal, totalDue, addre
     lines.push(`> ${address}`);
     lines.push('');
   }
-  lines.push('*Aviso:* _Hemos recibido tu solicitud, en un máximo de *15min-20min* te estaríamos entregando tu pedido_');
+  lines.push('*Aviso:* _Hemos recibido tu solicitud, en un máximo de *15min-20min* te estaríamos entregando tu pedido_`);
   lines.push('');
   if (pay === 'Transferencia') {
     lines.push('');
@@ -1126,6 +1139,7 @@ function openWhatsAppWithMessage(text){
   window.open(url, '_blank', 'noopener');
 }
 
+/* == 14) CHECKOUT: habilitar/deshabilitar, botón continuar == */
 // Control de “Continuar”
 function toggleContinueButton(){
   const items = cartList.querySelectorAll('.cart-item').length;
@@ -1133,6 +1147,7 @@ function toggleContinueButton(){
   cartBadge.style.display = items === 0 ? 'none' : '';
 }
 
+/* == 15) INIT: arranque general, servicio, cargas, FABs, overlay == */
 // --------- INIT ---------
 window.addEventListener('DOMContentLoaded', async () => {
   (function fixTopbarOffset(){
@@ -1219,6 +1234,7 @@ window.addEventListener('DOMContentLoaded', async () => {
   else { initRail(); }
 })();
 
+/* == 16) OVERLAY SERVICIO OFF == */
 // Overlay de servicio OFF
 function showServiceOverlay({ message, image }){
   const overlay = document.createElement('div');
