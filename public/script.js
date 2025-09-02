@@ -1123,7 +1123,7 @@ function buildTicket({ items, zoneName, shipping, pay, subtotal, totalDue, addre
     lines.push(`> ${address}`);
     lines.push('');
   }
-  lines.push('*Aviso:* _Hemos recibido tu solicitud, en un máximo de *15min-20min* te estaríamos entregando tu pedido_`);
+  lines.push('*Aviso:* _Hemos recibido tu solicitud, en un máximo de *15min-20min* te estaríamos entregando tu pedido_');
   lines.push('');
   if (pay === 'Transferencia') {
     lines.push('');
