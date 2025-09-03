@@ -486,3 +486,24 @@ body {
     max-height: 85vh;
   }
 }
+/* ==== Centrado del modal de Categorías/Subcategorías ==== */
+
+/* Cuando NO esté oculto, que se muestre centrado */
+#modalCats:not(.oculto){
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* El cuadro interno */
+#modalCats .contenido-zonas{
+  margin: 0 auto;
+  background: #fff;
+  padding: 2rem;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 600px;
+  max-height: 80vh;
+  overflow: auto;   /* scroll interno */
+  box-shadow: 0 0 25px rgba(0,0,0,0.3);
+}
