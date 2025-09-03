@@ -93,7 +93,8 @@ function formatQty(qty, step){
 function getCardInfo(card){
   const name = card.querySelector('h3')?.textContent.trim() || '';
   const unit = parseMoney(card.querySelector('.price')?.textContent);
-  const id = name; // mantenemos id = nombre (compatibilidad)
+  //const id = name; // mantenemos id = nombre (compatibilidad)
+  const id = card.dataset.id || name; // usa id real si viene de la API
   const soldBy    = card.dataset.soldby || 'unit';
   const unitLabel = card.dataset.unitlabel || (soldBy==='weight' ? 'kg' : 'pza');
   const step      = parseFloat(card.dataset.step || (soldBy==='weight' ? '0.25' : '1')) || 1;
@@ -363,6 +364,7 @@ function svgPlaceholder(text = 'Sin foto') {
 function renderProductGrid(products){
   if(!grid) return;
   const html = products.map(p => {
+    const id    = p.id || p.name;              // <-- id real si existe
     const price = typeof p.price === 'number' ? p.price : parseFloat(p.price || 0);
     const img   = (p.image && String(p.image).trim()) ? p.image : svgPlaceholder('Sin foto');
     const cat   = p.category || '';
@@ -398,6 +400,7 @@ function renderProductGrid(products){
 
     return (
       '<article class="card"' +
+        ' data-id="' + id + '"' +              // <-- AQUI
         ' data-category="' + cat + '"' +
         ' data-subcategory="' + sub + '"' +
         ' data-soldby="' + soldBy + '"' +
