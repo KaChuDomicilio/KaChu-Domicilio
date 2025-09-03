@@ -831,6 +831,12 @@ btnSaveEditProd?.addEventListener('click', async () => {
 // ⬅️ FIX: cerrar con “✕” en Editar producto
 btnCerrarEditarProd?.addEventListener('click', () => cerrarModal(modalEditProd));
 
+// Cerrar con “Cancelar” en Editar producto
+btnCancelEditProd?.addEventListener('click', (e) => {
+  e.preventDefault();           // por si está dentro de <form>
+  cerrarModal(modalEditProd);   // reutiliza tu helper
+});
+
 // INIT productos
 async function loadCategoriasAdmin(){
   const payload = await apiGet(API_CATEGORIAS).catch(()=>({categories:[]}));
