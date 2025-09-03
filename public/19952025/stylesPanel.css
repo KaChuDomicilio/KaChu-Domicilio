@@ -488,15 +488,35 @@ body {
     max-height: 75vh;      /* un pelín más alto en móvil */
   }
 }
-/* Centrar modal de categorías/subcategorías igual que los demás */
-#modalCats {
-  display: flex;
+/* Centrado SOLO cuando el modal está visible */
+#modalCats:not(.oculto){
+  display: flex;                /* se centra como los otros */
   align-items: center;
   justify-content: center;
 }
 
-#modalCats .contenido-zonas {
-  margin: 0 auto;          /* centrado horizontal */
-  max-height: 85vh;        /* límite de altura */
-  overflow: auto;          /* scroll interno si se pasa */
+/* Contenido con límites y scroll interno */
+#modalCats .contenido-zonas{
+  margin: 0 auto;
+  width: 90%;
+  max-width: 600px;
+  max-height: 80vh;
+  overflow: auto;
+  border-radius: 12px;
+}
+
+/* (opcional) encabezados fijos y barra inferior */
+#modalCats .contenido-zonas h3{
+  position: sticky; top: 0;
+  background: #fff;
+  padding: 6px 0;
+  z-index: 2;
+  border-bottom: 1px solid #e2e8f0;
+}
+#modalCats .acciones{
+  position: sticky; bottom: 0;
+  background: #fff;
+  padding: 8px 0;
+  z-index: 2;
+  border-top: 1px solid #e2e8f0;
 }
