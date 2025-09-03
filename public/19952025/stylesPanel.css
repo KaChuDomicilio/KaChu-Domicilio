@@ -444,79 +444,45 @@ body {
 #modalServicio .modal-input:disabled{ opacity:.6; cursor:not-allowed; }
 #btnSrvSave:disabled{ opacity:.5; cursor:not-allowed; box-shadow:none; }
 
-/* === Scroll interno para el modal Editar/Eliminar Categorías === */
-#modalCats .contenido-zonas{
-  max-height: 70vh;        /* límite de alto del contenido */
-  overflow: auto;          /* scroll vertical cuando crezca */
-  gap: 16px;               /* mantiene tu separación */
-}
+/* ==== MODAL CATEGORÍAS: centrado y scroll único (sin sticky) ==== */
 
-/* Mantener a la vista los encabezados al hacer scroll */
-#modalCats .contenido-zonas h3{
-  top: 0;
-  background: #fff;
-  padding: 6px 0;
-  z-index: 2;
-  border-bottom: 1px solid #e2e8f0;
-}
-
-/* Evitar que los botones 'Editar/Eliminar' se rompan de línea */
-#modalCats .tabla td .btn-accion{
-  white-space: nowrap;
-}
-
-/* Que la columna de Acciones no se encoja y conserve el ancho */
-#modalCats .tabla thead th:last-child,
-#modalCats .tabla tbody td:last-child{
-  width: 150px;            /* ya lo traes en el thead inline; reforzamos aquí */
-}
-
-/* Mantener visible el área de agregar subcategoría (opcional) */
-#modalCats .acciones{
-  position: sticky;
-  bottom: 0;
-  background: #fff;
-  padding: 8px 0;
-  z-index: 2;
-  border-top: 1px solid #e2e8f0;
-}
-
-/* Responsivo: en pantallas chicas apilar columnas */
-@media (max-width: 600px){
-  #modalCats .contenido-zonas{
-    flex-direction: column;
-    max-height: 75vh;      /* un pelín más alto en móvil */
-  }
-}
-/* Centrado SOLO cuando el modal está visible */
+/* Solo céntralo cuando esté visible */
 #modalCats:not(.oculto){
-  display: flex;                /* se centra como los otros */
+  display: flex;
   align-items: center;
   justify-content: center;
 }
 
-/* Contenido con límites y scroll interno */
+/* Todo el contenido scrollea como una sola pieza */
 #modalCats .contenido-zonas{
   margin: 0 auto;
   width: 90%;
   max-width: 600px;
-  max-height: 80vh;
-  overflow: auto;
+  max-height: 80vh;   /* límite de alto del modal */
+  overflow: auto;     /* scroll interno del modal */
   border-radius: 12px;
 }
 
-/* (opcional) encabezados fijos y barra inferior */
-#modalCats .contenido-zonas h3{
-  position: sticky; top: 0;
-  background: #fff;
-  padding: 6px 0;
-  z-index: 2;
-  border-bottom: 1px solid #e2e8f0;
-}
+/* Quitar cualquier “pegado” (sticky) previo */
+#modalCats .contenido-zonas h3,
 #modalCats .acciones{
-  position: sticky; bottom: 0;
-  background: #fff;
-  padding: 8px 0;
-  z-index: 2;
-  border-top: 1px solid #e2e8f0;
+  position: static !important;
+  top: auto !important;
+  bottom: auto !important;
+  background: transparent !important; /* que no parezca “fijo” */
+  z-index: auto !important;
+  border: 0 !important;
+}
+
+/* Mantener los botones de acciones en línea (opcional) */
+#modalCats .tabla td .btn-accion{
+  white-space: nowrap;
+}
+
+/* Responsivo: columnas apiladas en móvil, mismo scroll único */
+@media (max-width: 600px){
+  #modalCats .contenido-zonas{
+    flex-direction: column;
+    max-height: 85vh;
+  }
 }
