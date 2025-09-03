@@ -488,3 +488,15 @@ body {
     max-height: 75vh;      /* un pelín más alto en móvil */
   }
 }
+/* Centrar modal de categorías/subcategorías igual que los demás */
+#modalCats {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#modalCats .contenido-zonas {
+  margin: 0 auto;          /* centrado horizontal */
+  max-height: 85vh;        /* límite de altura */
+  overflow: auto;          /* scroll interno si se pasa */
+}
