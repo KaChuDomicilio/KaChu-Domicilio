@@ -193,10 +193,12 @@ function clampQtyToStepAndMin(qty, cfg){
 /** Calcula el mejor precio usando combos (si existen). Devuelve números crudos. */
 function computeBestPriceRaw(product, qtyRaw){
   const cfg = normalizePricingFromProduct(product);
+  // Aseguramos que la cantidad esté "snap" al step y respete minQty, PERO sin ajustar hacia arriba por combos
   const qty = clampQtyToStepAndMin(qtyRaw, cfg);
 
-  // Sin combos => precio lineal base
-  if (!cfg.tiers.length){
+  // Sin combos => precio lineal base (sin ajuste, sin desglose)
+  const hasTiers = Array.isArray(cfg.tiers) && cfg.tiers.length > 0;
+  if (!hasTiers){
     const total = +(qty * cfg.basePrice).toFixed(2);
     return {
       qty, requestedQty: qty, total,
@@ -205,7 +207,8 @@ function computeBestPriceRaw(product, qtyRaw){
     };
   }
 
-  // Con combos: knapsack sin límite, resolviendo en "pasos"
+  // Con combos: resolvemos EXACTAMENTE N "pasos".
+  // Si NO hay combinación exacta, NO ajustamos hacia arriba: caemos a precio base.
   const step = cfg.step;
   const N = _toCount(qty, step);
 
@@ -223,11 +226,11 @@ function computeBestPriceRaw(product, qtyRaw){
   }
 
   const INF = 1e15;
-  const dp = new Array(N + 201).fill(INF); // margen por si hay que subir
-  const choice = new Array(N + 201).fill(-1);
+  const dp = new Array(N + 1).fill(INF);
+  const choice = new Array(N + 1).fill(-1);
   dp[0] = 0;
 
-  for (let i = 1; i < dp.length; i++){
+  for (let i = 1; i <= N; i++){
     for (let j = 0; j < tiers.length; j++){
       const t = tiers[j];
       if (i - t.count >= 0){
@@ -237,29 +240,25 @@ function computeBestPriceRaw(product, qtyRaw){
     }
   }
 
-  // Primer alcanzable desde N hacia arriba
-  let exact = N;
-  while (exact < dp.length && dp[exact] === INF) exact++;
-
-  if (exact >= dp.length || dp[exact] === INF){
+  // Si NO hay solución exacta, precio base sin ajuste de cantidad
+  if (dp[N] === INF){
     const total = +(qty * cfg.basePrice).toFixed(2);
     return {
       qty, requestedQty: qty, total,
       breakdown: [{ qty, times: 1, price: +cfg.basePrice.toFixed(2) }],
-      pricingMode: 'fallback', adjusted: false
+      pricingMode: 'base', adjusted: false
     };
   }
 
-  // Reconstrucción
+  // Reconstrucción exacta
   const used = new Map();
-  let k = exact;
+  let k = N;
   while (k > 0){
     const j = choice[k];
     used.set(j, (used.get(j) || 0) + 1);
     k -= tiers[j].count;
   }
 
-  const adjustedQty = +(exact * step).toFixed(3);
   let total = 0;
   const breakdown = [];
   for (const [j, times] of used.entries()){
@@ -270,12 +269,12 @@ function computeBestPriceRaw(product, qtyRaw){
   total = +total.toFixed(2);
 
   return {
-    qty: adjustedQty,
+    qty,                 // 👈 ya no subimos cantidad
     requestedQty: qty,
     total,
     breakdown: breakdown.sort((a,b)=> a.qty - b.qty),
     pricingMode: 'combos',
-    adjusted: adjustedQty !== qty
+    adjusted: false      // 👈 nunca true (no hay ajuste hacia arriba)
   };
 }
 
@@ -287,7 +286,25 @@ function bestPriceById(id, qty){
     const line = +((it?.unit || 0) * qty).toFixed(2);
     return { qty, requestedQty: qty, total: line, breakdown: [], pricingMode: 'base', adjusted: false };
   }
-  return computeBestPriceRaw(p, qty);
+
+  // Si el producto NO trae tiers embebidos, intenta usar los "legacy" de pricingById
+  const hasEmbeddedTiers =
+    (Array.isArray(p?.bundlePricing?.tiers) && p.bundlePricing.tiers.length) ||
+    (Array.isArray(p?.kgPricing?.tiers) && p.kgPricing.tiers.length) ||
+    (Array.isArray(p?.priceCombos) && p.priceCombos.length);
+
+  let prod = p;
+  if (!hasEmbeddedTiers){
+    const legacy = pricingById.get(id);
+    if (legacy?.tiers?.length){
+      if ((p.soldBy || 'unit') === 'weight'){
+        prod = { ...p, kgPricing: { tiers: legacy.tiers } };
+      } else {
+        prod = { ...p, bundlePricing: { tiers: legacy.tiers } };
+      }
+    }
+  }
+  return computeBestPriceRaw(prod, qty);
 }
 // ======= FIN MOTOR DE PRECIOS =======
 
