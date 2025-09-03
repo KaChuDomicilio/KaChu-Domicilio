@@ -443,3 +443,49 @@ body {
 #modalServicio .lbl{ font-weight:600; }
 #modalServicio .modal-input:disabled{ opacity:.6; cursor:not-allowed; }
 #btnSrvSave:disabled{ opacity:.5; cursor:not-allowed; box-shadow:none; }
+
+/* === Scroll interno para el modal Editar/Eliminar Categorías === */
+#modalCats .contenido-zonas{
+  max-height: 70vh;        /* límite de alto del contenido */
+  overflow: auto;          /* scroll vertical cuando crezca */
+  gap: 16px;               /* mantiene tu separación */
+}
+
+/* Mantener a la vista los encabezados al hacer scroll */
+#modalCats .contenido-zonas h3{
+  position: sticky;
+  top: 0;
+  background: #fff;
+  padding: 6px 0;
+  z-index: 2;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+/* Evitar que los botones 'Editar/Eliminar' se rompan de línea */
+#modalCats .tabla td .btn-accion{
+  white-space: nowrap;
+}
+
+/* Que la columna de Acciones no se encoja y conserve el ancho */
+#modalCats .tabla thead th:last-child,
+#modalCats .tabla tbody td:last-child{
+  width: 150px;            /* ya lo traes en el thead inline; reforzamos aquí */
+}
+
+/* Mantener visible el área de agregar subcategoría (opcional) */
+#modalCats .acciones{
+  position: sticky;
+  bottom: 0;
+  background: #fff;
+  padding: 8px 0;
+  z-index: 2;
+  border-top: 1px solid #e2e8f0;
+}
+
+/* Responsivo: en pantallas chicas apilar columnas */
+@media (max-width: 600px){
+  #modalCats .contenido-zonas{
+    flex-direction: column;
+    max-height: 75vh;      /* un pelín más alto en móvil */
+  }
+}

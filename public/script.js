@@ -503,7 +503,7 @@ function renderCart(){
       const note = document.createElement('div');
       note.className = 'combo-note';
       note.style.cssText = 'font-size:.85rem;color:#64748b;margin-top:2px;';
-      note.textContent = `Combos: ${parts}` + (pricing.adjusted ? ' (ajustado)' : '');
+      //note.textContent = `Combos: ${parts}` + (pricing.adjusted ? ' (ajustado)' : '');
       li.appendChild(note);
     }
 
