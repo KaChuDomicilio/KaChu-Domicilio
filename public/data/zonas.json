@@ -1,10 +1,15 @@
 [
   {
-    "nombre": "Montecarlo(Gratis)",
-    "costo": 0
+    "nombre": "Montecarlo",
+    "costo": 15,
+    "freeShippingThreshold": 149
   },
   {
-    "nombre": "Montecarlo",
-    "costo": 15
+    "nombre": "Haciendas",
+    "costo": 20
+  },
+  {
+    "nombre": "Privadas del Roble",
+    "costo": 25
   }
 ]
