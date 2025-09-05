@@ -547,6 +547,7 @@ function renderCart(){
   }
   saveCart();
   updateCheckoutTotalPill();
+  fsShowOnAdd = true;
   updateFreeShippingPromo();
 }
 
