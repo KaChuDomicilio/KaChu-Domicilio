@@ -753,7 +753,7 @@ body.service-blocked{ overflow: hidden; }
   width: 100%;
   height: 8px;
   background: rgba(255,255,255,.15);
-  border-radius: 999px;
+  border-radius: 8px 0 0 8px;
   overflow: hidden;
 }
 .fs-bar{
