@@ -56,7 +56,7 @@ let fsTimer = null;
 let fsLastText = '';
 let fsShowOnAdd = false; // bandera: mostrar cuando se agregó producto
 
-const FS_SHOW_MS = 4200; // tiempo visible
+const FS_SHOW_MS = 10000; // tiempo visible
 const FS_COOLDOWN_MS = 600; // margen para evitar parpadeos rápidos
 
 function showFsToastOnce() {
@@ -1037,7 +1037,8 @@ function updateFreeShippingPromo(){
   if (remaining > 0){
     fsMsg.innerHTML = `Agrega <strong>${currency(remaining)}</strong> al carrito para Envío <strong>GRATIS</strong>.`;
   } else {
-    fsMsg.innerHTML = `¡Genial! Obtienes <strong>ENVÍO GRATIS</strong>.`;
+    fsMsg.innerHTML = `¡Genial! Obtienes <strong>ENVÍO GRATIS</strong>.
+    Aprovecha y Agrega más productos a tu carrito.`;
     progress = 100;
   }
   fsBar.style.width = progress + '%';
