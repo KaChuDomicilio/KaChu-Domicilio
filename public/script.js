@@ -46,6 +46,14 @@ const CHECKOUT_KEY = 'kachu_checkout_v1';
 
 const cashHelp = document.getElementById('cashHelp');
 
+// === FREE SHIPPING (estado/UI) ===
+const fsPill = document.getElementById('fs-promo');
+const fsMsg  = fsPill?.querySelector('.fs-msg');
+const fsBar  = fsPill?.querySelector('.fs-bar');
+
+let ZONES = [];                         // [{nombre, costo, freeShippingThreshold?}, ...]
+const zonesByName = new Map();          // nombre -> { cost, threshold }
+
 /* == 2) CARGA DE DATOS: Endpoints + fetch con fallback == */
 // --- API primero; estáticos como respaldo ---
 const API = {
@@ -80,6 +88,7 @@ const productsById = new Map(); // <-- índice completo de productos (para motor
 function money(n){ return '$' + Number(n).toFixed(2); }
 function parseMoney(str){ return parseFloat((str||'').replace(/[^0-9.]/g,'')) || 0; }
 function normalize(str){ return (str || '').toString().toLowerCase().trim(); }
+function currency(n){ return '$' + Number(n || 0).toFixed(2); }
 
 function decimalsFromStep(step){
   const s = String(step || 1);
@@ -532,6 +541,7 @@ function renderCart(){
   }
   saveCart();
   updateCheckoutTotalPill();
+  updateFreeShippingPromo();   // <<< actualiza pastilla
 }
 
 //Redimencionar ventana
@@ -850,21 +860,42 @@ async function loadZones() {
     if (!Array.isArray(zonas) || !zonas.length) {
       throw new Error('zonas vacío o con formato inesperado');
     }
+
+    // Normaliza y guarda mapa (incluye umbral de envío gratis)
+    ZONES = zonas.map(z => ({
+      nombre: String(z.nombre ?? z.name ?? ''),
+      costo:  Number(z.costo ?? z.cost ?? z.price ?? 0),
+      freeShippingThreshold: Number(z.freeShippingThreshold ?? z.free_threshold ?? 0)
+    })).filter(z => z.nombre);
+
+    zonesByName.clear();
+    ZONES.forEach(z => zonesByName.set(z.nombre, { cost: z.costo, threshold: z.freeShippingThreshold }));
+
+    // Pinta el select (agregamos data-th en cada opción)
     zone.innerHTML = [
       '<option value="">Selecciona una zona…</option>',
-      ...zonas.map(z => {
-        const nombre = z.nombre ?? z.name ?? '';
-        const costo  = Number(z.costo ?? z.cost ?? z.price ?? 0);
-        return `<option value="${nombre}|${costo.toFixed(2)}">${nombre} — $${costo.toFixed(2)}</option>`;
-      })
+      ...ZONES.map(z =>
+        `<option value="${z.nombre}|${z.costo.toFixed(2)}" data-th="${z.freeShippingThreshold || 0}">` +
+        `${z.nombre} — $${z.costo.toFixed(2)}</option>`
+      )
     ].join('');
-    console.info('Zonas cargadas desde:', url, 'Total:', zonas.length);
+
+    console.info('Zonas cargadas desde:', url, 'Total:', ZONES.length);
   } catch (e) {
     console.warn('loadZones()', e);
+    ZONES = [
+      { nombre: 'Montecarlo', costo: 15, freeShippingThreshold: 149 },
+      { nombre: 'Haciendas',  costo: 20, freeShippingThreshold: 199 }
+    ];
+    zonesByName.clear();
+    ZONES.forEach(z => zonesByName.set(z.nombre, { cost: z.costo, threshold: z.freeShippingThreshold }));
+
     zone.innerHTML = [
       '<option value="">Selecciona una zona…</option>',
-      '<option value="Montecarlo|15.00">Montecarlo — $15.00</option>',
-      '<option value="Haciendas|20.00">Haciendas — $20.00</option>'
+      ...ZONES.map(z =>
+        `<option value="${z.nombre}|${z.costo.toFixed(2)}" data-th="${z.freeShippingThreshold || 0}">` +
+        `${z.nombre} — $${z.costo.toFixed(2)}</option>`
+      )
     ].join('');
   }
 }
@@ -939,77 +970,6 @@ checkoutForm.addEventListener('change', validateCheckout);
 checkoutForm.addEventListener('input', saveCheckout);
 checkoutForm.addEventListener('change', saveCheckout);
 
-function validateCheckout() {
-  const zoneOk    = zone.value.trim() !== '';
-  const pay       = checkoutForm.querySelector('input[name="pay"]:checked')?.value || '';
-  const addressOk = address.value.trim().length > 0;
-
-  const subtotal = parseFloat(document.getElementById('cartTotal').textContent.replace(/[^0-9.]/g,'')) || 0;
-  const [, zoneCostRaw] = (zone.value || '').split('|');
-  const shipping = parseFloat(zoneCostRaw || '0') || 0;
-  const base = subtotal + shipping;
-  const totalDue = pay === 'Tarjeta' ? +(base * 1.043).toFixed(2) : +base.toFixed(2);
-
-  let cashOk = true;
-  if (pay === 'Efectivo') {
-    const raw  = cashGiven.value.trim();
-    const cash = parseFloat(raw);
-    let msg = '';
-
-    if (!raw.length) {
-      cashOk = false; msg = 'Con este dato calcularemos tu feria/cambio.';
-    } else if (isNaN(cash)) {
-      cashOk = false; msg = 'Coloca un número válido (ej. 500.00).';
-    } else if (cash < totalDue) {
-      cashOk = false; msg = `El efectivo ingresado no cubre el total ($${totalDue.toFixed(2)}).`;
-    }
-
-    if (!cashOk) {
-      cashGiven.setCustomValidity(msg);
-      if (cashHelp) { cashHelp.textContent = msg; cashHelp.classList.add('show'); }
-    } else {
-      cashGiven.setCustomValidity('');
-      if (cashHelp) { cashHelp.textContent = ''; cashHelp.classList.remove('show'); }
-    }
-  } else {
-    cashGiven.setCustomValidity('');
-    if (cashHelp) { cashHelp.textContent = ''; cashHelp.classList.remove('show'); }
-  }
-
-  btnWhatsApp.disabled = !(zoneOk && pay && addressOk && cashOk);
-  updateCheckoutTotalPill();
-}
-
-// Si se envió correctamente por WhatsApp, resetear formulario
-function resetCheckoutForm() {
-  if (zone) zone.selectedIndex = 0;
-  if (address) address.value = '';
-  if (cashGiven) cashGiven.value = '';
-  checkoutForm.querySelectorAll('input[name="pay"]').forEach(r => (r.checked = false));
-  cashField.classList.add('hidden');
-  localStorage.removeItem(CHECKOUT_KEY);
-  validateCheckout();
-  updateCheckoutTotalPill?.();
-}
-
-function updateCheckoutTotalPill(){
-  if (!checkoutTotalPill) return;
-  const subtotal = parseFloat(document.getElementById('cartTotal').textContent.replace(/[^0-9.]/g, '')) || 0;
-  const [_, zoneCostRaw] = (zone.value || '').split('|');
-  const shipping = parseFloat(zoneCostRaw || '0') || 0;
-  const pay = checkoutForm.querySelector('input[name="pay"]:checked')?.value || '';
-  const base = subtotal + shipping;
-  const totalDue = pay === 'Tarjeta' ? +(base * 1.043).toFixed(2) : +base.toFixed(2);
-  checkoutTotalPill.textContent = `Total: $${totalDue.toFixed(2)}`;
-}
-
-// Cambios de campos del checkout (mostrar efectivo, etc.)
-checkoutForm.addEventListener('change', () => {
-  const pay = checkoutForm.querySelector('input[name="pay"]:checked')?.value;
-  cashField.classList.toggle('hidden', pay !== 'Efectivo');
-  validateCheckout();
-});
-
 // —— Aviso de Transferencia SOLO al seleccionar ese radio ——
 function attachTransferNotice() {
   if (!checkoutForm) return;
@@ -1030,6 +990,64 @@ function attachTransferNotice() {
 }
 attachTransferNotice();
 
+/* == FREE SHIPPING: helpers y UI == */
+function getCartSubtotalFast(){
+  const txt = document.getElementById('cartTotal')?.textContent || '$0.00';
+  return parseFloat(txt.replace(/[^0-9.]/g,'')) || 0;
+}
+function getSelectedZoneInfo(){
+  const val = zone.value || '';
+  if (!val) return { name:'', cost:0, threshold:0 };
+  const [name, costStr] = val.split('|');
+  const opt = zone.selectedOptions?.[0];
+  const th  = opt ? Number(opt.dataset.th || 0) : (zonesByName.get(name)?.threshold || 0);
+  const cost = parseFloat(costStr || '0') || 0;
+  return { name, cost, threshold: th };
+}
+function computeShippingWithThreshold(subtotal){
+  const { cost, threshold } = getSelectedZoneInfo();
+  if (threshold > 0 && subtotal >= threshold) return 0;
+  return cost;
+}
+function updateFreeShippingPromo(){
+  if (!fsPill) return;
+
+  const { name, threshold } = getSelectedZoneInfo();
+  const subtotal = getCartSubtotalFast();
+
+  if (!name || !(threshold > 0)) {
+    fsPill.classList.remove('show');
+    fsPill.classList.add('hidden');
+    return;
+  }
+
+  let progress = Math.max(0, Math.min(100, Math.round((subtotal / threshold) * 100)));
+  const remaining = Math.max(0, threshold - subtotal);
+
+  if (remaining > 0){
+    fsMsg.innerHTML = `Agrega <strong>${currency(remaining)}</strong> al carrito para conseguir Envío <strong>GRATIS</strong>.`;
+  } else {
+    fsMsg.innerHTML = `¡Genial! Aprovecha tu envío <strong>SIN COSTO</strong> y agrega más productos.`;
+    progress = 100;
+  }
+
+  fsBar.style.width = progress + '%';
+  fsPill.classList.remove('is-red','is-amber','is-green');
+  if (progress < 40) fsPill.classList.add('is-red');
+  else if (progress < 100) fsPill.classList.add('is-amber');
+  else fsPill.classList.add('is-green');
+
+  fsPill.classList.remove('hidden');
+  fsPill.classList.add('show');
+}
+
+// Actualizar al cambiar zona
+zone.addEventListener('change', () => {
+  validateCheckout();
+  updateCheckoutTotalPill();
+  updateFreeShippingPromo();
+});
+
 /* == 13) WHATSAPP: ticket y envío == */
 checkoutForm.addEventListener('submit', (e) => {
   e.preventDefault();
@@ -1041,8 +1059,8 @@ checkoutForm.addEventListener('submit', (e) => {
   const items = getCartItemsDetailed(); // usa bestPriceById() en computeLineTotal
   const subtotal = items.reduce((acc, it)=> acc + it.line, 0);
 
-  const [zoneName, zoneCostRaw] = (zone.value || '').split('|');
-  const shipping = parseFloat(zoneCostRaw || '0') || 0;
+  const { name: zoneName } = getSelectedZoneInfo();
+  const shipping = computeShippingWithThreshold(subtotal);
 
   const pay = checkoutForm.querySelector('input[name="pay"]:checked')?.value || 'Efectivo';
   const base = subtotal + shipping;
@@ -1172,6 +1190,74 @@ function toggleContinueButton(){
   cartBadge.style.display = items === 0 ? 'none' : '';
 }
 
+function validateCheckout() {
+  const zoneOk    = zone.value.trim() !== '';
+  const pay       = checkoutForm.querySelector('input[name="pay"]:checked')?.value || '';
+  const addressOk = address.value.trim().length > 0;
+
+  const subtotal = getCartSubtotalFast();
+  const shipping = computeShippingWithThreshold(subtotal);
+  const base = subtotal + shipping;
+  const totalDue = pay === 'Tarjeta' ? +(base * 1.043).toFixed(2) : +base.toFixed(2);
+
+  let cashOk = true;
+  if (pay === 'Efectivo') {
+    const raw  = cashGiven.value.trim();
+    const cash = parseFloat(raw);
+    let msg = '';
+
+    if (!raw.length) {
+      cashOk = false; msg = 'Con este dato calcularemos tu feria/cambio.';
+    } else if (isNaN(cash)) {
+      cashOk = false; msg = 'Coloca un número válido (ej. 500.00).';
+    } else if (cash < totalDue) {
+      cashOk = false; msg = `El efectivo ingresado no cubre el total ($${totalDue.toFixed(2)}).`;
+    }
+
+    if (!cashOk) {
+      cashGiven.setCustomValidity(msg);
+      if (cashHelp) { cashHelp.textContent = msg; cashHelp.classList.add('show'); }
+    } else {
+      cashGiven.setCustomValidity('');
+      if (cashHelp) { cashHelp.textContent = ''; cashHelp.classList.remove('show'); }
+    }
+  } else {
+    cashGiven.setCustomValidity('');
+    if (cashHelp) { cashHelp.textContent = ''; cashHelp.classList.remove('show'); }
+  }
+
+  btnWhatsApp.disabled = !(zoneOk && pay && addressOk && cashOk);
+  updateCheckoutTotalPill();
+}
+
+function resetCheckoutForm() {
+  if (zone) zone.selectedIndex = 0;
+  if (address) address.value = '';
+  if (cashGiven) cashGiven.value = '';
+  checkoutForm.querySelectorAll('input[name="pay"]').forEach(r => (r.checked = false));
+  cashField.classList.add('hidden');
+  localStorage.removeItem(CHECKOUT_KEY);
+  validateCheckout();
+  updateCheckoutTotalPill?.();
+}
+
+function updateCheckoutTotalPill(){
+  if (!checkoutTotalPill) return;
+  const subtotal = getCartSubtotalFast();
+  const shipping = computeShippingWithThreshold(subtotal);
+  const pay = checkoutForm.querySelector('input[name="pay"]:checked')?.value || '';
+  const base = subtotal + shipping;
+  const totalDue = pay === 'Tarjeta' ? +(base * 1.043).toFixed(2) : +base.toFixed(2);
+  checkoutTotalPill.textContent = `Total: $${totalDue.toFixed(2)}`;
+}
+
+// Cambios de campos del checkout (mostrar efectivo, etc.)
+checkoutForm.addEventListener('change', () => {
+  const pay = checkoutForm.querySelector('input[name="pay"]:checked')?.value;
+  cashField.classList.toggle('hidden', pay !== 'Efectivo');
+  validateCheckout();
+});
+
 /* == 15) INIT: arranque general, servicio, cargas, FABs, overlay == */
 // --------- INIT ---------
 window.addEventListener('DOMContentLoaded', async () => {
@@ -1207,6 +1293,7 @@ window.addEventListener('DOMContentLoaded', async () => {
     await Promise.all([ loadCategories(), loadProducts(), loadZones() ]);
     Array.from(cart.keys()).forEach(id => syncCardsQty(id));
     toggleContinueButton();
+    updateFreeShippingPromo();   // estado inicial (si ya hay zona guardada)
   } catch (e) {
     console.error(e);
   }

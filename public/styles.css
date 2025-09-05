@@ -711,3 +711,60 @@ body.service-blocked{ overflow: hidden; }
   border-color: #e53e3e;
   box-shadow: 0 0 0 2px rgba(229,62,62,.12);
 }
+/* === Free Shipping Promo Pill === */
+.fs-pill{
+  position: fixed;
+  left: 50%;
+  bottom: 18px;
+  transform: translateX(-50%) scale(0.7);
+  background: #111827;
+  color: #fff;
+  padding: 10px 14px;
+  border-radius: 999px;
+  box-shadow: 0 10px 30px rgba(0,0,0,.25);
+  max-width: min(92vw, 640px);
+  width: max-content;
+  display: grid;
+  gap: 8px;
+  justify-items: center;
+
+  opacity: 0;
+  clip-path: circle(0% at 50% 50%);
+  transition:
+    opacity .35s ease,
+    clip-path .45s cubic-bezier(.22,.61,.36,1),
+    transform .35s ease;
+  z-index: 4000;
+}
+.fs-pill.show{
+  opacity: 1;
+  clip-path: inset(0 round 999px);
+  transform: translateX(-50%) scale(1);
+}
+.fs-pill.hidden{ display:none; }
+
+.fs-msg{ font-size: .95rem; text-align:center; line-height:1.25; }
+
+.fs-progress{
+  width: 100%;
+  height: 8px;
+  background: rgba(255,255,255,.15);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.fs-bar{
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #ef4444, #f59e0b, #22c55e);
+  transition: width .35s ease;
+  box-shadow: inset 0 0 6px rgba(255,255,255,.25);
+}
+
+/* color de estado opcional (para texto) */
+.fs-pill.is-red  .fs-msg{ color:#fee2e2; }
+.fs-pill.is-amber .fs-msg{ color:#ffedd5; }
+.fs-pill.is-green .fs-msg{ color:#dcfce7; }
+
+@media (max-width: 480px){
+  .fs-msg{ font-size: .9rem; }
+}
