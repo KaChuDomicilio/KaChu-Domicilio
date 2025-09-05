@@ -975,6 +975,99 @@ tablaZonasBody?.addEventListener('click', async (e) => {
     } catch (err) { console.error(err); mostrarToast('Error al eliminar zona'); }
   }
 });
+// Refs nuevos
+const chkZonaFree   = $('#chkZonaFree');
+const inputFreeMin  = $('#inputFreeMin');
+const editChkZonaFree = $('#editChkZonaFree');
+const editFreeMin     = $('#editFreeMin');
+
+// Habilitar/deshabilitar input según checkbox
+chkZonaFree?.addEventListener('change', () => {
+  inputFreeMin.disabled = !chkZonaFree.checked;
+  validarFormZona();
+});
+editChkZonaFree?.addEventListener('change', () => {
+  editFreeMin.disabled = !editChkZonaFree.checked;
+});
+
+// Validación extendida
+function validarFormZona() {
+  const nombreOk = !!(inputNombreZona && inputNombreZona.value.trim().length > 0);
+  const costoVal = numeroDesdeTextoZona(inputCostoZona ? inputCostoZona.value.trim() : '');
+  const costoOk  = Number.isFinite(costoVal) && costoVal >= 0;
+  let freeOk = true;
+  if (chkZonaFree?.checked) {
+    const minVal = numeroDesdeTextoZona(inputFreeMin?.value.trim() || '');
+    freeOk = Number.isFinite(minVal) && minVal > 0;
+  }
+  const habilitar = nombreOk && costoOk && freeOk;
+  btnGuardarZona.disabled = !habilitar;
+  btnGuardarZona.setAttribute('aria-disabled', String(!habilitar));
+}
+
+// Guardar nueva zona con datos extendidos
+btnGuardarZona?.addEventListener('click', async (e) => {
+  e.preventDefault();
+  if (btnGuardarZona.disabled) return;
+  const nombre = inputNombreZona.value.trim();
+  const costo  = numeroDesdeTextoZona(inputCostoZona.value.trim());
+  const freeShipping = !!chkZonaFree.checked;
+  const freeMin = freeShipping ? +(numeroDesdeTextoZona(inputFreeMin.value.trim()) || 0).toFixed(2) : null;
+  try {
+    const zonas = await apiGet(API_ZONAS).catch(() => []);
+    if (zonas.some(z => z.nombre.toLowerCase() === nombre.toLowerCase())) 
+      return mostrarToast('Esa zona ya existe');
+    zonas.push({ nombre, costo: +Number(costo).toFixed(2), freeShipping, freeMin });
+    await apiPut(API_ZONAS, zonas);
+    mostrarToast('Zona guardada');
+    prepararFormZona();
+    if (modalZonas && !modalZonas.classList.contains('oculto')) await cargarZonasEnTabla();
+  } catch (err) { console.error(err); mostrarToast('Error al guardar zona'); }
+});
+
+// Editar zona
+btnGuardarZonaEditada?.addEventListener('click', async (e) => {
+  e.preventDefault();
+  const original = modalEditarZona.dataset.original || '';
+  const nuevoNombre = editNombreZona.value.trim();
+  const nuevoCosto  = numeroDesdeTextoZona(editCostoZona.value.trim());
+  const freeShipping = !!editChkZonaFree.checked;
+  const freeMin = freeShipping ? +(numeroDesdeTextoZona(editFreeMin.value.trim()) || 0).toFixed(2) : null;
+  try {
+    const zonas = await apiGet(API_ZONAS);
+    const idx = zonas.findIndex(z => z.nombre === original);
+    if (idx === -1) return mostrarToast('No se encontró la zona');
+    zonas[idx] = { 
+      ...zonas[idx], 
+      nombre: nuevoNombre, 
+      costo: +Number(nuevoCosto).toFixed(2),
+      freeShipping, 
+      freeMin
+    };
+    await apiPut(API_ZONAS, zonas);
+    cerrarModal(modalEditarZona);
+    await cargarZonasEnTabla();
+    mostrarToast('Zona actualizada');
+  } catch (err) { console.error(err); mostrarToast('Error al actualizar zona'); }
+});
+
+// Al abrir modal editar zona, rellenar campos nuevos
+tablaZonasBody?.addEventListener('click', async (e) => {
+  const tr = e.target.closest('tr'); if (!tr) return;
+  const nombreOriginal = tr.dataset.nombre;
+  if (e.target.closest('.btn-edit')) {
+    const zonas = await apiGet(API_ZONAS);
+    const z = zonas.find(x => x.nombre === nombreOriginal);
+    if (!z) return;
+    editNombreZona.value = z.nombre; 
+    editCostoZona.value = Number(z.costo).toFixed(2);
+    editChkZonaFree.checked = !!z.freeShipping;
+    editFreeMin.disabled = !editChkZonaFree.checked;
+    editFreeMin.value = z.freeMin ? Number(z.freeMin).toFixed(2) : '';
+    modalEditarZona.dataset.original = nombreOriginal;
+    abrirModal(modalEditarZona);
+  }
+});
 
 /* ────────────────────────────────────────────────────────────────────────── */
 /* 4) CATEGORÍAS / SUBCATEGORÍAS                                             */
