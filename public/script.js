@@ -51,6 +51,36 @@ const fsPill = document.getElementById('fs-promo');
 const fsMsg  = fsPill?.querySelector('.fs-msg');
 const fsBar  = fsPill?.querySelector('.fs-bar');
 
+// === FREE SHIPPING (toast temporizado) ===
+let fsTimer = null;
+let fsLastText = '';
+let fsShowOnAdd = false; // bandera: mostrar cuando se agregó producto
+
+const FS_SHOW_MS = 4200; // tiempo visible
+const FS_COOLDOWN_MS = 600; // margen para evitar parpadeos rápidos
+
+function showFsToastOnce() {
+  if (!fsPill) return;
+  // Evita reanimar si ya está visible con el mismo texto
+  const isShowing = fsPill.classList.contains('show');
+  const current = fsMsg?.innerHTML || '';
+  if (isShowing && current === fsLastText) return;
+
+  fsLastText = current;
+
+  clearTimeout(fsTimer);
+  fsPill.classList.remove('hidden');
+  // forzamos reflujo para reiniciar transición si se repite
+  void fsPill.offsetWidth;
+  fsPill.classList.add('show');
+
+  fsTimer = setTimeout(() => {
+    fsPill.classList.remove('show');
+    // opcional: ocultar completamente tras la animación
+    setTimeout(() => fsPill.classList.add('hidden'), FS_COOLDOWN_MS);
+  }, FS_SHOW_MS);
+}
+
 let ZONES = [];                         // [{nombre, costo, freeShippingThreshold?}, ...]
 const zonesByName = new Map();          // nombre -> { cost, threshold }
 
@@ -621,6 +651,7 @@ function createQtyControl(card, qty){
     if (soldBy === 'unit') cur.qty = Math.round(cur.qty);
     cart.set(id, cur);
     spanQty.textContent = fmt(cur.qty);
+    fsShowOnAdd = true;           // ← también cuenta como "agregar"
     renderCart();
   });
 
@@ -650,6 +681,7 @@ function switchToQtyControl(card, startQty = 1, addToCart = false){
   const start = addToCart ? info.minQty : (cart.get(info.id)?.qty || info.minQty);
   if (addToCart) {
     cart.set(info.id, { ...info, qty: start });
+    fsShowOnAdd = true;
     renderCart();
   }
   const addBtn = card.querySelector('.btn.add');
@@ -992,36 +1024,40 @@ function updateFreeShippingPromo(){
 
   const { name, threshold } = getSelectedZoneInfo();
   const subtotal = getCartSubtotalFast();
-
+  // Si no hay zona o no hay umbral, ocultamos el toast.
   if (!name || !(threshold > 0)) {
     fsPill.classList.remove('show');
     fsPill.classList.add('hidden');
     return;
   }
-
   let progress = Math.max(0, Math.min(100, Math.round((subtotal / threshold) * 100)));
   const remaining = Math.max(0, threshold - subtotal);
 
   if (remaining > 0){
-    fsMsg.innerHTML = `Agrega <strong>${currency(remaining)}</strong> al carrito para conseguir Envío <strong>GRATIS</strong>.`;
+    fsMsg.innerHTML = `Agrega <strong>${currency(remaining)}</strong> al carrito para Envío <strong>GRATIS</strong>.`;
   } else {
-    fsMsg.innerHTML = `¡Genial! Aprovecha tu envío <strong>SIN COSTO</strong> y agrega más productos.`;
+    fsMsg.innerHTML = `¡Genial! Obtienes <strong>ENVÍO GRATIS</strong>.`;
     progress = 100;
   }
-
   fsBar.style.width = progress + '%';
   fsPill.classList.remove('is-red','is-amber','is-green');
   if (progress < 40) fsPill.classList.add('is-red');
   else if (progress < 100) fsPill.classList.add('is-amber');
   else fsPill.classList.add('is-green');
 
-  fsPill.classList.remove('hidden');
-  fsPill.classList.add('show');
+  // Mostrar como "toast" solo en acciones clave:
+  // - si el usuario acaba de agregar productos
+  // - si cambió la zona (veremos un trigger desde el listener de zone)
+  if (fsShowOnAdd) {
+    showFsToastOnce();
+    fsShowOnAdd = false; // consumir bandera
+  }
 }
 
 zone.addEventListener('change', () => {
   validateCheckout();
   updateCheckoutTotalPill();
+  fsShowOnAdd = true;           // ← fuerza mostrar el toast con la nueva info
   updateFreeShippingPromo();
 });
 
@@ -1268,6 +1304,10 @@ window.addEventListener('DOMContentLoaded', async () => {
     Array.from(cart.keys()).forEach(id => syncCardsQty(id));
     toggleContinueButton();
     updateFreeShippingPromo();   // estado inicial (si ya hay zona guardada)
+    if (zone.value && (cart.size > 0)) {
+      fsShowOnAdd = true;
+      updateFreeShippingPromo();
+    }
   } catch (e) {
     console.error(e);
   }

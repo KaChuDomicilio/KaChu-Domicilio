@@ -711,36 +711,40 @@ body.service-blocked{ overflow: hidden; }
   border-color: #e53e3e;
   box-shadow: 0 0 0 2px rgba(229,62,62,.12);
 }
-/* === Free Shipping Promo Pill === */
+/* === Free Shipping Toast (derecha→izquierda, sobre modales, sin bloquear clics) === */
 .fs-pill{
   position: fixed;
-  left: 50%;
-  bottom: 18px;
-  transform: translateX(-50%) scale(0.7);
+  right: 0;                   /* pegado a la orilla derecha */
+  top: 50%;                   /* a la altura del modal “Finalizar pedido” */
+  transform: translateY(-50%) translateX(24px); /* inicia apenas fuera de pantalla */
+  transform-origin: right center;
   background: #111827;
   color: #fff;
   padding: 10px 14px;
-  border-radius: 999px;
+  border-radius: 999px 0 0 999px; /* abre hacia la izquierda */
   box-shadow: 0 10px 30px rgba(0,0,0,.25);
-  max-width: min(92vw, 640px);
+  max-width: min(92vw, 520px);
   width: max-content;
   display: grid;
   gap: 8px;
   justify-items: center;
 
   opacity: 0;
-  clip-path: circle(0% at 50% 50%);
+  clip-path: inset(0 0 0 100% round 999px); /* totalmente cerrado desde la derecha */
   transition:
-    opacity .35s ease,
-    clip-path .45s cubic-bezier(.22,.61,.36,1),
-    transform .35s ease;
-  z-index: 4000;
+    opacity .25s ease,
+    transform .25s ease,
+    clip-path .45s cubic-bezier(.22,.61,.36,1);
+  z-index: 4000;             /* por encima del modal */
+  pointer-events: none;      /* ¡no bloquea clics! */
 }
+
 .fs-pill.show{
   opacity: 1;
-  clip-path: inset(0 round 999px);
-  transform: translateX(-50%) scale(1);
+  transform: translateY(-50%) translateX(0);
+  clip-path: inset(0 0 0 0 round 999px); /* expandido hacia la izquierda */
 }
+
 .fs-pill.hidden{ display:none; }
 
 .fs-msg{ font-size: .95rem; text-align:center; line-height:1.25; }
