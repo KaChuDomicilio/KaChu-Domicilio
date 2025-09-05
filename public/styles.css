@@ -715,7 +715,7 @@ body.service-blocked{ overflow: hidden; }
 .fs-pill{
   position: fixed;
   right: 0;                   /* pegado a la orilla derecha */
-  top: 50%;                   /* a la altura del modal “Finalizar pedido” */
+  top: 30%;                   /* a la altura del modal “Finalizar pedido” */
   transform: translateY(-50%) translateX(24px); /* inicia apenas fuera de pantalla */
   transform-origin: right center;
   background: #111827;

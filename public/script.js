@@ -56,7 +56,7 @@ let fsTimer = null;
 let fsLastText = '';
 let fsShowOnAdd = false; // bandera: mostrar cuando se agregó producto
 
-const FS_SHOW_MS = 10000; // tiempo visible
+const FS_SHOW_MS = 8000; // tiempo visible
 const FS_COOLDOWN_MS = 600; // margen para evitar parpadeos rápidos
 
 function showFsToastOnce() {
