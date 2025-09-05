@@ -102,7 +102,6 @@ function formatQty(qty, step){
 function getCardInfo(card){
   const name = card.querySelector('h3')?.textContent.trim() || '';
   const unit = parseMoney(card.querySelector('.price')?.textContent);
-  //const id = name; // mantenemos id = nombre (compatibilidad)
   const id = card.dataset.id || name; // usa id real si viene de la API
   const soldBy    = card.dataset.soldby || 'unit';
   const unitLabel = card.dataset.unitlabel || (soldBy==='weight' ? 'kg' : 'pza');
@@ -167,7 +166,6 @@ function loadCheckout(){
 }
 
 /* == 4) MOTOR DE PRECIOS (combos por kg/pza; cálculo de mejor precio) == */
-// ======= MOTOR DE PRECIOS (combos por kg y por pieza) =======
 function _num(v, d = 0){
   const n = parseFloat(String(v ?? '').toString().replace(',', '.'));
   return Number.isFinite(n) ? n : d;
@@ -203,10 +201,8 @@ function clampQtyToStepAndMin(qty, cfg){
 /** Calcula el mejor precio usando combos (si existen). Devuelve números crudos. */
 function computeBestPriceRaw(product, qtyRaw){
   const cfg = normalizePricingFromProduct(product);
-  // Aseguramos que la cantidad esté "snap" al step y respete minQty, PERO sin ajustar hacia arriba por combos
   const qty = clampQtyToStepAndMin(qtyRaw, cfg);
 
-  // Sin combos => precio lineal base (sin ajuste, sin desglose)
   const hasTiers = Array.isArray(cfg.tiers) && cfg.tiers.length > 0;
   if (!hasTiers){
     const total = +(qty * cfg.basePrice).toFixed(2);
@@ -217,8 +213,6 @@ function computeBestPriceRaw(product, qtyRaw){
     };
   }
 
-  // Con combos: resolvemos EXACTAMENTE N "pasos".
-  // Si NO hay combinación exacta, NO ajustamos hacia arriba: caemos a precio base.
   const step = cfg.step;
   const N = _toCount(qty, step);
 
@@ -250,7 +244,6 @@ function computeBestPriceRaw(product, qtyRaw){
     }
   }
 
-  // Si NO hay solución exacta, precio base sin ajuste de cantidad
   if (dp[N] === INF){
     const total = +(qty * cfg.basePrice).toFixed(2);
     return {
@@ -260,7 +253,6 @@ function computeBestPriceRaw(product, qtyRaw){
     };
   }
 
-  // Reconstrucción exacta
   const used = new Map();
   let k = N;
   while (k > 0){
@@ -279,16 +271,16 @@ function computeBestPriceRaw(product, qtyRaw){
   total = +total.toFixed(2);
 
   return {
-    qty,                 // 👈 ya no subimos cantidad
+    qty,
     requestedQty: qty,
     total,
     breakdown: breakdown.sort((a,b)=> a.qty - b.qty),
     pricingMode: 'combos',
-    adjusted: false      // 👈 nunca true (no hay ajuste hacia arriba)
+    adjusted: false
   };
 }
 
-// Wrapper por id (usa productsById); fallback a unit*qty si no hay producto indexado
+// Wrapper por id
 function bestPriceById(id, qty){
   const p = productsById.get(id);
   if (!p){
@@ -296,8 +288,6 @@ function bestPriceById(id, qty){
     const line = +((it?.unit || 0) * qty).toFixed(2);
     return { qty, requestedQty: qty, total: line, breakdown: [], pricingMode: 'base', adjusted: false };
   }
-
-  // Si el producto NO trae tiers embebidos, intenta usar los "legacy" de pricingById
   const hasEmbeddedTiers =
     (Array.isArray(p?.bundlePricing?.tiers) && p.bundlePricing.tiers.length) ||
     (Array.isArray(p?.kgPricing?.tiers) && p.kgPricing.tiers.length) ||
@@ -316,12 +306,9 @@ function bestPriceById(id, qty){
   }
   return computeBestPriceRaw(prod, qty);
 }
-// ======= FIN MOTOR DE PRECIOS =======
-
 
 /* == 5) CATEGORÍAS: selects y mapeos == */
-// --------- Categorías ---------
-let categoriesMap = null; // Map<string, string[]>
+let categoriesMap = null;
 
 function fillCategorySelectFromMap() {
   if (!categorySelect) return;
@@ -338,8 +325,7 @@ function fillSubcategorySelectFromMap(selectedCat) {
   subcategorySelect.disabled = subs.length === 0;
 }
 
-/* == 6) MODALES: abrir/cerrar y overlay transferencia == */
-// --------- Modales ---------
+/* == 6) MODALES == */
 btnTransferOK?.addEventListener('click', () => closeModal(modalTransfer));
 function openModal(modal){
   if (!modal) return;
@@ -357,8 +343,7 @@ function closeModal(modal){
   modal.inert = true;
 }
 
-/* == 7) UI: placeholder imagen, render de productos, “Agregar” == */
-// === Placeholder de imagen ===
+/* == 7) UI productos == */
 function svgPlaceholder(text = 'Sin foto') {
   const svg = `
     <svg xmlns="http://www.w3.org/2000/svg" width="120" height="120">
@@ -369,29 +354,25 @@ function svgPlaceholder(text = 'Sin foto') {
   return 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg);
 }
 
-// === Render de tarjetas de producto ===
 function renderProductGrid(products){
   if(!grid) return;
   const html = products.map(p => {
-    const id    = p.id || p.name;              // <-- id real si existe
+    const id    = p.id || p.name;
     const price = typeof p.price === 'number' ? p.price : parseFloat(p.price || 0);
     const img   = (p.image && String(p.image).trim()) ? p.image : svgPlaceholder('Sin foto');
     const cat   = p.category || '';
     const sub   = p.subcategory || '';
     const name  = p.name || '';
 
-    // Datos para peso/pieza
     const soldBy    = p.soldBy || 'unit';
     const unitLabel = p.unitLabel || (soldBy==='weight' ? 'kg' : 'pza');
     const step      = Number(p.step ?? (soldBy==='weight' ? 0.25 : 1));
     const minQty    = Number(p.minQty ?? step);
 
-    // (Legado)
     if (soldBy === 'weight' && p.kgPricing && Array.isArray(p.kgPricing.tiers)) {
       pricingById.set(name, { tiers: p.kgPricing.tiers });
     }
 
-    // Precio a mostrar
     let displayPrice = price;
     const allTiers =
       (Array.isArray(p?.bundlePricing?.tiers) && p.bundlePricing.tiers) ||
@@ -402,14 +383,13 @@ function renderProductGrid(products){
       if (t1) displayPrice = Number(t1.price) || price;
     }
 
-    // 🚫 Evitamos backticks anidados:
     const addLabel = (soldBy === 'weight')
       ? ('Agregar ' + formatQty(minQty, step) + ' ' + unitLabel)
       : 'Agregar';
 
     return (
       '<article class="card"' +
-        ' data-id="' + id + '"' +              // <-- AQUI
+        ' data-id="' + id + '"' +
         ' data-category="' + cat + '"' +
         ' data-subcategory="' + sub + '"' +
         ' data-soldby="' + soldBy + '"' +
@@ -429,7 +409,6 @@ function renderProductGrid(products){
   grid.innerHTML = html;
 }
 
-// Derivar filtros desde productos si no hay categorias.json
 function buildCategoryFilters(products){
   if (categoriesMap && categoriesMap.size) return;
   const cats = new Set();
@@ -458,7 +437,6 @@ function buildCategoryFilters(products){
   }
 }
 
-// Enlazar “Agregar” en cada tarjeta
 function bindAddButtons(){
   document.querySelectorAll('.card').forEach(card => {
     const addBtn = card.querySelector('.btn.add');
@@ -471,15 +449,14 @@ function bindAddButtons(){
   });
 }
 
-/* == 8) CARRITO: render, qty +/- y sincronización con cards == */
-// --------- Render del carrito ---------
+/* == 8) CARRITO == */
 function renderCart(){
   const items = Array.from(cart.values());
   cartList.innerHTML = '';
 
   let subtotal = 0;
   items.forEach(it=>{
-    const pricing = bestPriceById(it.id, it.qty);        // <-- motor de precios
+    const pricing = bestPriceById(it.id, it.qty);
     const line = pricing.total;
     subtotal += line;
 
@@ -505,14 +482,13 @@ function renderCart(){
       </div>
     `;
 
-    // Nota de combos (desglose)
     if (pricing.pricingMode === 'combos' && pricing.breakdown?.length){
       const unitLbl = (it.soldBy === 'weight') ? (it.unitLabel || 'kg') : 'pz';
       const parts = pricing.breakdown.map(b => `${b.times}×${b.qty} ${unitLbl} = $${b.price.toFixed(2)}`).join('  ·  ');
       const note = document.createElement('div');
       note.className = 'combo-note';
       note.style.cssText = 'font-size:.85rem;color:#64748b;margin-top:2px;';
-      //note.textContent = `Combos: ${parts}` + (pricing.adjusted ? ' (ajustado)' : '');
+      // note.textContent = `Combos: ${parts}`;
       li.appendChild(note);
     }
 
@@ -541,10 +517,9 @@ function renderCart(){
   }
   saveCart();
   updateCheckoutTotalPill();
-  updateFreeShippingPromo();   // <<< actualiza pastilla
+  updateFreeShippingPromo();
 }
 
-//Redimencionar ventana
 window.addEventListener('resize', () => {
   const needsScroll = (cartList.querySelectorAll('.cart-item').length > 4);
   cartList.classList.toggle('scroll', needsScroll);
@@ -556,7 +531,6 @@ window.addEventListener('resize', () => {
   }
 });
 
-// Vaciar carrito
 function clearCart() {
   if (!cart.size) return;
   if (!confirm('¿Vaciar todo el carrito?')) return;
@@ -568,7 +542,6 @@ function clearCart() {
   });
 }
 
-// Control qty en carrito (respeta step/minQty y soldBy)
 cartList.addEventListener('click', (e) => {
   const minus = e.target.closest('.cart-minus');
   const plus  = e.target.closest('.cart-plus');
@@ -617,8 +590,7 @@ cartList.addEventListener('click', (e) => {
   }
 });
 
-/* == 9) BOTONES EN TARJETAS: crear/alternar controles de cantidad == */
-// --------- Botones en tarjetas ---------
+/* == 9) BOTONES EN TARJETAS == */
 function createAddButton(card){
   const info = getCardInfo(card);
   const btn = document.createElement('button');
@@ -710,8 +682,7 @@ function syncCardsQty(id){
   });
 }
 
-/* == 10) FILTROS / BÚSQUEDA: aplicar y estados vacíos == */
-// --------- Filtros / búsqueda ---------
+/* == 10) FILTROS == */
 function showEmpty(msg){
   emptyState.textContent = msg;
   emptyState.classList.remove('hidden');
@@ -782,7 +753,6 @@ function applyFilters(){
 }
 
 /* == 11) CARGA: productos, categorías, zonas, servicio == */
-// --------- Carga de datos ---------
 async function loadCategories() {
   try {
     const { json } = await fetchFirstOk(API.categorias);
@@ -810,15 +780,13 @@ async function loadProducts() {
     const all = Array.isArray(json) ? json : (Array.isArray(json.products) ? json.products : []);
     if (!all.length) throw new Error('productos vacío o con formato inesperado');
 
-    // Normaliza "active"
     const normalized = all.map(p => ({ ...p, active: (p?.active === false ? false : true) }));
     const visible = normalized.filter(p => p.active);
 
-    // Indexar productos (clave: id || name) para motor de precios
     productsById.clear();
     visible.forEach(p => {
       const id = p.id || p.name;
-      p.id = id; // asegurar consistencia con id=nombre en tarjetas
+      p.id = id;
       productsById.set(id, p);
     });
 
@@ -842,6 +810,7 @@ async function loadProducts() {
   }
 }
 
+/* ******************  CORREGIDO  ****************** */
 async function loadZones() {
   try {
     const { url, json } = await fetchFirstOk(API.zonas);
@@ -861,17 +830,27 @@ async function loadZones() {
       throw new Error('zonas vacío o con formato inesperado');
     }
 
-    // Normaliza y guarda mapa (incluye umbral de envío gratis)
-    ZONES = zonas.map(z => ({
-      nombre: String(z.nombre ?? z.name ?? ''),
-      costo:  Number(z.costo ?? z.cost ?? z.price ?? 0),
-      freeShippingThreshold: Number(z.freeShippingThreshold ?? z.free_threshold ?? 0)
-    })).filter(z => z.nombre);
+    // ✅ Acepta 2 formatos:
+    // (A) nuevo panel: { nombre, costo, freeShipping: true, freeMin: 149 }
+    // (B) anterior:    { nombre, costo, freeShippingThreshold: 149 } o free_threshold
+    ZONES = zonas.map(z => {
+      const nombre = String(z.nombre ?? z.name ?? '');
+      const costo  = Number(z.costo ?? z.cost ?? z.price ?? 0);
+
+      const hasFlag = (z.freeShipping === true) || (z.envioGratis === true);
+      const minFlag = Number(z.freeMin ?? z.minimoGratis ?? 0);
+      const legacy  = Number(z.freeShippingThreshold ?? z.free_threshold ?? 0);
+
+      // Si viene el flag + mínimo válido, úsalo; si no, cae al legacy; si no, 0
+      const threshold = hasFlag && minFlag > 0 ? minFlag : (legacy > 0 ? legacy : 0);
+
+      return { nombre, costo, freeShippingThreshold: threshold };
+    }).filter(z => z.nombre);
 
     zonesByName.clear();
     ZONES.forEach(z => zonesByName.set(z.nombre, { cost: z.costo, threshold: z.freeShippingThreshold }));
 
-    // Pinta el select (agregamos data-th en cada opción)
+    // Pinta el select con data-th correcto
     zone.innerHTML = [
       '<option value="">Selecciona una zona…</option>',
       ...ZONES.map(z =>
@@ -885,7 +864,8 @@ async function loadZones() {
     console.warn('loadZones()', e);
     ZONES = [
       { nombre: 'Montecarlo', costo: 15, freeShippingThreshold: 149 },
-      { nombre: 'Haciendas',  costo: 20, freeShippingThreshold: 199 }
+      { nombre: 'Haciendas',  costo: 20, freeShippingThreshold: 0 },
+      { nombre: 'Privadas del Roble', costo: 25, freeShippingThreshold: 0 },
     ];
     zonesByName.clear();
     ZONES.forEach(z => zonesByName.set(z.nombre, { cost: z.costo, threshold: z.freeShippingThreshold }));
@@ -899,6 +879,7 @@ async function loadZones() {
     ].join('');
   }
 }
+/* ************************************************** */
 
 async function loadServiceStatus(){
   try{
@@ -914,8 +895,7 @@ async function loadServiceStatus(){
   }
 }
 
-/* == 12) EVENTOS GLOBALES: selects, modales y validaciones == */
-// --------- Eventos globales ---------
+/* == 12) EVENTOS GLOBALES == */
 categorySelect.addEventListener('change', () => {
   if (categoriesMap && categoriesMap.size && categorySelect.value) {
     fillSubcategorySelectFromMap(categorySelect.value);
@@ -932,7 +912,6 @@ btnCart.addEventListener('click', () => {
   toggleContinueButton();
 });
 
-// <<< reset de aviso al abrir checkout >>>
 let transferNoticeShown = false;
 
 btnContinue.addEventListener('click', () => {
@@ -942,7 +921,6 @@ btnContinue.addEventListener('click', () => {
   openModal(modalCheckout);
 });
 
-// Confirmación post-WhatsApp
 btnConfirmNo?.addEventListener('click', () => closeModal(modalConfirm));
 btnConfirmYes?.addEventListener('click', () => {
   if (typeof clearCart === 'function') clearCart();
@@ -970,7 +948,7 @@ checkoutForm.addEventListener('change', validateCheckout);
 checkoutForm.addEventListener('input', saveCheckout);
 checkoutForm.addEventListener('change', saveCheckout);
 
-// —— Aviso de Transferencia SOLO al seleccionar ese radio ——
+// Aviso Transferencia
 function attachTransferNotice() {
   if (!checkoutForm) return;
   const radios = checkoutForm.querySelectorAll('input[name="pay"]');
@@ -1041,14 +1019,13 @@ function updateFreeShippingPromo(){
   fsPill.classList.add('show');
 }
 
-// Actualizar al cambiar zona
 zone.addEventListener('change', () => {
   validateCheckout();
   updateCheckoutTotalPill();
   updateFreeShippingPromo();
 });
 
-/* == 13) WHATSAPP: ticket y envío == */
+/* == 13) WHATSAPP == */
 checkoutForm.addEventListener('submit', (e) => {
   e.preventDefault();
   validateCheckout();
@@ -1056,7 +1033,7 @@ checkoutForm.addEventListener('submit', (e) => {
     checkoutForm.reportValidity();
     return;
   }
-  const items = getCartItemsDetailed(); // usa bestPriceById() en computeLineTotal
+  const items = getCartItemsDetailed();
   const subtotal = items.reduce((acc, it)=> acc + it.line, 0);
 
   const { name: zoneName } = getSelectedZoneInfo();
@@ -1090,7 +1067,6 @@ checkoutForm.addEventListener('submit', (e) => {
   openModal(modalConfirm);
 });
 
-// Devuelve items del carrito con línea calculada (tiered-aware)
 function getCartItemsDetailed(){
   const items = [];
   for (const it of cart.values()){
@@ -1099,7 +1075,7 @@ function getCartItemsDetailed(){
       name: it.name,
       unit: Number(it.unit),
       qty: Number(it.qty),
-      line: bestPriceById(it.id, it.qty).total, // total usando motor
+      line: bestPriceById(it.id, it.qty).total,
       soldBy: it.soldBy,
       unitLabel: it.unitLabel,
       step: it.step
@@ -1177,13 +1153,13 @@ const STORE_WHATSAPP = '528135697787';
 function openWhatsAppWithMessage(text){
   const base = STORE_WHATSAPP
     ? `https://wa.me/${STORE_WHATSAPP}?text=`
+// eslint-disable-next-line no-useless-escape
     : `https://wa.me/?text=`;
   const url = base + encodeURIComponent(text);
   window.open(url, '_blank', 'noopener');
 }
 
-/* == 14) CHECKOUT: habilitar/deshabilitar, botón continuar == */
-// Control de “Continuar”
+/* == 14) CHECKOUT == */
 function toggleContinueButton(){
   const items = cartList.querySelectorAll('.cart-item').length;
   btnContinue.disabled = items === 0;
@@ -1251,15 +1227,13 @@ function updateCheckoutTotalPill(){
   checkoutTotalPill.textContent = `Total: $${totalDue.toFixed(2)}`;
 }
 
-// Cambios de campos del checkout (mostrar efectivo, etc.)
 checkoutForm.addEventListener('change', () => {
   const pay = checkoutForm.querySelector('input[name="pay"]:checked')?.value;
   cashField.classList.toggle('hidden', pay !== 'Efectivo');
   validateCheckout();
 });
 
-/* == 15) INIT: arranque general, servicio, cargas, FABs, overlay == */
-// --------- INIT ---------
+/* == 15) INIT == */
 window.addEventListener('DOMContentLoaded', async () => {
   (function fixTopbarOffset(){
     const topbar = document.querySelector('.topbar');
@@ -1299,7 +1273,7 @@ window.addEventListener('DOMContentLoaded', async () => {
   }
 });
 
-// ===== Social FABs =====
+/* == Social FABs == */
 (function(){
   function closeAll(except=null){
     document.querySelectorAll('.social-fabs .fab').forEach(f=>{
@@ -1347,7 +1321,6 @@ window.addEventListener('DOMContentLoaded', async () => {
 })();
 
 /* == 16) OVERLAY SERVICIO OFF == */
-// Overlay de servicio OFF
 function showServiceOverlay({ message, image }){
   const overlay = document.createElement('div');
   overlay.className = 'service-overlay';
