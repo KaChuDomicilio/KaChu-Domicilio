@@ -721,7 +721,7 @@ body.service-blocked{ overflow: hidden; }
   background: #111827;
   color: #fff;
   padding: 10px 14px;
-  border-radius: 999px 0 0 999px; /* abre hacia la izquierda */
+  border-radius: 8px 0 0 8px; /* abre hacia la izquierda */
   box-shadow: 0 10px 30px rgba(0,0,0,.25);
   max-width: min(92vw, 520px);
   width: max-content;
