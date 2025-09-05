@@ -721,7 +721,7 @@ body.service-blocked{ overflow: hidden; }
   background: #111827;
   color: #fff;
   padding: 10px 14px;
-  border-radius: 8px 0 0 8px; /* abre hacia la izquierda */
+  border-radius: 999px 0 0 999px; /* abre hacia la izquierda */
   box-shadow: 0 10px 30px rgba(0,0,0,.25);
   max-width: min(92vw, 520px);
   width: max-content;
@@ -730,7 +730,7 @@ body.service-blocked{ overflow: hidden; }
   justify-items: center;
 
   opacity: 0;
-  clip-path: inset(0 0 0 100% round 999px); /* totalmente cerrado desde la derecha */
+  clip-path: inset(0 0 0 100%); /* totalmente cerrado desde la derecha */
   transition:
     opacity .25s ease,
     transform .25s ease,
@@ -742,7 +742,7 @@ body.service-blocked{ overflow: hidden; }
 .fs-pill.show{
   opacity: 1;
   transform: translateY(-50%) translateX(0);
-  clip-path: inset(0 0 0 0 round 999px); /* expandido hacia la izquierda */
+  clip-path: inset(0 0 0 0); /* expandido hacia la izquierda */
 }
 
 .fs-pill.hidden{ display:none; }
