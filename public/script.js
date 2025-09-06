@@ -87,10 +87,10 @@ const zonesByName = new Map();          // nombre -> { cost, threshold }
 /* == 2) CARGA DE DATOS: Endpoints + fetch con fallback == */
 // --- API primero; estáticos como respaldo ---
 const API = {
-  productos:  ['/api/data/productos',  '/public/data/productos.json',  '/data/productos.json',  'productos.json'],
-  categorias: ['/api/data/categorias', '/public/data/categorias.json', '/data/categorias.json', 'categorias.json'],
-  zonas:      ['/api/data/zonas',      '/public/data/zonas.json',      '/data/zonas.json',      'zonas.json'],
-  servicio:   ['/api/data/servicio',   '/public/data/servicio.json',   '/data/servicio.json',   'servicio.json'],
+  productos:  ['/api/data/productos', '/data/productos.json'],
+  categorias: ['/api/data/categorias', '/data/categorias.json'],
+  zonas:      ['/api/data/zonas',      '/data/zonas.json'],
+  servicio:   ['/api/data/servicio',   '/data/servicio.json'],
 };
 
 // fetch sin caché
