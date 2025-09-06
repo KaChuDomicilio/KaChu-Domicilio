@@ -809,28 +809,74 @@ async function loadCategories() {
 
 async function loadProducts() {
   try {
-    const { url, json } = await fetchFirstOk(API.productos);
-    const all = Array.isArray(json) ? json : (Array.isArray(json.products) ? json.products : []);
-    if (!all.length) throw new Error('productos vacío o con formato inesperado');
+    // Intentar todas las URLs y quedarnos con la lista más completa
+    const urls = API.productos;
+    const results = await Promise.allSettled(urls.map(u => fetchNoCache(u).then(r => r.ok ? r.json() : Promise.reject())));
+    
+    // Extrae arrays válidos
+    const arrays = results
+      .map(r => (r.status === 'fulfilled' ? r.value : null))
+      .filter(Boolean)
+      .map(json => Array.isArray(json) ? json : (Array.isArray(json.products) ? json.products : []))
+      .filter(arr => Array.isArray(arr));
 
-    const normalized = all.map(p => ({ ...p, active: (p?.active === false ? false : true) }));
+    if (!arrays.length) throw new Error('No se pudo leer productos desde ninguna fuente');
+
+    // Merge por id (o name si no hay id)
+    const byId = new Map();
+    const dupes = new Set();
+
+    const toBoolActive = (v) => {
+      // Normaliza active: false/0/"0"/"false" => false
+      if (v === false) return false;
+      if (v === 0) return false;
+      if (typeof v === 'string') {
+        const s = v.trim().toLowerCase();
+        if (s === '0' || s === 'false' || s === 'no') return false;
+      }
+      return true; // default
+    };
+
+    arrays.forEach(list => {
+      list.forEach(raw => {
+        const id = (raw.id ?? raw.name)?.toString() ?? '';
+        if (!id) return;
+
+        // Si ya existe, lo marcamos como duplicado para revisión
+        if (byId.has(id)) dupes.add(id);
+
+        // Clona y normaliza lo mínimo
+        const p = { ...raw };
+        p.id = id;
+        // Asegura active consistente
+        p.active = toBoolActive(p.active);
+
+        byId.set(id, p);
+      });
+    });
+
+    const all = Array.from(byId.values());
+    const normalized = all.map(p => ({ ...p, active: (p.active !== false) }));
     const visible = normalized.filter(p => p.active);
 
+    // Índice y render
     productsById.clear();
-    visible.forEach(p => {
-      const id = p.id || p.name;
-      p.id = id;
-      productsById.set(id, p);
-    });
+    visible.forEach(p => productsById.set(p.id, p));
 
     renderProductGrid(visible);
     buildCategoryFilters(visible);
     bindAddButtons();
     applyFilters();
 
-    console.info('Productos desde:', url, '| Total:', all.length, '| Activos:', visible.length);
+    console.info(
+      'Productos (merge) | Fuentes OK:', arrays.length,
+      '| Total:', all.length,
+      '| Activos:', visible.length,
+      dupes.size ? `| Duplicados id: ${Array.from(dupes).slice(0,5).join(', ')}${dupes.size>5?'…':''}` : ''
+    );
   } catch (e) {
-    console.error('loadProducts()', e);
+    console.error('loadProducts() merge error', e);
+    // Fallback de demostración (tu bloque demo existente)
     const demo = [
       { id:'Coca-Cola 2.5lt Retornable', name: 'Coca-Cola 2.5lt Retornable', price: 40, category: 'Sodas', subcategory: 'Coca-Cola', image: 'https://via.placeholder.com/120', active: true, soldBy:'unit' },
       { id:'Coca-Cola 1.5lt Retornable', name: 'Coca-Cola 1.5lt Retornable', price: 28, category: 'Sodas', subcategory: 'Coca-Cola', image: 'https://via.placeholder.com/120', active: true, soldBy:'unit' }
