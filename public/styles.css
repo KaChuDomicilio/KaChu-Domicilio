@@ -772,3 +772,20 @@ body.service-blocked{ overflow: hidden; }
 @media (max-width: 480px){
   .fs-msg{ font-size: .9rem; }
 }
+/* Botón cuando el producto está visible pero no disponible */
+.btn.add.unavailable{
+  background: #f59e0b;       /* naranja */
+  color: #111827;
+  cursor: not-allowed;
+  box-shadow: none;
+  opacity: 0.95;
+}
+.card.is-unavailable .price{
+  opacity: .75;
+}
+
+/* Por accesibilidad, al enfocarlo no debe parecer accionable */
+.btn.add.unavailable:focus{
+  outline: 2px dashed rgba(245,158,11,.6);
+  outline-offset: 2px;
+}

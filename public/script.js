@@ -87,10 +87,10 @@ const zonesByName = new Map();          // nombre -> { cost, threshold }
 /* == 2) CARGA DE DATOS: Endpoints + fetch con fallback == */
 // --- API primero; estáticos como respaldo ---
 const API = {
-  productos:  ['/api/data/productos', '/data/productos.json'],
-  categorias: ['/api/data/categorias', '/data/categorias.json'],
-  zonas:      ['/api/data/zonas',      '/data/zonas.json'],
-  servicio:   ['/api/data/servicio',   '/data/servicio.json'],
+  productos:  ['/api/data/productos'],
+  categorias: ['/api/data/categorias'],
+  zonas:      ['/api/data/zonas'],
+  servicio:   ['/api/data/servicio'],
 };
 
 // fetch sin caché
@@ -388,21 +388,19 @@ function renderProductGrid(products){
   if(!grid) return;
   const html = products.map(p => {
     const id    = p.id || p.name;
-    const price = typeof p.price === 'number' ? p.price : parseFloat(p.price || 0);
+    const price = Number(p.price || 0);
     const img   = (p.image && String(p.image).trim()) ? p.image : svgPlaceholder('Sin foto');
     const cat   = p.category || '';
     const sub   = p.subcategory || '';
     const name  = p.name || '';
-
     const soldBy    = p.soldBy || 'unit';
     const unitLabel = p.unitLabel || (soldBy==='weight' ? 'kg' : 'pza');
     const step      = Number(p.step ?? (soldBy==='weight' ? 0.25 : 1));
     const minQty    = Number(p.minQty ?? step);
 
-    if (soldBy === 'weight' && p.kgPricing && Array.isArray(p.kgPricing.tiers)) {
-      pricingById.set(name, { tiers: p.kgPricing.tiers });
-    }
+    const isAvailable = (p.active !== false); // ← aquí está la regla
 
+    // (tu cálculo displayPrice igual que antes)
     let displayPrice = price;
     const allTiers =
       (Array.isArray(p?.bundlePricing?.tiers) && p.bundlePricing.tiers) ||
@@ -413,12 +411,18 @@ function renderProductGrid(products){
       if (t1) displayPrice = Number(t1.price) || price;
     }
 
-    const addLabel = (soldBy === 'weight')
-      ? ('Agregar ' + formatQty(minQty, step) + ' ' + unitLabel)
-      : 'Agregar';
+    // Botón/estado segun disponibilidad
+    const addLabel = isAvailable
+      ? (soldBy === 'weight'
+          ? ('Agregar ' + formatQty(minQty, step) + ' ' + unitLabel)
+          : 'Agregar')
+      : 'No disponible';
+
+    const addClasses = isAvailable ? 'btn add' : 'btn add unavailable';
+    const addAttrs   = isAvailable ? '' : ' aria-disabled="true" data-unavailable="1"';
 
     return (
-      '<article class="card"' +
+      '<article class="card' + (isAvailable ? '' : ' is-unavailable') + '"' +
         ' data-id="' + id + '"' +
         ' data-category="' + cat + '"' +
         ' data-subcategory="' + sub + '"' +
@@ -426,12 +430,13 @@ function renderProductGrid(products){
         ' data-unitlabel="' + unitLabel + '"' +
         ' data-step="' + step + '"' +
         ' data-minqty="' + minQty + '"' +
+        (isAvailable ? '' : ' data-available="0"') +
       '>' +
         '<img src="' + img + '" alt="' + name.replace(/"/g, '&quot;') + '">' +
         '<div class="info">' +
           '<h3>' + name + '</h3>' +
           '<p class="price">$' + Number(displayPrice).toFixed(2) + '</p>' +
-          '<button class="btn add">' + addLabel + '</button>' +
+          '<button class="' + addClasses + '"' + addAttrs + '>' + addLabel + '</button>' +
         '</div>' +
       '</article>'
     );
@@ -471,6 +476,13 @@ function bindAddButtons(){
   document.querySelectorAll('.card').forEach(card => {
     const addBtn = card.querySelector('.btn.add');
     if (!addBtn || addBtn.dataset.bound === '1') return;
+
+    // Si el producto está marcado como no disponible, no enlazar evento
+    if (addBtn.classList.contains('unavailable') || card.dataset.available === '0') {
+      addBtn.disabled = true; // por si acaso
+      return;
+    }
+
     addBtn.dataset.bound = '1';
     addBtn.addEventListener('click', () => {
       const info = getCardInfo(card);
@@ -679,10 +691,12 @@ function createQtyControl(card, qty){
 
 function switchToQtyControl(card, startQty = 1, addToCart = false){
   const info = getCardInfo(card);
+  const prod = productsById.get(info.id);
+  if (prod && prod.active === false) return; // ← no permitir
+
   const start = addToCart ? info.minQty : (cart.get(info.id)?.qty || info.minQty);
   if (addToCart) {
     cart.set(info.id, { ...info, qty: start });
-    fsShowOnAdd = true;
     renderCart();
   }
   const addBtn = card.querySelector('.btn.add');
@@ -857,7 +871,7 @@ async function loadProducts() {
 
     const all = Array.from(byId.values());
     const normalized = all.map(p => ({ ...p, active: (p.active !== false) }));
-    const visible = normalized.filter(p => p.active);
+    const visible = normalized;
 
     // Índice y render
     productsById.clear();
