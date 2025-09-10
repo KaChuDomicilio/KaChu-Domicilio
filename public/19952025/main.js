@@ -1,6 +1,7 @@
 // === KaChu Panel (ADMIN) – main.js ===
 // Estructura: 0) Helpers/UI refs  1) Servicio  2) Productos  3) Zonas
-// 4) Categorías/Subcategorías  5) Modales (open/close + fondo)  6) Toast/Escape
+// 4) Categorías/Subcategorías  5) Modales (open/close + fondo)
+// 6) Vaciar subcategoría + Toast + ESC
 
 /* ────────────────────────────────────────────────────────────────────────── */
 /* 0) HELPERS Y REFERENCIAS                                                   */
@@ -37,7 +38,7 @@ async function apiPut(url, data) {
 }
 
 /* ────────────────────────────────────────────────────────────────────────── */
-/* 0.1) UI REFS                                                             */
+/* 0.1) UI REFS                                                               */
 /* ────────────────────────────────────────────────────────────────────────── */
 
 // Menú lateral
@@ -128,7 +129,7 @@ let   comboRows        = []; // [{qty, price}]
 
 // Productos – edición
 const modalEditProd       = $('#modalEditProd');
-const btnCerrarEditarProd = $('#btnCerrarEditarProd'); // ⬅️ import.
+const btnCerrarEditarProd = $('#btnCerrarEditarProd');
 const editProdName        = $('#editProdName');
 const editProdPrice       = $('#editProdPrice');
 const editProdCategory    = $('#editProdCategory');
@@ -164,7 +165,7 @@ const API_ZONAS = '/api/data/zonas';
 const API_CATEGORIAS = '/api/data/categorias';
 
 // Estado en memoria
-let productsCache   = []; // {id,name,price,category,subcategory,image,active, soldBy, step, minQty, kgPricing?, bundlePricing?}
+let productsCache   = []; // {id,name,price,category,subcategory,image,active,soldBy,step,minQty,kgPricing?,bundlePricing?}
 let categoriesCache = []; // {name, subcategories[]}
 let selectedCat     = '';
 let toastTimer      = null;
@@ -413,7 +414,7 @@ inputProdPrice?.addEventListener('blur', () => {
   if (Number.isFinite(n) && n > 0) inputProdPrice.value = n.toFixed(2);
 });
 
-// VALIDACIÓN (alta) – **subcategoría opcional si el select está deshabilitado**
+// VALIDACIÓN (alta) – subcategoría opcional si el select está deshabilitado
 function validarFormProducto(){
   const nameOk = normalizeStr(inputProdName.value).length > 0;
   const isCombos = (inputPricingMode?.value === 'combos');
@@ -422,7 +423,6 @@ function validarFormProducto(){
   const catOk  = normalizeStr(selProdCategory.value).length > 0;
   const subOk  = selProdSubcategory.disabled ? true : (normalizeStr(selProdSubcategory.value).length > 0);
 
-  // step/min según unidad
   const isWeight = inputProdUnit.value === 'weight';
   const stepVal = numeroDesdeTexto(inputProdStep.value);
   const minVal  = numeroDesdeTexto(inputProdMinQty.value);
@@ -476,10 +476,26 @@ btnGuardarProducto?.addEventListener('click', async (e) => {
       soldBy: unit,
       step: Number.isFinite(step) && step > 0 ? step : (unit === 'weight' ? 0.25 : 1),
       minQty: Number.isFinite(minQty) && minQty > 0 ? minQty : (unit === 'weight' ? 0.25 : 1),
-      // Persistimos el modo de precio “panel”
-      pricingMode,
-      priceCombos
     };
+
+    // Persistimos combos modernos
+    if (pricingMode === 'combos') {
+      const tiersSorted = priceCombos
+        .map(t => ({ qty: +t.qty, price: +Number(t.price).toFixed(2) }))
+        .filter(t => t.qty > 0 && t.price > 0)
+        .sort((a,b) => a.qty - b.qty);
+
+      if (unit === 'weight') producto.kgPricing = { tiers: tiersSorted };
+      else                   producto.bundlePricing = { tiers: tiersSorted };
+
+      producto.pricingMode = 'combos';
+      producto.priceCombos = tiersSorted; // opcional (legacy)
+    } else {
+      producto.pricingMode = 'base';
+      producto.priceCombos = [];
+      delete producto.kgPricing;
+      delete producto.bundlePricing;
+    }
 
     if (!productsCache.length) {
       const payload = await apiGet(API_PRODUCTOS).catch(() => ({ products: [] }));
@@ -596,7 +612,7 @@ function attachProductosFilterListeners(){
   });
 }
 
-// Activar/desactivar
+// Activar/desactivar (por producto)
 tablaProductosBody?.addEventListener('change', async (e) => {
   const chk = e.target.closest('.prod-active');
   if (!chk) return;
@@ -658,13 +674,20 @@ function fillEditCatAndSub(catSel, subSel, selectedCat = '', selectedSub = ''){
   subSel.value = (selectedSub && subs.includes(selectedSub)) ? selectedSub : (subs[0] || '');
 }
 function loadCombosFromProduct(producto) {
+  // Fuente según unidad
+  let tiers = [];
   if (editProdUnit.value === 'weight') {
-    const tiers = producto?.kgPricing?.tiers;
-    editCombos = Array.isArray(tiers) ? tiers.map(t => ({ qty: +t.qty, price: +t.price })) : [];
+    tiers = producto?.kgPricing?.tiers || [];
   } else {
-    const tiers = producto?.bundlePricing?.tiers;
-    editCombos = Array.isArray(tiers) ? tiers.map(t => ({ qty: +t.qty, price: +t.price })) : [];
+    tiers = producto?.bundlePricing?.tiers || [];
   }
+  // Fallback legacy
+  if ((!tiers || tiers.length === 0) && Array.isArray(producto?.priceCombos)) {
+    tiers = producto.priceCombos;
+  }
+  editCombos = Array.isArray(tiers)
+    ? tiers.map(t => ({ qty: +t.qty, price: +t.price }))
+    : [];
   editHasCombos.checked = editCombos.length > 0;
   showCombosUI(editHasCombos.checked);
   renderCombosRows();
@@ -735,6 +758,18 @@ function combosAreValid() {
     return qtyOk && priceOk;
   });
 }
+editHasCombos?.addEventListener('change', () => {
+  showCombosUI(editHasCombos.checked);
+  if (!editHasCombos.checked) { editCombos = []; renderCombosRows(); }
+  validateEditProdForm();
+});
+btnAddComboRow?.addEventListener('click', () => {
+  const def = editProdUnit.value === 'weight'
+    ? (parseFloat(editProdStep.value) || 0.5)
+    : 1;
+  editCombos.push({ qty: def, price: '' });
+  renderCombosRows(); validateEditProdForm();
+});
 
 function openProductEditModal(producto) {
   editingProdId = producto.id;
@@ -777,7 +812,10 @@ editProdPrice?.addEventListener('blur', () => {
   const n = parseFloat(String(editProdPrice.value || '').replace(',', '.'));
   if (Number.isFinite(n) && n >= 0) editProdPrice.value = n.toFixed(2);
 });
-editProdCategory?.addEventListener('change', () => { fillEditCatAndSub(editProdCategory, editProdSubcategory, editProdCategory.value, ''); validateEditProdForm(); });
+editProdCategory?.addEventListener('change', () => {
+  fillEditCatAndSub(editProdCategory, editProdSubcategory, editProdCategory.value, '');
+  validateEditProdForm();
+});
 editProdSubcategory?.addEventListener('change', validateEditProdForm);
 
 // Guardar edición
@@ -828,13 +866,11 @@ btnSaveEditProd?.addEventListener('click', async () => {
   }
 });
 
-// ⬅️ FIX: cerrar con “✕” en Editar producto
+// Cerrar edición
 btnCerrarEditarProd?.addEventListener('click', () => cerrarModal(modalEditProd));
-
-// Cerrar con “Cancelar” en Editar producto
 btnCancelEditProd?.addEventListener('click', (e) => {
-  e.preventDefault();           // por si está dentro de <form>
-  cerrarModal(modalEditProd);   // reutiliza tu helper
+  e.preventDefault();
+  cerrarModal(modalEditProd);
 });
 
 // INIT productos
@@ -870,18 +906,26 @@ else bootProductosPanel();
 /* ────────────────────────────────────────────────────────────────────────── */
 
 function numeroDesdeTextoZona(v) { if (typeof v !== 'string') return NaN; return parseFloat(v.replace(',', '.')); }
+
+// (Unificada) Validación de zona con campos de envío gratis
 function validarFormZona() {
   const nombreOk = !!(inputNombreZona && inputNombreZona.value.trim().length > 0);
   const costoVal = numeroDesdeTextoZona(inputCostoZona ? inputCostoZona.value.trim() : '');
   const costoOk  = Number.isFinite(costoVal) && costoVal >= 0;
-  const habilitar = nombreOk && costoOk;
+  let freeOk = true;
+  if (chkZonaFree?.checked) {
+    const minVal = numeroDesdeTextoZona(inputFreeMin?.value.trim() || '');
+    freeOk = Number.isFinite(minVal) && minVal > 0;
+  }
+  const habilitar = nombreOk && costoOk && freeOk;
   btnGuardarZona.disabled = !habilitar;
   btnGuardarZona.setAttribute('aria-disabled', String(!habilitar));
 }
-function prepararFormZona() { inputNombreZona.value = ''; inputCostoZona.value  = ''; validarFormZona(); }
+function prepararFormZona() { inputNombreZona.value = ''; inputCostoZona.value  = ''; inputFreeMin.value=''; chkZonaFree.checked=false; inputFreeMin.disabled = true; validarFormZona(); }
 inputNombreZona?.addEventListener('input', validarFormZona);
 inputCostoZona?.addEventListener('input', validarFormZona);
 
+// Abrir modal (+)
 btnAgregar?.addEventListener('click', () => {
   menuOpciones.style.display = 'block';
   formZona.style.display     = 'none';
@@ -893,45 +937,28 @@ btnZona?.addEventListener('click', () => { menuOpciones.style.display = 'none'; 
 btnCancelarZona?.addEventListener('click', (e) => { e.preventDefault(); menuOpciones.style.display = 'block'; formZona.style.display = 'none'; prepararFormZona(); });
 
 btnGuardarZona?.addEventListener('click', async (e) => {
-  e.preventDefault(); if (btnGuardarZona.disabled) return;
+  e.preventDefault();
+  if (btnGuardarZona.disabled) return;
   const nombre = inputNombreZona.value.trim();
   const costo  = numeroDesdeTextoZona(inputCostoZona.value.trim());
+  const freeShipping = !!chkZonaFree.checked;
+  const freeMin = freeShipping ? +(numeroDesdeTextoZona(inputFreeMin.value.trim()) || 0).toFixed(2) : null;
   try {
     const zonas = await apiGet(API_ZONAS).catch(() => []);
-    if (zonas.some(z => z.nombre.toLowerCase() === nombre.toLowerCase())) return mostrarToast('Esa zona ya existe');
-    zonas.push({ nombre, costo: +Number(costo).toFixed(2) });
+    if (zonas.some(z => z.nombre.toLowerCase() === nombre.toLowerCase()))
+      return mostrarToast('Esa zona ya existe');
+    zonas.push({ nombre, costo: +Number(costo).toFixed(2), freeShipping, freeMin });
     await apiPut(API_ZONAS, zonas);
     mostrarToast('Zona guardada');
-    inputNombreZona.value = ''; inputCostoZona.value = ''; btnGuardarZona.disabled = true;
+    prepararFormZona();
     if (modalZonas && !modalZonas.classList.contains('oculto')) await cargarZonasEnTabla();
   } catch (err) { console.error(err); mostrarToast('Error al guardar zona'); }
 });
+
 btnAbrirZonas?.addEventListener('click', async () => { cerrarMenu(); await cargarZonasEnTabla(); abrirModal(modalZonas); });
 btnCerrarZonas?.addEventListener('click', () => cerrarModal(modalZonas));
 btnCerrarEditarZona?.addEventListener('click', () => cerrarModal(modalEditarZona));
-
-btnGuardarZonaEditada?.addEventListener('click', async (e) => {
-  e.preventDefault();
-  const original = modalEditarZona.dataset.original || '';
-  const nuevoNombre = editNombreZona.value.trim();
-  const nuevoCosto  = numeroDesdeTextoZona(editCostoZona.value.trim());
-  try {
-    const zonas = await apiGet(API_ZONAS);
-    const idx = zonas.findIndex(z => z.nombre === original);
-    if (idx === -1) return mostrarToast('No se encontró la zona');
-    if (nuevoNombre.toLowerCase() !== original.toLowerCase() && zonas.some(z => z.nombre.toLowerCase() === nuevoNombre.toLowerCase())) {
-      return mostrarToast('Ya existe una zona con ese nombre');
-    }
-    zonas[idx] = { nombre: nuevoNombre, costo: +Number(nuevoCosto).toFixed(2) };
-    await apiPut(API_ZONAS, zonas);
-    cerrarModal(modalEditarZona);
-    await cargarZonasEnTabla();
-    mostrarToast('Zona actualizada');
-  } catch (err) { console.error(err); mostrarToast('Error al actualizar zona'); }
-});
-btnCancelarEditarZona?.addEventListener('click', (e) => {
-  e.preventDefault(); cerrarModal(modalEditarZona); if (modalZonas && modalZonas.classList.contains('oculto')) abrirModal(modalZonas);
-});
+btnCancelarEditarZona?.addEventListener('click', (e) => { e.preventDefault(); cerrarModal(modalEditarZona); if (modalZonas && modalZonas.classList.contains('oculto')) abrirModal(modalZonas); });
 
 async function cargarZonasEnTabla() {
   const zonas = await apiGet(API_ZONAS).catch(() => []);
@@ -950,20 +977,29 @@ async function cargarZonasEnTabla() {
   });
   return zonas;
 }
+
+// Clicks en tabla de zonas (unificado: editar + eliminar)
 tablaZonasBody?.addEventListener('click', async (e) => {
   const tr = e.target.closest('tr'); if (!tr) return;
   const nombreOriginal = tr.dataset.nombre;
+
   if (e.target.closest('.btn-edit')) {
     try {
       const zonas = await apiGet(API_ZONAS);
       const z = zonas.find(x => x.nombre === nombreOriginal);
       if (!z) return;
-      editNombreZona.value = z.nombre; editCostoZona.value = Number(z.costo).toFixed(2);
+      editNombreZona.value = z.nombre;
+      editCostoZona.value = Number(z.costo).toFixed(2);
+      // Campos de envío gratis
+      editChkZonaFree.checked = !!z.freeShipping;
+      editFreeMin.disabled = !editChkZonaFree.checked;
+      editFreeMin.value = z.freeMin ? Number(z.freeMin).toFixed(2) : '';
       modalEditarZona.dataset.original = nombreOriginal;
       abrirModal(modalEditarZona);
     } catch (err) { console.error(err); mostrarToast('Error al cargar zona'); }
     return;
   }
+
   if (e.target.closest('.btn-eliminar')) {
     if (!confirm(`¿Eliminar la zona "${nombreOriginal}"?`)) return;
     try {
@@ -975,57 +1011,8 @@ tablaZonasBody?.addEventListener('click', async (e) => {
     } catch (err) { console.error(err); mostrarToast('Error al eliminar zona'); }
   }
 });
-// Refs nuevos
-const chkZonaFree   = $('#chkZonaFree');
-const inputFreeMin  = $('#inputFreeMin');
-const editChkZonaFree = $('#editChkZonaFree');
-const editFreeMin     = $('#editFreeMin');
 
-// Habilitar/deshabilitar input según checkbox
-chkZonaFree?.addEventListener('change', () => {
-  inputFreeMin.disabled = !chkZonaFree.checked;
-  validarFormZona();
-});
-editChkZonaFree?.addEventListener('change', () => {
-  editFreeMin.disabled = !editChkZonaFree.checked;
-});
-
-// Validación extendida
-function validarFormZona() {
-  const nombreOk = !!(inputNombreZona && inputNombreZona.value.trim().length > 0);
-  const costoVal = numeroDesdeTextoZona(inputCostoZona ? inputCostoZona.value.trim() : '');
-  const costoOk  = Number.isFinite(costoVal) && costoVal >= 0;
-  let freeOk = true;
-  if (chkZonaFree?.checked) {
-    const minVal = numeroDesdeTextoZona(inputFreeMin?.value.trim() || '');
-    freeOk = Number.isFinite(minVal) && minVal > 0;
-  }
-  const habilitar = nombreOk && costoOk && freeOk;
-  btnGuardarZona.disabled = !habilitar;
-  btnGuardarZona.setAttribute('aria-disabled', String(!habilitar));
-}
-
-// Guardar nueva zona con datos extendidos
-btnGuardarZona?.addEventListener('click', async (e) => {
-  e.preventDefault();
-  if (btnGuardarZona.disabled) return;
-  const nombre = inputNombreZona.value.trim();
-  const costo  = numeroDesdeTextoZona(inputCostoZona.value.trim());
-  const freeShipping = !!chkZonaFree.checked;
-  const freeMin = freeShipping ? +(numeroDesdeTextoZona(inputFreeMin.value.trim()) || 0).toFixed(2) : null;
-  try {
-    const zonas = await apiGet(API_ZONAS).catch(() => []);
-    if (zonas.some(z => z.nombre.toLowerCase() === nombre.toLowerCase())) 
-      return mostrarToast('Esa zona ya existe');
-    zonas.push({ nombre, costo: +Number(costo).toFixed(2), freeShipping, freeMin });
-    await apiPut(API_ZONAS, zonas);
-    mostrarToast('Zona guardada');
-    prepararFormZona();
-    if (modalZonas && !modalZonas.classList.contains('oculto')) await cargarZonasEnTabla();
-  } catch (err) { console.error(err); mostrarToast('Error al guardar zona'); }
-});
-
-// Editar zona
+// Guardar cambios de zona (editar)
 btnGuardarZonaEditada?.addEventListener('click', async (e) => {
   e.preventDefault();
   const original = modalEditarZona.dataset.original || '';
@@ -1037,11 +1024,14 @@ btnGuardarZonaEditada?.addEventListener('click', async (e) => {
     const zonas = await apiGet(API_ZONAS);
     const idx = zonas.findIndex(z => z.nombre === original);
     if (idx === -1) return mostrarToast('No se encontró la zona');
-    zonas[idx] = { 
-      ...zonas[idx], 
-      nombre: nuevoNombre, 
+    if (nuevoNombre.toLowerCase() !== original.toLowerCase() && zonas.some(z => z.nombre.toLowerCase() === nuevoNombre.toLowerCase())) {
+      return mostrarToast('Ya existe una zona con ese nombre');
+    }
+    zonas[idx] = {
+      ...zonas[idx],
+      nombre: nuevoNombre,
       costo: +Number(nuevoCosto).toFixed(2),
-      freeShipping, 
+      freeShipping,
       freeMin
     };
     await apiPut(API_ZONAS, zonas);
@@ -1051,22 +1041,19 @@ btnGuardarZonaEditada?.addEventListener('click', async (e) => {
   } catch (err) { console.error(err); mostrarToast('Error al actualizar zona'); }
 });
 
-// Al abrir modal editar zona, rellenar campos nuevos
-tablaZonasBody?.addEventListener('click', async (e) => {
-  const tr = e.target.closest('tr'); if (!tr) return;
-  const nombreOriginal = tr.dataset.nombre;
-  if (e.target.closest('.btn-edit')) {
-    const zonas = await apiGet(API_ZONAS);
-    const z = zonas.find(x => x.nombre === nombreOriginal);
-    if (!z) return;
-    editNombreZona.value = z.nombre; 
-    editCostoZona.value = Number(z.costo).toFixed(2);
-    editChkZonaFree.checked = !!z.freeShipping;
-    editFreeMin.disabled = !editChkZonaFree.checked;
-    editFreeMin.value = z.freeMin ? Number(z.freeMin).toFixed(2) : '';
-    modalEditarZona.dataset.original = nombreOriginal;
-    abrirModal(modalEditarZona);
-  }
+// Refs nuevos (ya usados arriba)
+const chkZonaFree   = $('#chkZonaFree');
+const inputFreeMin  = $('#inputFreeMin');
+const editChkZonaFree = $('#editChkZonaFree');
+const editFreeMin     = $('#editFreeMin');
+
+// Habilitar/deshabilitar input según checkbox (alta/editar)
+chkZonaFree?.addEventListener('change', () => {
+  inputFreeMin.disabled = !chkZonaFree.checked;
+  validarFormZona();
+});
+editChkZonaFree?.addEventListener('change', () => {
+  editFreeMin.disabled = !editChkZonaFree.checked;
 });
 
 /* ────────────────────────────────────────────────────────────────────────── */
@@ -1270,9 +1257,12 @@ function habilitarCierreExterior(modalEl, contentSelector = '.modal-contenido') 
 }
 habilitarCierreExterior(modalAgregar,   '.modal-contenido');
 habilitarCierreExterior(modalEditarZona,'.modal-contenido');
-habilitarCierreExterior(modalServicio,  '.modal-contenido'); // ⬅️ FIX
-habilitarCierreExterior(modalEditProd,  '.modal-contenido'); // ⬅️ FIX
-modalZonas?.addEventListener('click', (e) => { const cont = modalZonas.querySelector('.contenido-zonas'); if (e.target === modalZonas) cerrarModal(modalZonas); });
+habilitarCierreExterior(modalServicio,  '.modal-contenido');
+habilitarCierreExterior(modalEditProd,  '.modal-contenido');
+modalZonas?.addEventListener('click', (e) => {
+  const cont = modalZonas.querySelector('.contenido-zonas');
+  if (e.target === modalZonas) cerrarModal(modalZonas);
+});
 
 /* ────────────────────────────────────────────────────────────────────────── */
 /* 6) VACÍAR SUBCATEGORÍA (switch global) + TOAST + ESC                       */
@@ -1282,32 +1272,58 @@ const toggleVaciarCatalogo = $('#toggleVaciarCatalogo');
 function countTotalInScope(cat, sub){ return productsCache.reduce((a,p)=> a + ((p.category===cat && p.subcategory===sub) ? 1 : 0), 0); }
 function countActiveProductsInScope(cat, sub){ return productsCache.reduce((a,p)=> a + ((p.category===cat && p.subcategory===sub && p.active !== false) ? 1 : 0), 0); }
 function getCurrentScope(){ const cat=(filterCategory?.value||'').trim(); const sub=(filterSubcategory?.value||'').trim(); return {cat, sub, isValid: !!cat && !!sub}; }
+
 function updateVaciarToggleUI(){
   if (!toggleVaciarCatalogo) return;
   const { cat, sub, isValid } = getCurrentScope();
-  if (!isValid) { toggleVaciarCatalogo.checked=false; toggleVaciarCatalogo.disabled=true; toggleVaciarCatalogo.title='Selecciona categoría y subcategoría para usar este switch'; return; }
+
+  if (!isValid) {
+    toggleVaciarCatalogo.checked=false;
+    toggleVaciarCatalogo.disabled=true;
+    toggleVaciarCatalogo.title='Selecciona categoría y subcategoría para usar este switch';
+    return;
+  }
+
   const totalInScope  = countTotalInScope(cat, sub);
   const activeInScope = countActiveProductsInScope(cat, sub);
+
+  // Permitir usar el switch siempre que haya productos en el scope
   toggleVaciarCatalogo.checked  = activeInScope > 0;
-  toggleVaciarCatalogo.disabled = (totalInScope === 0) || (activeInScope === 0);
+  toggleVaciarCatalogo.disabled = (totalInScope === 0);
+
   if (totalInScope === 0) toggleVaciarCatalogo.title = 'No hay productos en esta categoría/subcategoría';
-  else if (activeInScope === 0) toggleVaciarCatalogo.title = 'Activa productos individualmente en la tabla para reactivar esta subcategoría';
+  else if (activeInScope === 0) toggleVaciarCatalogo.title = 'Todos los productos están desactivados en esta subcategoría';
   else toggleVaciarCatalogo.title = `Apaga para desactivar todos los productos de "${cat} / ${sub}"`;
 }
+
 toggleVaciarCatalogo?.addEventListener('change', async () => {
   const { cat, sub, isValid } = getCurrentScope();
   if (!isValid) return updateVaciarToggleUI();
-  if (toggleVaciarCatalogo.checked){ toggleVaciarCatalogo.checked = false; return mostrarToast(`Activa al menos un producto en "${cat} / ${sub}" desde la tabla`); }
-  if (!confirm(`¿Desactivar TODOS los productos de "${cat} / ${sub}"?`)) return updateVaciarToggleUI();
+
+  // Si el usuario intenta encenderlo manualmente, recalculamos estado (se enciende solo si hay activos)
+  if (toggleVaciarCatalogo.checked) return updateVaciarToggleUI();
+
+  // Confirmación para desactivar todo
+  if (!confirm(`¿Desactivar TODOS los productos de "${cat} / ${sub}"?`)) {
+    return updateVaciarToggleUI();
+  }
+
   try{
     let touched = false;
     productsCache = productsCache.map(p => {
-      if (p.category === cat && p.subcategory === sub && p.active !== false) { touched = true; return { ...p, active: false }; }
+      if (p.category === cat && p.subcategory === sub && p.active !== false) {
+        touched = true;
+        return { ...p, active: false };
+      }
       return p;
     });
     if (touched) await apiPut(API_PRODUCTOS, { products: productsCache });
     applyProductosFilters(); updateVaciarToggleUI(); mostrarToast(`Subcategoría "${cat} / ${sub}" desactivada`);
-  }catch(err){ console.error(err); mostrarToast('Error al desactivar productos'); updateVaciarToggleUI(); }
+  }catch(err){
+    console.error(err);
+    mostrarToast('Error al desactivar productos');
+    updateVaciarToggleUI();
+  }
 });
 
 function mostrarToast(msg = 'Guardado correctamente.') {
