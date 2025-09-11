@@ -532,6 +532,7 @@ function svgPlaceholder(text = 'Sin foto') {
 
 function renderProductGrid(products){
   if(!grid) return;
+
   const html = products.map(p => {
     const id    = p.id || p.name;
     const price = Number(p.price || 0);
@@ -544,9 +545,9 @@ function renderProductGrid(products){
     const step      = Number(p.step ?? (soldBy==='weight' ? 0.25 : 1));
     const minQty    = Number(p.minQty ?? step);
 
-    const isAvailable = (p.active !== false); // ← aquí está la regla
+    const isAvailable = (p.active !== false);
 
-    // (tu cálculo displayPrice igual que antes)
+    // Precio a mostrar (tier qty=1 si existe)
     let displayPrice = price;
     const allTiers =
       (Array.isArray(p?.bundlePricing?.tiers) && p.bundlePricing.tiers) ||
@@ -557,7 +558,7 @@ function renderProductGrid(products){
       if (t1) displayPrice = Number(t1.price) || price;
     }
 
-    // Botón/estado segun disponibilidad
+    // Botón Agregar según disponibilidad
     const addLabel = isAvailable
       ? (soldBy === 'weight'
           ? ('Agregar ' + formatQty(minQty, step) + ' ' + unitLabel)
@@ -566,6 +567,9 @@ function renderProductGrid(products){
 
     const addClasses = isAvailable ? 'btn add' : 'btn add unavailable';
     const addAttrs   = isAvailable ? '' : ' aria-disabled="true" data-unavailable="1"';
+
+    // ❤️ estado favorito actual (usa tu helper isFav(id))
+    const favActive = (typeof isFav === 'function') ? !!isFav(id) : false;
 
     return (
       '<article class="card' + (isAvailable ? '' : ' is-unavailable') + '"' +
@@ -578,9 +582,23 @@ function renderProductGrid(products){
         ' data-minqty="' + minQty + '"' +
         (isAvailable ? '' : ' data-available="0"') +
       '>' +
-        // Dentro del string HTML de cada tarjeta, justo después de <article ...>:
-        '<button class="fav-toggle' + (isFav(id) ? ' active' : '') + '" type="button" aria-pressed="' + (isFav(id) ? 'true':'false') + '" aria-label="Marcar favorito">' + favHeartSVG(isFav(id)) + '</button>' +
-        '<img src="' + img + '" alt="' + name.replace(/"/g, '&quot;') + '">' +
+
+        // ✨ NUEVO: contenedor de imagen con overlay para el corazón
+        '<div class="media">' +
+          '<img src="' + img + '" alt="' + name.replace(/"/g, '&quot;') + '">' +
+
+          // Botón corazón (abajo-izquierda). Usa clases .is-fav para el estado visual.
+          '<button class="fav-heart' + (favActive ? ' is-fav' : '') + '" type="button" aria-label="Favorito" data-id="' + id + '">' +
+            // 2 SVGs: trazo (vacío) y relleno (activo). El CSS alterna su visibilidad.
+            '<svg viewBox="0 0 24 24" class="icon-stroke" aria-hidden="true">' +
+              '<path d="M12.1 8.64l-.1.1-.11-.11a3.24 3.24 0 00-4.58 0 3.38 3.38 0 000 4.69l4.69 4.8 4.69-4.8a3.38 3.38 0 000-4.69 3.24 3.24 0 00-4.58 0z" fill="none" stroke="currentColor" stroke-width="1.7"/>' +
+            '</svg>' +
+            '<svg viewBox="0 0 24 24" class="icon-fill" aria-hidden="true">' +
+              '<path d="M12.1 8.64l-.1.1-.11-.11a3.24 3.24 0 00-4.58 0 3.38 3.38 0 000 4.69l4.69 4.8 4.69-4.8a3.38 3.38 0 000-4.69 3.24 3.24 0 00-4.58 0z" fill="#ef4444"/>' +
+            '</svg>' +
+          '</button>' +
+        '</div>' +
+
         '<div class="info">' +
           '<h3>' + name + '</h3>' +
           '<p class="price">$' + Number(displayPrice).toFixed(2) + '</p>' +
@@ -589,6 +607,7 @@ function renderProductGrid(products){
       '</article>'
     );
   }).join('');
+
   grid.innerHTML = html;
 }
 
@@ -1186,6 +1205,15 @@ searchInput.addEventListener('input', applyFilters);
 btnCart.addEventListener('click', () => {
   openModal(modalCart);
   toggleContinueButton();
+});
+// Listener para corazones de favoritos en las tarjetas
+grid.addEventListener('click', (e) => {
+  const btn = e.target.closest('.fav-heart');
+  if (!btn) return;
+  const id = btn.dataset.id;
+  toggleFavorite(id);                     // tu lógica de guardar/quitar
+  btn.classList.toggle('is-fav', isFav(id));
+  renderFavoritesRail?.();                // refresca carrusel si lo tienes
 });
 
 let transferNoticeShown = false;
