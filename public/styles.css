@@ -327,22 +327,6 @@ select:focus, input:focus, textarea:focus, .btn:focus{
 
 /* === SOCIAL FABs: botón cuadrado gris -> píldora derecha con color de marca === */
 
-/* Rail fijo a la izquierda 
-.social-fabs{
-  position: fixed !important;
-  left: 16px !important;
-  top: 30vh !important;
-  right: auto !important;
-  z-index: 3000 !important;
-  display: flex; flex-direction: column; gap: 12px;
-}*/
-
-/* Neutraliza estilos globales conflictivos (carrito, etc.)
-.social-fabs .fab{
-  position: static !important; margin:0 !important;
-  display:flex; align-items:center;
-}*/
-
 /* El botón ES el panel: colapsado = cuadrado; expandido = píldora derecha */
 .fab-btn{
   --w-collapsed: 44px;
@@ -818,7 +802,89 @@ body.service-blocked{ overflow: hidden; }
 .favs-rail::-webkit-scrollbar{ height:8px; }
 .favs-rail::-webkit-scrollbar-thumb{ background:rgba(0,0,0,.15); border-radius:999px; }
 
-/* Modal lista */
+/* Mini-cards del carrusel de favoritos */
+.fav-card{
+  background:#fff;
+  border:1px solid #e5e7eb;
+  border-radius: 14px;
+  box-shadow: var(--shadow);
+  padding:10px;
+  width: 220px;              /* ancho fijo para carrusel */
+  flex: 0 0 220px;
+  display:flex;
+  gap:10px;
+  align-items:center;
+}
+.fav-card .info{
+  min-width: 0;
+}
+.fav-card h4{
+  margin:0 0 4px;
+  font-size:.95rem;
+  line-height:1.2;
+}
+.fav-card .p{
+  margin:0;
+  color:#16a34a;
+  font-weight:700;
+}
+
+/* ===== Tarjeta de producto: contenedor de imagen + corazón abajo-izquierda ===== */
+.card{
+  position: relative; /* necesario para overlays */
+}
+
+/* Contenedor de la miniatura (a la izquierda) */
+.card .media{
+  position: relative;
+  width: 110px;
+  height: 110px;
+  flex: 0 0 110px;     /* ancho fijo, no crece */
+  border-radius: 12px;
+  overflow: hidden;
+  background: #eee;
+}
+
+/* Imagen miniatura (forzamos tamaño por si hay reglas globales de img) */
+.card .media img,
+.card .media .thumb{
+  display:block;
+  width: 110px !important;
+  height: 110px !important;
+  object-fit: cover;
+  border-radius: 12px;
+  background:#eee;
+}
+
+/* Botón corazón reubicado en esquina inferior-izquierda */
+.card .media .fav-heart{
+  position: absolute;
+  left: 6px;
+  bottom: 6px;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255,255,255,.92);
+  backdrop-filter: blur(4px);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0,0,0,.18);
+  transition: transform .12s ease, background .2s ease;
+}
+.card .media .fav-heart:hover{ transform: translateY(-1px); }
+.card .media .fav-heart:active{ transform: translateY(0); }
+
+/* Iconos del corazón (stroke/fill) */
+.fav-heart .icon-fill{ display: none; }
+.fav-heart.is-fav .icon-stroke{ display: none; }
+.fav-heart.is-fav .icon-fill{ display: block; }
+
+/* Si aún existe el botón anterior arriba-derecha, ocultarlo */
+.card .fav-toggle{ display: none !important; }
+
+/* ===== Modal “Ver todo” de favoritos ===== */
 .favs-modal-list{
   display:grid; gap:12px;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
@@ -833,60 +899,3 @@ body.service-blocked{ overflow: hidden; }
 .favs-modal-card .meta .p{ margin:0; color:#16a34a; font-weight:700; }
 .favs-modal-card .actions{ display:flex; gap:8px; }
 .favs-modal-card .btn-remove{ color:#ef4444; background:#fff; border:1px solid #fca5a5; }
-
-/* --- Imagen con overlay de corazón (esquina inferior-izquierda) --- */
-.card .media{
-  position: relative;
-  width: 110px;
-  height: 110px;
-  flex: 0 0 110px;
-  border-radius: 12px;
-  overflow: hidden;
-  background: #eee;
-}
-.card .media img{
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-
-/* Botón corazón (sobre la imagen) */
-.fav-heart{
-  position: absolute;
-  left: 8px;
-  bottom: 8px;
-  width: 34px;
-  height: 34px;
-  display: grid;
-  place-items: center;
-  border: none;
-  border-radius: 999px;
-  background: rgba(255,255,255,.92);
-  backdrop-filter: blur(4px);
-  box-shadow: 0 6px 16px rgba(0,0,0,.18);
-  cursor: pointer;
-  transition: transform .12s ease, background .2s ease;
-}
-.fav-heart svg{ width: 18px; height: 18px; }
-.fav-heart:hover{ transform: translateY(-1px); }
-.fav-heart:active{ transform: translateY(0); }
-
-/* estados del ícono (vacío/lleno) */
-.fav-heart .icon-fill{ display: none; }
-.fav-heart.is-fav .icon-stroke{ display: none; }
-.fav-heart.is-fav .icon-fill{ display: block; }
-
-/* Mini-cards para el carrusel de favoritos (si las usas) */
-.fav-card .media{
-  width: 92px;
-  height: 92px;
-  border-radius: 10px;
-}
-.fav-card .fav-heart{
-  width: 28px;
-  height: 28px;
-  left: 6px;
-  bottom: 6px;
-}
-.fav-card .fav-heart svg{ width: 16px; height: 16px; }
