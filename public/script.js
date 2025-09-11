@@ -396,138 +396,137 @@ function closeModal(modal){
 /* == 7) UI productos == */
 // ===== Favoritos: UI (carrusel + modal) =====
 const favsSection  = document.getElementById('favsSection');
-const favsRail     = document.getElementById('favsRail');
-const btnFavsPrev  = document.getElementById('btnFavsPrev');
-const btnFavsNext  = document.getElementById('btnFavsNext');
-const btnFavsExpand= document.getElementById('btnFavsExpand');
+const favsTrack    = document.getElementById('favsTrack');
+const favsDots     = document.getElementById('favsDots');
+const favsPrev     = document.getElementById('favsPrev');
+const favsNext     = document.getElementById('favsNext');
+const favsAll      = document.getElementById('favsAll');
 const modalFavs    = document.getElementById('modalFavs');
 const favsModalList= document.getElementById('favsModalList');
 
 function favHeartSVG(active=false){
-  // contorno (no activo) / lleno (activo) con la misma forma
   return active
-    ? '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12.1 21.35l-1.1-1.02C5.14 14.88 2 12.07 2 8.5 2 6.01 3.99 4 6.5 4c1.54 0 3.04.8 3.9 2.09C11.46 4.8 12.96 4 14.5 4 17.01 4 19 6.01 19 8.5c0 3.57-3.14 6.38-8.01 11.83l-0.89 1.02z"></path></svg>'
-    : '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12.1 21.35l-1.1-1.02C5.14 14.88 2 12.07 2 8.5 2 6.01 3.99 4 6.5 4c1.54 0 3.04.8 3.9 2.09C11.46 4.8 12.96 4 14.5 4 17.01 4 19 6.01 19 8.5c0 3.57-3.14 6.38-8.01 11.83l-0.89 1.02z" fill="none"></path></svg>';
+    ? '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21l-1.45-1.32C6 15.36 3 12.61 3 9.28 3 7 4.79 5 7.05 5c1.4 0 2.75.66 3.6 1.71C11.5 5.66 12.85 5 14.25 5 16.51 5 18.3 7 18.3 9.28c0 3.33-3 6.08-7.55 10.4L12 21z"></path></svg>'
+    : '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12.1 8.64l-.1.1-.1-.1C10.14 6.9 7.1 7.24 5.8 9.28c-1.03 1.62-.72 3.82.74 5.04L12 19l5.46-4.68c1.46-1.22 1.77-3.42.74-5.04-1.3-2.04-4.34-2.38-6.04-.64z" fill="none" stroke="#ef4444" stroke-width="1.8" stroke-linejoin="round"/></svg>';
 }
 
-// ===== Favoritos: render de mini-tarjetas en el carrusel =====
-// Requiere en el HTML:
-// <section id="favsSection" class="favs">…<div class="favs-viewport"><div id="favsTrack" class="favs-track"></div></div>…</section>
-
+// Mini-cards del carrusel (track)
 function renderFavoritesRail(){
-  // favsSection: <section>, favsRail: el track <div id="favsTrack" class="favs-track">
-  if (!window.favsSection || !window.favsRail) return;
+  if (!favsSection || !favsTrack) return;
 
-  // 1) Construimos la lista con productos válidos
   const items = Array.from(favorites)
     .map(id => productsById.get(id))
     .filter(p => p && p.active !== false);
 
-  // 2) Mostrar/ocultar el bloque
   favsSection.classList.toggle('hidden', items.length === 0);
-  if (!items.length){ favsRail.innerHTML = ''; return; }
+  if (!items.length){ favsTrack.innerHTML = ''; favsDots.innerHTML=''; return; }
 
-  // 3) HTML de cada mini-card (coincide con el CSS que te pasé)
   const html = items.map(p => {
     const id   = p.id;
     const name = p.name || '';
     const img  = (p.image && String(p.image).trim()) ? p.image : svgPlaceholder('Sin foto');
-    const price= Number(p.price||0);
-    const fav  = isFav ? isFav(id) : (typeof isFavorite === 'function' ? isFavorite(id) : false);
+    const price= Number(p.price||0).toFixed(2);
+    const isOn = isFav(id);
 
     return `
       <article class="fav-card" data-id="${id}">
         <div class="media">
           <img src="${img}" alt="${name.replace(/"/g,'&quot;')}">
-          <button class="fav-heart ${fav ? 'is-fav' : ''}" data-id="${id}" type="button" aria-label="${fav ? 'Quitar de favoritos':'Marcar como favorito'}">
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <!-- contorno -->
-              <path class="icon-stroke" d="M12.1 8.64l-.1.1-.1-.1C10.14 6.9 7.1 7.24 5.8 9.28c-1.03 1.62-.72 3.82.74 5.04L12 19l5.46-4.68c1.46-1.22 1.77-3.42.74-5.04-1.3-2.04-4.34-2.38-6.04-.64z" fill="none" stroke="#ef4444" stroke-width="1.8" stroke-linejoin="round"/>
-              <!-- relleno -->
-              <path class="icon-fill" d="M12 21l-1.45-1.32C6 15.36 3 12.61 3 9.28 3 7 4.79 5 7.05 5c1.4 0 2.75.66 3.6 1.71C11.5 5.66 12.85 5 14.25 5 16.51 5 18.3 7 18.3 9.28c0 3.33-3 6.08-7.55 10.4L12 21z" fill="#ef4444"/>
-            </svg>
+          <button class="fav-heart ${isOn ? 'is-fav' : ''}" data-id="${id}" type="button" aria-label="${isOn ? 'Quitar de favoritos':'Marcar como favorito'}">
+            ${favHeartSVG(isOn)}
           </button>
         </div>
         <div class="meta">
           <h4>${name}</h4>
-          <div class="price">${money(price)}</div>
+          <div class="price">$${price}</div>
           <button class="btn add" type="button" data-id="${id}">Agregar</button>
         </div>
       </article>
     `;
   }).join('');
 
-  favsRail.innerHTML = html;
+  favsTrack.innerHTML = html;
 
-  // 4) (una sola vez) Delegado de clicks en el track: corazón / agregar
-  if (!favsRail.dataset.bound){
-    favsRail.addEventListener('click', (e) => {
+  // Delegación de clicks en el track
+  if (!favsTrack.dataset.bound){
+    favsTrack.addEventListener('click', (e) => {
       const heart = e.target.closest('.fav-heart');
       const add   = e.target.closest('.btn.add');
 
-      // Toggle favorito
       if (heart){
         const id = heart.dataset.id;
-        if (typeof toggleFavorite === 'function') toggleFavorite(id);
-        heart.classList.toggle('is-fav', (isFav ? isFav(id) : isFavorite(id)));
+        toggleFav(id);
+        heart.classList.toggle('is-fav', isFav(id));
+        heart.innerHTML = favHeartSVG(isFav(id));
+        updateAllCardHearts(); // sincroniza corazones del grid
         return;
       }
-
-      // Agregar al carrito
       if (add){
         const id = add.dataset.id;
         const p  = productsById.get(id);
-        // si existe tarjeta en el grid, reutilizamos su flujo (muestra control de qty)
+        if (!p || p.active === false) return;
+
         const card = document.querySelector(`.card[data-id="${CSS.escape(id)}"]`);
         if (card && typeof switchToQtyControl === 'function'){
           const info = getCardInfo(card);
           switchToQtyControl(card, info.minQty, true);
         } else {
-          // fallback: agregar directo al carrito con minQty
           const soldBy    = p.soldBy || 'unit';
           const step      = Number(p.step ?? (soldBy==='weight' ? 0.25 : 1));
           const minQty    = Number(p.minQty ?? step);
           const unitLabel = p.unitLabel || (soldBy==='weight' ? 'kg' : 'pza');
           cart.set(id, { id, name: p.name, unit: Number(p.price||0), qty: minQty, soldBy, unitLabel, step, minQty });
           renderCart();
+          syncCardsQty(id);
         }
       }
     });
-    favsRail.dataset.bound = '1';
+    favsTrack.dataset.bound = '1';
+  }
+
+  // (Opcional) Puntos de paginación simples
+  if (favsDots){
+    const count = items.length;
+    favsDots.innerHTML = Array.from({length: Math.min(count, 8)})
+      .map((_,i)=>`<span class="favs-dot${i===0?' is-active':''}"></span>`).join('');
   }
 }
 
-function bindFavsRailEvents(){
-  if (btnFavsPrev) btnFavsPrev.addEventListener('click', () => favsRail?.scrollBy({ left: -320, behavior: 'smooth' }));
-  if (btnFavsNext) btnFavsNext.addEventListener('click', () => favsRail?.scrollBy({ left:  320, behavior: 'smooth' }));
-  if (btnFavsExpand) btnFavsExpand.addEventListener('click', () => { renderFavoritesModal(); openModal(modalFavs); });
-
-  // Clicks dentro del rail (Agregar/Quitar)
-  favsRail?.addEventListener('click', (e) => {
-    const chip = e.target.closest('.fav-chip'); if (!chip) return;
-    const id = chip.dataset.id;
-    if (e.target.closest('.fav-add')) {
-      // simular click en "Agregar" de la tarjeta (si existe) o añadir al carrito con minQty
-      const p = productsById.get(id);
-      if (!p || p.active === false) return;
-      const card = document.querySelector(`.card[data-id="${CSS.escape(id)}"]`);
-      if (card) {
-        const add = card.querySelector('.btn.add:not(.unavailable)');
-        if (add) { add.click(); return; }
-      }
-      // fallback: añadir directo
-      const minQty = Number(p.minQty ?? (p.soldBy === 'weight' ? 0.25 : 1));
-      const unitLabel = p.soldBy === 'weight' ? 'kg' : 'pza';
-      cart.set(id, { id, name:p.name, unit:+Number(p.price||0), qty:minQty, soldBy:p.soldBy||'unit', unitLabel, step:Number(p.step|| (p.soldBy==='weight'?0.25:1)), minQty });
-      renderCart(); syncCardsQty(id);
-    }
-    if (e.target.closest('.fav-remove')) {
+// Corazones en las TARJETAS del grid
+function bindFavoriteHearts(){
+  document.querySelectorAll('.card .fav-heart').forEach(btn => {
+    if (btn.dataset.bound === '1') return;
+    btn.dataset.bound = '1';
+    btn.addEventListener('click', () => {
+      const id = btn.dataset.id || btn.closest('.card')?.dataset.id;
+      if (!id) return;
       toggleFav(id);
-      renderFavoritesRail();
-      // Actualiza corazones
-      updateAllCardHearts();
-    }
+      const on = isFav(id);
+      btn.classList.toggle('is-fav', on);
+      btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+      btn.innerHTML = favHeartSVG(on);
+      renderFavoritesRail(); // refresca carrusel
+    });
   });
+}
+
+// Refresca todos los corazones del grid según estado real
+function updateAllCardHearts(){
+  document.querySelectorAll('.card').forEach(card => {
+    const id  = card.dataset.id;
+    const btn = card.querySelector('.fav-heart');
+    if (!btn || !id) return;
+    const on = isFav(id);
+    btn.classList.toggle('is-fav', on);
+    btn.setAttribute('aria-pressed', on ? 'true':'false');
+    btn.innerHTML = favHeartSVG(on);
+  });
+}
+
+function bindFavsRailEvents(){
+  favsPrev?.addEventListener('click', () => favsTrack?.scrollBy({ left: -320, behavior: 'smooth' }));
+  favsNext?.addEventListener('click', () => favsTrack?.scrollBy({ left:  320, behavior: 'smooth' }));
+  favsAll ?.addEventListener('click', () => { renderFavoritesModal(); openModal(modalFavs); });
 }
 
 function renderFavoritesModal(){
@@ -535,6 +534,7 @@ function renderFavoritesModal(){
   const items = Array.from(favorites)
     .map(id => productsById.get(id))
     .filter(p => p && p.active !== false);
+
   favsModalList.innerHTML = items.map(p => {
     const img = (p.image && String(p.image).trim()) ? p.image : svgPlaceholder('Sin foto');
     const price = Number(p.price||0).toFixed(2);
@@ -554,32 +554,33 @@ function renderFavoritesModal(){
     `;
   }).join('');
 
-  // Delegación de eventos
-  favsModalList.addEventListener('click', favsModalClickHandler, { once: true });
-}
-function favsModalClickHandler(e){
-  const card = e.target.closest('.favs-modal-card'); if (!card) return;
-  const id = card.dataset.id;
-  if (e.target.closest('.favs-add')){
-    const p = productsById.get(id);
-    if (!p || p.active === false) return;
-    const minQty = Number(p.minQty ?? (p.soldBy === 'weight' ? 0.25 : 1));
-    const unitLabel = p.soldBy === 'weight' ? 'kg' : 'pza';
-    cart.set(id, { id, name:p.name, unit:+Number(p.price||0), qty:minQty, soldBy:p.soldBy||'unit', unitLabel, step:Number(p.step|| (p.soldBy==='weight'?0.25:1)), minQty });
-    renderCart(); syncCardsQty(id);
-  }
-  if (e.target.closest('.favs-remove')){
-    toggleFav(id);
-    renderFavoritesModal();
-    renderFavoritesRail();
-    updateAllCardHearts();
-  }
-  // volver a escuchar (porque usamos once:true)
-  favsModalList.addEventListener('click', favsModalClickHandler, { once: true });
+  // Delegación (rebind every time)
+  favsModalList.onclick = (e) => {
+    const card = e.target.closest('.favs-modal-card'); if (!card) return;
+    const id = card.dataset.id;
+
+    if (e.target.closest('.favs-add')){
+      const p = productsById.get(id);
+      if (!p || p.active === false) return;
+      const minQty = Number(p.minQty ?? (p.soldBy === 'weight' ? 0.25 : 1));
+      const unitLabel = p.soldBy === 'weight' ? 'kg' : 'pza';
+      cart.set(id, { id, name:p.name, unit:+Number(p.price||0), qty:minQty, soldBy:p.soldBy||'unit', unitLabel, step:Number(p.step|| (p.soldBy==='weight'?0.25:1)), minQty });
+      renderCart(); syncCardsQty(id);
+    }
+
+    if (e.target.closest('.favs-remove')){
+      toggleFav(id);
+      renderFavoritesModal();
+      renderFavoritesRail();
+      updateAllCardHearts();
+    }
+  };
 }
 
 // Cerrar modal favoritos con overlay o ✕
-document.querySelectorAll('[data-close="favs"]').forEach(el => el.addEventListener('click', ()=> closeModal(modalFavs)));
+document.querySelectorAll('[data-close="favs"]').forEach(el =>
+  el.addEventListener('click', ()=> closeModal(modalFavs))
+);
 
 function svgPlaceholder(text = 'Sin foto') {
   const svg = `
@@ -1129,7 +1130,7 @@ async function loadProducts() {
     renderProductGrid(visible);
     buildCategoryFilters(visible);
     bindAddButtons();
-    bindFavoriteToggles();
+    bindFavoriteHearts();
     applyFilters();
     renderFavoritesRail();
 
@@ -1150,6 +1151,7 @@ async function loadProducts() {
     renderProductGrid(demo);
     buildCategoryFilters(demo);
     bindAddButtons();
+    bindFavoriteHearts();
     applyFilters();
   }
 }
