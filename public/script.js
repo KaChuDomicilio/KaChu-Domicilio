@@ -410,30 +410,91 @@ function favHeartSVG(active=false){
     : '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12.1 21.35l-1.1-1.02C5.14 14.88 2 12.07 2 8.5 2 6.01 3.99 4 6.5 4c1.54 0 3.04.8 3.9 2.09C11.46 4.8 12.96 4 14.5 4 17.01 4 19 6.01 19 8.5c0 3.57-3.14 6.38-8.01 11.83l-0.89 1.02z" fill="none"></path></svg>';
 }
 
+// ===== Favoritos: render de mini-tarjetas en el carrusel =====
+// Requiere en el HTML:
+// <section id="favsSection" class="favs">…<div class="favs-viewport"><div id="favsTrack" class="favs-track"></div></div>…</section>
+
 function renderFavoritesRail(){
-  if (!favsSection || !favsRail) return;
-  // Construimos lista con productos activos y existentes
+  // favsSection: <section>, favsRail: el track <div id="favsTrack" class="favs-track">
+  if (!window.favsSection || !window.favsRail) return;
+
+  // 1) Construimos la lista con productos válidos
   const items = Array.from(favorites)
     .map(id => productsById.get(id))
     .filter(p => p && p.active !== false);
 
+  // 2) Mostrar/ocultar el bloque
   favsSection.classList.toggle('hidden', items.length === 0);
   if (!items.length){ favsRail.innerHTML = ''; return; }
 
+  // 3) HTML de cada mini-card (coincide con el CSS que te pasé)
   const html = items.map(p => {
-    const img = (p.image && String(p.image).trim()) ? p.image : svgPlaceholder('Sin foto');
-    const price = Number(p.price||0).toFixed(2);
+    const id   = p.id;
+    const name = p.name || '';
+    const img  = (p.image && String(p.image).trim()) ? p.image : svgPlaceholder('Sin foto');
+    const price= Number(p.price||0);
+    const fav  = isFav ? isFav(id) : (typeof isFavorite === 'function' ? isFavorite(id) : false);
+
     return `
-      <div class="fav-chip" role="listitem" data-id="${p.id}">
-        <img src="${img}" alt="">
-        <span class="fav-name">${p.name}</span>
-        <span class="fav-price">$${price}</span>
-        <button class="fav-add" type="button">Agregar</button>
-        <button class="fav-remove" type="button" aria-label="Quitar">×</button>
-      </div>
+      <article class="fav-card" data-id="${id}">
+        <div class="media">
+          <img src="${img}" alt="${name.replace(/"/g,'&quot;')}">
+          <button class="fav-heart ${fav ? 'is-fav' : ''}" data-id="${id}" type="button" aria-label="${fav ? 'Quitar de favoritos':'Marcar como favorito'}">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <!-- contorno -->
+              <path class="icon-stroke" d="M12.1 8.64l-.1.1-.1-.1C10.14 6.9 7.1 7.24 5.8 9.28c-1.03 1.62-.72 3.82.74 5.04L12 19l5.46-4.68c1.46-1.22 1.77-3.42.74-5.04-1.3-2.04-4.34-2.38-6.04-.64z" fill="none" stroke="#ef4444" stroke-width="1.8" stroke-linejoin="round"/>
+              <!-- relleno -->
+              <path class="icon-fill" d="M12 21l-1.45-1.32C6 15.36 3 12.61 3 9.28 3 7 4.79 5 7.05 5c1.4 0 2.75.66 3.6 1.71C11.5 5.66 12.85 5 14.25 5 16.51 5 18.3 7 18.3 9.28c0 3.33-3 6.08-7.55 10.4L12 21z" fill="#ef4444"/>
+            </svg>
+          </button>
+        </div>
+        <div class="meta">
+          <h4>${name}</h4>
+          <div class="price">${money(price)}</div>
+          <button class="btn add" type="button" data-id="${id}">Agregar</button>
+        </div>
+      </article>
     `;
   }).join('');
+
   favsRail.innerHTML = html;
+
+  // 4) (una sola vez) Delegado de clicks en el track: corazón / agregar
+  if (!favsRail.dataset.bound){
+    favsRail.addEventListener('click', (e) => {
+      const heart = e.target.closest('.fav-heart');
+      const add   = e.target.closest('.btn.add');
+
+      // Toggle favorito
+      if (heart){
+        const id = heart.dataset.id;
+        if (typeof toggleFavorite === 'function') toggleFavorite(id);
+        heart.classList.toggle('is-fav', (isFav ? isFav(id) : isFavorite(id)));
+        return;
+      }
+
+      // Agregar al carrito
+      if (add){
+        const id = add.dataset.id;
+        const p  = productsById.get(id);
+        // si existe tarjeta en el grid, reutilizamos su flujo (muestra control de qty)
+        const card = document.querySelector(`.card[data-id="${CSS.escape(id)}"]`);
+        if (card && typeof switchToQtyControl === 'function'){
+          const info = getCardInfo(card);
+          switchToQtyControl(card, info.minQty, true);
+        } else {
+          // fallback: agregar directo al carrito con minQty
+          const soldBy    = p.soldBy || 'unit';
+          const step      = Number(p.step ?? (soldBy==='weight' ? 0.25 : 1));
+          const minQty    = Number(p.minQty ?? step);
+          const unitLabel = p.unitLabel || (soldBy==='weight' ? 'kg' : 'pza');
+          cart.set(id, { id, name: p.name, unit: Number(p.price||0), qty: minQty, soldBy, unitLabel, step, minQty });
+          renderCart();
+        }
+      }
+    });
+    favsRail.dataset.bound = '1';
+  }
 }
 
 function bindFavsRailEvents(){

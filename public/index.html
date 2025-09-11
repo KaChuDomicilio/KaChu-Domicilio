@@ -41,18 +41,23 @@
         </label>
       </div>
 <!-- FAVORITOS: carrusel -->
-<section id="favsSection" class="favs hidden" aria-label="Tus favoritos">
+<section class="favs" id="favsSection">
   <div class="favs-head">
     <h3 class="favs-title">⭐ Tus favoritos</h3>
     <div class="favs-actions">
-      <button id="btnFavsPrev" class="favs-nav" aria-label="Anterior" type="button">‹</button>
-      <button id="btnFavsNext" class="favs-nav" aria-label="Siguiente" type="button">›</button>
-      <button id="btnFavsExpand" class="btn ghost small" type="button">Ver todos</button>
+      <button class="favs-nav" id="favsPrev">‹</button>
+      <button class="favs-nav" id="favsNext">›</button>
+      <button class="btn small" id="favsAll">Ver todos</button>
     </div>
   </div>
-  <div class="favs-rail" id="favsRail" tabindex="0" role="list" aria-label="Productos favoritos">
-    <!-- Chips de favoritos se inyectan por JS -->
+
+  <div class="favs-viewport">
+    <div class="favs-track" id="favsTrack">
+      <!-- aquí van .fav-card generadas por JS -->
+    </div>
   </div>
+
+  <div class="favs-dots" id="favsDots"></div>
 </section>
 
     </div>
