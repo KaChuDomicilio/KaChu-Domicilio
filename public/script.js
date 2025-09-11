@@ -44,6 +44,10 @@ btnClearCart?.addEventListener('click', clearCart);
 const CART_KEY = 'kachu_cart_v1';
 const CHECKOUT_KEY = 'kachu_checkout_v1';
 
+// === FAVORITOS (estado/persistencia) ===
+const FAVS_KEY = 'kachu_favs_v1';
+let favorites = new Set();
+
 const cashHelp = document.getElementById('cashHelp');
 
 // === FREE SHIPPING (estado/UI) ===
@@ -58,6 +62,22 @@ let fsShowOnAdd = false; // bandera: mostrar cuando se agregó producto
 
 const FS_SHOW_MS = 8000; // tiempo visible
 const FS_COOLDOWN_MS = 600; // margen para evitar parpadeos rápidos
+
+function loadFavs(){
+  try{
+    const raw = localStorage.getItem(FAVS_KEY);
+    favorites = new Set(Array.isArray(JSON.parse(raw)) ? JSON.parse(raw) : []);
+  }catch{ favorites = new Set(); }
+}
+function saveFavs(){
+  localStorage.setItem(FAVS_KEY, JSON.stringify(Array.from(favorites)));
+}
+function isFav(id){ return favorites.has(String(id)); }
+function toggleFav(id){
+  const key = String(id);
+  if (favorites.has(key)) favorites.delete(key); else favorites.add(key);
+  saveFavs();
+}
 
 function showFsToastOnce() {
   if (!fsPill) return;
@@ -374,6 +394,132 @@ function closeModal(modal){
 }
 
 /* == 7) UI productos == */
+// ===== Favoritos: UI (carrusel + modal) =====
+const favsSection  = document.getElementById('favsSection');
+const favsRail     = document.getElementById('favsRail');
+const btnFavsPrev  = document.getElementById('btnFavsPrev');
+const btnFavsNext  = document.getElementById('btnFavsNext');
+const btnFavsExpand= document.getElementById('btnFavsExpand');
+const modalFavs    = document.getElementById('modalFavs');
+const favsModalList= document.getElementById('favsModalList');
+
+function favHeartSVG(active=false){
+  // contorno (no activo) / lleno (activo) con la misma forma
+  return active
+    ? '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12.1 21.35l-1.1-1.02C5.14 14.88 2 12.07 2 8.5 2 6.01 3.99 4 6.5 4c1.54 0 3.04.8 3.9 2.09C11.46 4.8 12.96 4 14.5 4 17.01 4 19 6.01 19 8.5c0 3.57-3.14 6.38-8.01 11.83l-0.89 1.02z"></path></svg>'
+    : '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12.1 21.35l-1.1-1.02C5.14 14.88 2 12.07 2 8.5 2 6.01 3.99 4 6.5 4c1.54 0 3.04.8 3.9 2.09C11.46 4.8 12.96 4 14.5 4 17.01 4 19 6.01 19 8.5c0 3.57-3.14 6.38-8.01 11.83l-0.89 1.02z" fill="none"></path></svg>';
+}
+
+function renderFavoritesRail(){
+  if (!favsSection || !favsRail) return;
+  // Construimos lista con productos activos y existentes
+  const items = Array.from(favorites)
+    .map(id => productsById.get(id))
+    .filter(p => p && p.active !== false);
+
+  favsSection.classList.toggle('hidden', items.length === 0);
+  if (!items.length){ favsRail.innerHTML = ''; return; }
+
+  const html = items.map(p => {
+    const img = (p.image && String(p.image).trim()) ? p.image : svgPlaceholder('Sin foto');
+    const price = Number(p.price||0).toFixed(2);
+    return `
+      <div class="fav-chip" role="listitem" data-id="${p.id}">
+        <img src="${img}" alt="">
+        <span class="fav-name">${p.name}</span>
+        <span class="fav-price">$${price}</span>
+        <button class="fav-add" type="button">Agregar</button>
+        <button class="fav-remove" type="button" aria-label="Quitar">×</button>
+      </div>
+    `;
+  }).join('');
+  favsRail.innerHTML = html;
+}
+
+function bindFavsRailEvents(){
+  if (btnFavsPrev) btnFavsPrev.addEventListener('click', () => favsRail?.scrollBy({ left: -320, behavior: 'smooth' }));
+  if (btnFavsNext) btnFavsNext.addEventListener('click', () => favsRail?.scrollBy({ left:  320, behavior: 'smooth' }));
+  if (btnFavsExpand) btnFavsExpand.addEventListener('click', () => { renderFavoritesModal(); openModal(modalFavs); });
+
+  // Clicks dentro del rail (Agregar/Quitar)
+  favsRail?.addEventListener('click', (e) => {
+    const chip = e.target.closest('.fav-chip'); if (!chip) return;
+    const id = chip.dataset.id;
+    if (e.target.closest('.fav-add')) {
+      // simular click en "Agregar" de la tarjeta (si existe) o añadir al carrito con minQty
+      const p = productsById.get(id);
+      if (!p || p.active === false) return;
+      const card = document.querySelector(`.card[data-id="${CSS.escape(id)}"]`);
+      if (card) {
+        const add = card.querySelector('.btn.add:not(.unavailable)');
+        if (add) { add.click(); return; }
+      }
+      // fallback: añadir directo
+      const minQty = Number(p.minQty ?? (p.soldBy === 'weight' ? 0.25 : 1));
+      const unitLabel = p.soldBy === 'weight' ? 'kg' : 'pza';
+      cart.set(id, { id, name:p.name, unit:+Number(p.price||0), qty:minQty, soldBy:p.soldBy||'unit', unitLabel, step:Number(p.step|| (p.soldBy==='weight'?0.25:1)), minQty });
+      renderCart(); syncCardsQty(id);
+    }
+    if (e.target.closest('.fav-remove')) {
+      toggleFav(id);
+      renderFavoritesRail();
+      // Actualiza corazones
+      updateAllCardHearts();
+    }
+  });
+}
+
+function renderFavoritesModal(){
+  if (!favsModalList) return;
+  const items = Array.from(favorites)
+    .map(id => productsById.get(id))
+    .filter(p => p && p.active !== false);
+  favsModalList.innerHTML = items.map(p => {
+    const img = (p.image && String(p.image).trim()) ? p.image : svgPlaceholder('Sin foto');
+    const price = Number(p.price||0).toFixed(2);
+    const unitLabel = (p.soldBy === 'weight') ? 'kg' : 'pza';
+    return `
+      <div class="favs-modal-card" data-id="${p.id}">
+        <img src="${img}" alt="">
+        <div class="meta">
+          <h4>${p.name}</h4>
+          <p class="p">$${price} <small>por ${unitLabel}</small></p>
+        </div>
+        <div class="actions">
+          <button class="btn ghost favs-add">Agregar</button>
+          <button class="btn btn-remove favs-remove">Quitar</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  // Delegación de eventos
+  favsModalList.addEventListener('click', favsModalClickHandler, { once: true });
+}
+function favsModalClickHandler(e){
+  const card = e.target.closest('.favs-modal-card'); if (!card) return;
+  const id = card.dataset.id;
+  if (e.target.closest('.favs-add')){
+    const p = productsById.get(id);
+    if (!p || p.active === false) return;
+    const minQty = Number(p.minQty ?? (p.soldBy === 'weight' ? 0.25 : 1));
+    const unitLabel = p.soldBy === 'weight' ? 'kg' : 'pza';
+    cart.set(id, { id, name:p.name, unit:+Number(p.price||0), qty:minQty, soldBy:p.soldBy||'unit', unitLabel, step:Number(p.step|| (p.soldBy==='weight'?0.25:1)), minQty });
+    renderCart(); syncCardsQty(id);
+  }
+  if (e.target.closest('.favs-remove')){
+    toggleFav(id);
+    renderFavoritesModal();
+    renderFavoritesRail();
+    updateAllCardHearts();
+  }
+  // volver a escuchar (porque usamos once:true)
+  favsModalList.addEventListener('click', favsModalClickHandler, { once: true });
+}
+
+// Cerrar modal favoritos con overlay o ✕
+document.querySelectorAll('[data-close="favs"]').forEach(el => el.addEventListener('click', ()=> closeModal(modalFavs)));
+
 function svgPlaceholder(text = 'Sin foto') {
   const svg = `
     <svg xmlns="http://www.w3.org/2000/svg" width="120" height="120">
@@ -432,6 +578,8 @@ function renderProductGrid(products){
         ' data-minqty="' + minQty + '"' +
         (isAvailable ? '' : ' data-available="0"') +
       '>' +
+        // Dentro del string HTML de cada tarjeta, justo después de <article ...>:
+        '<button class="fav-toggle' + (isFav(id) ? ' active' : '') + '" type="button" aria-pressed="' + (isFav(id) ? 'true':'false') + '" aria-label="Marcar favorito">' + favHeartSVG(isFav(id)) + '</button>' +
         '<img src="' + img + '" alt="' + name.replace(/"/g, '&quot;') + '">' +
         '<div class="info">' +
           '<h3>' + name + '</h3>' +
@@ -488,6 +636,35 @@ function bindAddButtons(){
       const info = getCardInfo(card);
       switchToQtyControl(card, info.minQty, true);
     });
+  });
+}
+function bindFavoriteToggles(){
+  document.querySelectorAll('.card .fav-toggle').forEach(btn => {
+    if (btn.dataset.bound === '1') return;
+    btn.dataset.bound = '1';
+    btn.addEventListener('click', () => {
+      const card = btn.closest('.card'); if (!card) return;
+      const id = card.dataset.id;
+      toggleFav(id);
+      // UI heart
+      btn.classList.toggle('active', isFav(id));
+      btn.setAttribute('aria-pressed', isFav(id) ? 'true' : 'false');
+      btn.innerHTML = favHeartSVG(isFav(id));
+      // rail + modal
+      renderFavoritesRail();
+    });
+  });
+}
+
+function updateAllCardHearts(){
+  document.querySelectorAll('.card').forEach(card => {
+    const id = card.dataset.id;
+    const btn = card.querySelector('.fav-toggle');
+    if (!btn) return;
+    const active = isFav(id);
+    btn.classList.toggle('active', active);
+    btn.setAttribute('aria-pressed', active ? 'true':'false');
+    btn.innerHTML = favHeartSVG(active);
   });
 }
 
@@ -765,6 +942,8 @@ function applyFilters(){
     } else {
       hideEmpty();
     }
+    // 👇 ACTUALIZA CORAZONES ANTES DE SALIR
+    updateAllCardHearts();
     return;
   }
 
@@ -797,6 +976,8 @@ function applyFilters(){
       else showEmpty('Aún no contamos con artículos en esta categoría. Estamos trabajando constantemente para ir agregando más artículos.');
     } else { hideEmpty(); }
   }
+  // 👇 ACTUALIZA CORAZONES AL TERMINAR
+  updateAllCardHearts();
 }
 
 /* == 11) CARGA: productos, categorías, zonas, servicio == */
@@ -880,7 +1061,9 @@ async function loadProducts() {
     renderProductGrid(visible);
     buildCategoryFilters(visible);
     bindAddButtons();
+    bindFavoriteToggles();
     applyFilters();
+    renderFavoritesRail();
 
     console.info(
       'Productos (merge) | Fuentes OK:', arrays.length,
@@ -1360,12 +1543,17 @@ window.addEventListener('DOMContentLoaded', async () => {
   renderCart();
   validateCheckout();
   loadCheckout();
-
+// ⬇️ NUEVO
+  loadFavs();
+  bindFavsRailEvents();
   try {
     await Promise.all([ loadCategories(), loadProducts(), loadZones() ]);
     Array.from(cart.keys()).forEach(id => syncCardsQty(id));
     toggleContinueButton();
     updateFreeShippingPromo();   // estado inicial (si ya hay zona guardada)
+    // ⬇️ NUEVO: inicial pintado del rail
+    renderFavoritesRail();
+    updateAllCardHearts();
     if (zone.value && (cart.size > 0)) {
       fsShowOnAdd = true;
       updateFreeShippingPromo();

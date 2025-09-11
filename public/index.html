@@ -40,6 +40,21 @@
           <input id="searchInput" type="search" placeholder="Escribe el nombre…">
         </label>
       </div>
+<!-- FAVORITOS: carrusel -->
+<section id="favsSection" class="favs hidden" aria-label="Tus favoritos">
+  <div class="favs-head">
+    <h3 class="favs-title">⭐ Tus favoritos</h3>
+    <div class="favs-actions">
+      <button id="btnFavsPrev" class="favs-nav" aria-label="Anterior" type="button">‹</button>
+      <button id="btnFavsNext" class="favs-nav" aria-label="Siguiente" type="button">›</button>
+      <button id="btnFavsExpand" class="btn ghost small" type="button">Ver todos</button>
+    </div>
+  </div>
+  <div class="favs-rail" id="favsRail" tabindex="0" role="list" aria-label="Productos favoritos">
+    <!-- Chips de favoritos se inyectan por JS -->
+  </div>
+</section>
+
     </div>
   </header>
 
@@ -112,6 +127,18 @@
 <div id="fs-promo" class="fs-pill hidden" aria-live="polite">
   <div class="fs-msg">Agrega <strong>$0.00</strong> al carrito para conseguir Envío <strong>GRATIS</strong>.</div>
   <div class="fs-progress"><div class="fs-bar"></div></div>
+</div>
+
+<!-- MODAL FAVORITOS -->
+<div id="modalFavs" class="modal" aria-hidden="true">
+  <div class="modal__overlay" data-close="favs"></div>
+  <div class="modal__content" role="dialog" aria-modal="true" aria-labelledby="favsTitle">
+    <button class="modal__close" data-close="favs" aria-label="Cerrar">✕</button>
+    <h2 id="favsTitle">Tus favoritos</h2>
+    <div id="favsModalList" class="favs-modal-list">
+      <!-- Tarjetas de favoritos completas se inyectan por JS -->
+    </div>
+  </div>
 </div>
 
   <!-- MODAL CHECKOUT -->
