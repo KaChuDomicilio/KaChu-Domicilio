@@ -1,182 +1,130 @@
-// ==== KaChu Catálogo – script.js ====
-// Soporta productos por pieza y por peso (step/minQty) y, opcionalmente,
-// precios por kg y por pieza con escalones/combos.
+'use strict';
+/* KaChu Catálogo – script.js
+   Versión sin template literals (`) para evitar errores de linters/builds con reglas de comillas.
+   Usa sólo comillas simples en strings y concatenación.
+*/
 
-/* == 1) CONFIG & ESTADO: Referencias de UI, persistencia, constantes == */
-// --------- Referencias de UI ---------
-const modalCart = document.getElementById('modalCart');
-const modalCheckout = document.getElementById('modalCheckout');
+/* == 1) CONFIG & ESTADO == */
+var modalCart      = document.getElementById('modalCart');
+var modalCheckout  = document.getElementById('modalCheckout');
+var btnCart        = document.getElementById('btnCart');
+var btnContinue    = document.getElementById('btnContinue');
+var cartList       = document.getElementById('cartList');
+var cartBadge      = document.getElementById('cartBadge');
+var checkoutForm   = document.getElementById('checkoutForm');
+var zone           = document.getElementById('zone');
+var address        = document.getElementById('address');
+var btnCancel      = document.getElementById('btnCancel');
+var btnWhatsApp    = document.getElementById('btnWhatsApp');
+var cashField      = document.getElementById('cashField');
+var cashGiven      = document.getElementById('cashGiven');
+var cashHelp       = document.getElementById('cashHelp');
 
-const btnCart = document.getElementById('btnCart');
-const btnContinue = document.getElementById('btnContinue');
+var modalConfirm   = document.getElementById('modalConfirm');
+var btnConfirmYes  = document.getElementById('btnConfirmYes');
+var btnConfirmNo   = document.getElementById('btnConfirmNo');
 
-const cartList = document.getElementById('cartList');
-const cartBadge = document.getElementById('cartBadge');
+var categorySelect = document.getElementById('category');
+var subcategorySelect = document.getElementById('subcategory');
+var searchInput    = document.getElementById('searchInput');
+var emptyState     = document.getElementById('emptyState');
+var grid           = document.querySelector('.grid');
 
-const checkoutForm = document.getElementById('checkoutForm');
-const zone = document.getElementById('zone');
-const address = document.getElementById('address');
-const btnCancel = document.getElementById('btnCancel');
-const btnWhatsApp = document.getElementById('btnWhatsApp');
+var btnClearCart   = document.getElementById('btnClearCart');
+var checkoutTotalPill = document.getElementById('checkoutTotalPill');
 
-const cashField = document.getElementById('cashField');
-const cashGiven = document.getElementById('cashGiven');
+var modalTransfer  = document.getElementById('modalTransferencia');
+var btnTransferOK  = document.getElementById('btnTransferOK');
+if (btnClearCart) btnClearCart.addEventListener('click', clearCart);
 
-const modalConfirm = document.getElementById('modalConfirm');
-const btnConfirmYes = document.getElementById('btnConfirmYes');
-const btnConfirmNo  = document.getElementById('btnConfirmNo');
+/* FAVORITOS (rail + modal) */
+var favsSection   = document.getElementById('favsSection');
+var favsTrack     = document.getElementById('favsTrack');
+var favsDots      = document.getElementById('favsDots');
+var favsPrev      = document.getElementById('favsPrev');
+var favsNext      = document.getElementById('favsNext');
+var favsAll       = document.getElementById('favsAll');
+var modalFavs     = document.getElementById('modalFavs');
+var favsModalList = document.getElementById('favsModalList');
 
-const categorySelect = document.getElementById('category');
-const subcategorySelect = document.getElementById('subcategory');
-const searchInput = document.getElementById('searchInput');
-const emptyState = document.getElementById('emptyState');
-const grid = document.querySelector('.grid');
+/* FREE SHIPPING */
+var fsPill = document.getElementById('fs-promo');
+var fsMsg  = fsPill ? fsPill.querySelector('.fs-msg') : null;
+var fsBar  = fsPill ? fsPill.querySelector('.fs-bar') : null;
+var fsTimer = null, fsLastText = '', fsShowOnAdd = false;
+var FS_SHOW_MS = 8000, FS_COOLDOWN_MS = 600;
 
-const btnClearCart = document.getElementById('btnClearCart');
-const checkoutTotalPill = document.getElementById('checkoutTotalPill');
+/* Persistencia */
+var CART_KEY     = 'kachu_cart_v1';
+var CHECKOUT_KEY = 'kachu_checkout_v1';
+var FAVS_KEY     = 'kachu_favs_v1';
+var favorites = new Set();
 
-const modalTransfer = document.getElementById('modalTransferencia');
-const btnTransferOK = document.getElementById('btnTransferOK');
+/* Estado memoria */
+var cart = new Map();               // id -> item
+var productsById = new Map();       // id -> producto
+var pricingById  = new Map();       // legacy combos
+var categoriesMap  = null;
 
-btnClearCart?.addEventListener('click', clearCart);
+/* Zonas */
+var ZONES = [];
+var zonesByName = new Map();
 
-// --------- Persistencia ---------
-const CART_KEY = 'kachu_cart_v1';
-const CHECKOUT_KEY = 'kachu_checkout_v1';
-
-// === FAVORITOS (estado/persistencia) ===
-const FAVS_KEY = 'kachu_favs_v1';
-let favorites = new Set();
-
-const cashHelp = document.getElementById('cashHelp');
-
-// === FREE SHIPPING (estado/UI) ===
-const fsPill = document.getElementById('fs-promo');
-const fsMsg  = fsPill?.querySelector('.fs-msg');
-const fsBar  = fsPill?.querySelector('.fs-bar');
-
-// === FREE SHIPPING (toast temporizado) ===
-let fsTimer = null;
-let fsLastText = '';
-let fsShowOnAdd = false; // bandera: mostrar cuando se agregó producto
-
-const FS_SHOW_MS = 8000; // tiempo visible
-const FS_COOLDOWN_MS = 600; // margen para evitar parpadeos rápidos
-
-function loadFavs(){
-  try{
-    const raw = localStorage.getItem(FAVS_KEY);
-    favorites = new Set(Array.isArray(JSON.parse(raw)) ? JSON.parse(raw) : []);
-  }catch{ favorites = new Set(); }
-}
-function saveFavs(){
-  localStorage.setItem(FAVS_KEY, JSON.stringify(Array.from(favorites)));
-}
-function isFav(id){ return favorites.has(String(id)); }
-function toggleFav(id){
-  const key = String(id);
-  if (favorites.has(key)) favorites.delete(key); else favorites.add(key);
-  saveFavs();
-}
-
-function showFsToastOnce() {
-  if (!fsPill) return;
-  // Evita reanimar si ya está visible con el mismo texto
-  const isShowing = fsPill.classList.contains('show');
-  const current = fsMsg?.innerHTML || '';
-  if (isShowing && current === fsLastText) return;
-
-  fsLastText = current;
-
-  clearTimeout(fsTimer);
-  fsPill.classList.remove('hidden');
-  // forzamos reflujo para reiniciar transición si se repite
-  void fsPill.offsetWidth;
-  fsPill.classList.add('show');
-
-  fsTimer = setTimeout(() => {
-    fsPill.classList.remove('show');
-    // opcional: ocultar completamente tras la animación
-    setTimeout(() => fsPill.classList.add('hidden'), FS_COOLDOWN_MS);
-  }, FS_SHOW_MS);
-}
-
-let ZONES = [];                         // [{nombre, costo, freeShippingThreshold?}, ...]
-const zonesByName = new Map();          // nombre -> { cost, threshold }
-
-/* == 2) CARGA DE DATOS: Endpoints + fetch con fallback == */
-// --- API primero; estáticos como respaldo ---
-const API = {
+/* == 2) API + fetch == */
+var API = {
   productos:  ['/api/data/productos'],
   categorias: ['/api/data/categorias'],
   zonas:      ['/api/data/zonas'],
-  servicio:   ['/api/data/servicio'],
+  servicio:   ['/api/data/servicio']
 };
-
-// fetch sin caché
-async function fetchNoCache(url){
-  const u = url + (url.includes('?') ? `&t=${Date.now()}` : `?t=${Date.now()}`);
+function fetchNoCache(url){
+  var u = url + (url.indexOf('?') >= 0 ? '&t=' + Date.now() : '?t=' + Date.now());
   return fetch(u, { cache: 'no-store' });
 }
-// intenta URLs en orden hasta 200
-async function fetchFirstOk(urls){
-  for (const url of urls){
-    try{
-      const r = await fetchNoCache(url);
-      if (r.ok) return { url, json: await r.json() };
-    }catch(_){}
+function fetchFirstOk(urls){
+  var i, url;
+  function tryOne(idx, resolve, reject){
+    if (idx >= urls.length) { reject(new Error('No se pudo leer ninguna URL')); return; }
+    url = urls[idx];
+    fetchNoCache(url).then(function(r){
+      if (!r.ok) { tryOne(idx+1, resolve, reject); return; }
+      r.json().then(function(json){ resolve({ url: url, json: json }); }).catch(function(){ tryOne(idx+1, resolve, reject); });
+    }).catch(function(){ tryOne(idx+1, resolve, reject); });
   }
-  throw new Error('No se pudo leer ninguna URL:\n' + urls.join('\n'));
+  return new Promise(function(resolve, reject){ tryOne(0, resolve, reject); });
 }
 
-/* == 3) HELPERS & ESTADO EN MEMORIA (cart, índices, utilidades) == */
-// --------- Helpers ---------
-const cart = new Map(); // id -> { id, name, unit, qty, soldBy, unitLabel, step, minQty }
-const pricingById = new Map(); // id -> { tiers:[{qty,price}, ...] }  (legado/compat)
-const productsById = new Map(); // <-- índice completo de productos (para motor de precios)
-
+/* == 3) Helpers == */
 function money(n){ return '$' + Number(n).toFixed(2); }
+function currency(n){ return '$' + Number(n || 0).toFixed(2); }
 function parseMoney(str){ return parseFloat((str||'').replace(/[^0-9.]/g,'')) || 0; }
 function normalize(str){ return (str || '').toString().toLowerCase().trim(); }
-function currency(n){ return '$' + Number(n || 0).toFixed(2); }
-
-function decimalsFromStep(step){
-  const s = String(step || 1);
-  return s.includes('.') ? (s.split('.')[1] || '').length : 0;
-}
-function formatQty(qty, step){
-  const d = decimalsFromStep(step || 1);
-  return Number(qty || 0).toFixed(d).replace(/\.?0+$/,'');
-}
+function decimalsFromStep(step){ var s = String(step || 1); return s.indexOf('.') >= 0 ? (s.split('.')[1] || '').length : 0; }
+function formatQty(qty, step){ var d = decimalsFromStep(step || 1); return Number(qty || 0).toFixed(d).replace(/\.?0+$/,''); }
 
 function getCardInfo(card){
-  const name = card.querySelector('h3')?.textContent.trim() || '';
-  const unit = parseMoney(card.querySelector('.price')?.textContent);
-  const id = card.dataset.id || name; // usa id real si viene de la API
-  const soldBy    = card.dataset.soldby || 'unit';
-  const unitLabel = card.dataset.unitlabel || (soldBy==='weight' ? 'kg' : 'pza');
-  const step      = parseFloat(card.dataset.step || (soldBy==='weight' ? '0.25' : '1')) || 1;
-  const minQty    = parseFloat(card.dataset.minqty || step) || step;
-  return { id, name, unit, soldBy, unitLabel, step, minQty };
+  var name = (card.querySelector('h3') && card.querySelector('h3').textContent.trim()) || '';
+  var unit = parseMoney(card.querySelector('.price') ? card.querySelector('.price').textContent : '');
+  var id = card.dataset.id || name;
+  var soldBy    = card.dataset.soldby || 'unit';
+  var unitLabel = card.dataset.unitlabel || (soldBy==='weight' ? 'kg' : 'pza');
+  var step      = parseFloat(card.dataset.step || (soldBy==='weight' ? '0.25' : '1')) || 1;
+  var minQty    = parseFloat(card.dataset.minqty || step) || step;
+  return { id: id, name: name, unit: unit, soldBy: soldBy, unitLabel: unitLabel, step: step, minQty: minQty };
 }
 
-function saveCart(){
-  const arr = Array.from(cart.values());
-  localStorage.setItem(CART_KEY, JSON.stringify(arr));
-}
+/* Persistencia carrito/checkout/favs */
+function saveCart(){ localStorage.setItem(CART_KEY, JSON.stringify(Array.from(cart.values()))); }
 function loadCart(){
   try{
-    const raw = localStorage.getItem(CART_KEY);
+    var raw = localStorage.getItem(CART_KEY);
     if(!raw) return;
-    const arr = JSON.parse(raw);
+    var arr = JSON.parse(raw);
     cart.clear();
-    arr.forEach(it => {
+    arr.forEach(function(it){
       if(it && it.id && it.qty > 0){
         cart.set(it.id, {
-          id: it.id,
-          name: it.name,
-          unit: it.unit,
-          qty: it.qty,
+          id: it.id, name: it.name, unit: it.unit, qty: it.qty,
           soldBy: it.soldBy || 'unit',
           unitLabel: it.unitLabel || (it.soldBy==='weight' ? 'kg' : 'pza'),
           step: parseFloat(it.step) || (it.soldBy==='weight' ? 0.25 : 1),
@@ -186,466 +134,328 @@ function loadCart(){
     });
   }catch(e){ console.warn('No se pudo cargar el carrito:', e); }
 }
-
 function saveCheckout(){
-  const pay = checkoutForm.querySelector('input[name="pay"]:checked')?.value || '';
-  const data = {
-    zone: zone.value || '',
-    pay,
-    address: address.value || '',
-    cashGiven: cashGiven.value || ''
-  };
+  var pay = (checkoutForm.querySelector('input[name="pay"]:checked') || {}).value || '';
+  var data = { zone: zone.value || '', pay: pay, address: address.value || '', cashGiven: cashGiven.value || '' };
   localStorage.setItem(CHECKOUT_KEY, JSON.stringify(data));
 }
 function loadCheckout(){
   try{
-    const raw = localStorage.getItem(CHECKOUT_KEY);
+    var raw = localStorage.getItem(CHECKOUT_KEY);
     if(!raw) return;
-    const data = JSON.parse(raw);
-
+    var data = JSON.parse(raw);
     if(data.zone) zone.value = data.zone;
     if(data.pay){
-      const r = checkoutForm.querySelector(`input[name="pay"][value="${data.pay}"]`);
+      var r = checkoutForm.querySelector('input[name="pay"][value="' + data.pay + '"]');
       if(r){ r.checked = true; }
     }
     if(data.address) address.value = data.address;
     if(data.cashGiven) cashGiven.value = data.cashGiven;
-
     cashField.classList.toggle('hidden', data.pay !== 'Efectivo');
   }catch(e){ console.warn('No se pudo cargar checkout:', e); }
 }
-
-/* == 4) MOTOR DE PRECIOS (combos por kg/pza; cálculo de mejor precio) == */
-function _num(v, d = 0){
-  const n = parseFloat(String(v ?? '').toString().replace(',', '.'));
-  return Number.isFinite(n) ? n : d;
+function loadFavs(){
+  try{
+    var raw = localStorage.getItem(FAVS_KEY);
+    var arr = JSON.parse(raw);
+    favorites = new Set(Array.isArray(arr) ? arr : []);
+  }catch(e){ favorites = new Set(); }
 }
+function saveFavs(){ localStorage.setItem(FAVS_KEY, JSON.stringify(Array.from(favorites))); }
+function isFav(id){ return favorites.has(String(id)); }
+function toggleFav(id){
+  var key = String(id);
+  if (favorites.has(key)) favorites.delete(key); else favorites.add(key);
+  saveFavs();
+}
+
+/* == 4) Motor de precios (combos) == */
+function _num(v, d){ if (d===void 0) d = 0; var n = parseFloat(String(v==null?'':v).replace(',', '.')); return isFinite(n) ? n : d; }
 function _toCount(q, step){ return Math.round((q + 1e-9) / step); }
 function _roundToStep(q, step){ return _toCount(q, step) * step; }
-
 function normalizePricingFromProduct(p){
-  const unit = (p?.soldBy === 'weight') ? 'weight' : 'unit';
-  const step = unit === 'weight' ? _num(p?.step, 0.25) : 1;
-  const minQty = unit === 'weight' ? _num(p?.minQty, step) : 1;
-  const basePrice = _num(p?.price, 0);
-
-  let tiers = [];
-  if (Array.isArray(p?.bundlePricing?.tiers)) tiers = p.bundlePricing.tiers;   // por pieza
-  else if (Array.isArray(p?.kgPricing?.tiers)) tiers = p.kgPricing.tiers;      // por kg
-  else if (Array.isArray(p?.priceCombos))      tiers = p.priceCombos;          // compat panel
-
-  tiers = (tiers || [])
-    .map(t => ({ qty: _num(t.qty,0), price: _num(t.price,0) }))
-    .filter(t => t.qty > 0 && t.price > 0)
-    .sort((a,b) => a.qty - b.qty); // asc
-
-  return { unit, step, minQty, basePrice, tiers };
+  var unit = (p && p.soldBy === 'weight') ? 'weight' : 'unit';
+  var step = unit === 'weight' ? _num(p && p.step, 0.25) : 1;
+  var minQty = unit === 'weight' ? _num(p && p.minQty, step) : 1;
+  var basePrice = _num(p && p.price, 0);
+  var tiers = [];
+  if (p && p.bundlePricing && Array.isArray(p.bundlePricing.tiers)) tiers = p.bundlePricing.tiers;
+  else if (p && p.kgPricing && Array.isArray(p.kgPricing.tiers)) tiers = p.kgPricing.tiers;
+  else if (p && Array.isArray(p.priceCombos)) tiers = p.priceCombos;
+  tiers = (tiers || []).map(function(t){ return { qty: _num(t.qty,0), price: _num(t.price,0) }; })
+                       .filter(function(t){ return t.qty > 0 && t.price > 0; })
+                       .sort(function(a,b){ return a.qty - b.qty; });
+  return { unit: unit, step: step, minQty: minQty, basePrice: basePrice, tiers: tiers };
 }
-
 function clampQtyToStepAndMin(qty, cfg){
-  const q = Math.max(_num(qty, cfg.minQty), cfg.minQty);
-  const snapped = _roundToStep(q, cfg.step);
+  var q = Math.max(_num(qty, cfg.minQty), cfg.minQty);
+  var snapped = _roundToStep(q, cfg.step);
   return Math.max(snapped, cfg.minQty);
 }
-
-/** Calcula el mejor precio usando combos (si existen). Devuelve números crudos. */
 function computeBestPriceRaw(product, qtyRaw){
-  const cfg = normalizePricingFromProduct(product);
-  const qty = clampQtyToStepAndMin(qtyRaw, cfg);
-
-  const hasTiers = Array.isArray(cfg.tiers) && cfg.tiers.length > 0;
+  var cfg = normalizePricingFromProduct(product);
+  var qty = clampQtyToStepAndMin(qtyRaw, cfg);
+  var hasTiers = Array.isArray(cfg.tiers) && cfg.tiers.length > 0;
   if (!hasTiers){
-    const total = +(qty * cfg.basePrice).toFixed(2);
-    return {
-      qty, requestedQty: qty, total,
-      breakdown: [{ qty, times: 1, price: +cfg.basePrice.toFixed(2) }],
-      pricingMode: 'base', adjusted: false
-    };
+    var total0 = +(qty * cfg.basePrice).toFixed(2);
+    return { qty: qty, requestedQty: qty, total: total0, breakdown:[{ qty: qty, times:1, price:+cfg.basePrice.toFixed(2)}], pricingMode:'base', adjusted:false };
   }
-
-  const step = cfg.step;
-  const N = _toCount(qty, step);
-
-  const tiers = cfg.tiers
-    .map(t => ({ count: _toCount(t.qty, step), rawQty: t.qty, price: +t.price.toFixed(2) }))
-    .filter(t => t.count >= 1);
-
+  var step = cfg.step, N = _toCount(qty, step);
+  var tiers = cfg.tiers.map(function(t){ return { count:_toCount(t.qty, step), rawQty:t.qty, price:+t.price.toFixed(2) }; })
+                       .filter(function(t){ return t.count >= 1; });
   if (!tiers.length){
-    const total = +(qty * cfg.basePrice).toFixed(2);
-    return {
-      qty, requestedQty: qty, total,
-      breakdown: [{ qty, times: 1, price: +cfg.basePrice.toFixed(2) }],
-      pricingMode: 'base', adjusted: false
-    };
+    var total1 = +(qty * cfg.basePrice).toFixed(2);
+    return { qty: qty, requestedQty: qty, total: total1, breakdown:[{ qty: qty, times:1, price:+cfg.basePrice.toFixed(2)}], pricingMode:'base', adjusted:false };
   }
-
-  const INF = 1e15;
-  const dp = new Array(N + 1).fill(INF);
-  const choice = new Array(N + 1).fill(-1);
+  var INF = 1e15;
+  var dp = new Array(N + 1).fill(INF);
+  var choice = new Array(N + 1).fill(-1);
   dp[0] = 0;
-
-  for (let i = 1; i <= N; i++){
-    for (let j = 0; j < tiers.length; j++){
-      const t = tiers[j];
+  var i, j;
+  for (i = 1; i <= N; i++){
+    for (j = 0; j < tiers.length; j++){
+      var t = tiers[j];
       if (i - t.count >= 0){
-        const cand = dp[i - t.count] + t.price;
+        var cand = dp[i - t.count] + t.price;
         if (cand < dp[i]) { dp[i] = cand; choice[i] = j; }
       }
     }
   }
-
   if (dp[N] === INF){
-    const total = +(qty * cfg.basePrice).toFixed(2);
-    return {
-      qty, requestedQty: qty, total,
-      breakdown: [{ qty, times: 1, price: +cfg.basePrice.toFixed(2) }],
-      pricingMode: 'base', adjusted: false
-    };
+    var total2 = +(qty * cfg.basePrice).toFixed(2);
+    return { qty: qty, requestedQty: qty, total: total2, breakdown:[{ qty: qty, times:1, price:+cfg.basePrice.toFixed(2)}], pricingMode:'base', adjusted:false };
   }
-
-  const used = new Map();
-  let k = N;
-  while (k > 0){
-    const j = choice[k];
-    used.set(j, (used.get(j) || 0) + 1);
-    k -= tiers[j].count;
-  }
-
-  let total = 0;
-  const breakdown = [];
-  for (const [j, times] of used.entries()){
-    const t = tiers[j];
-    total += times * t.price;
-    breakdown.push({ qty: t.rawQty, times, price: t.price });
-  }
+  var used = new Map(); var k = N;
+  while (k > 0){ j = choice[k]; used.set(j, (used.get(j) || 0) + 1); k -= tiers[j].count; }
+  var total = 0; var breakdown = [];
+  used.forEach(function(times, jj){ var tt = tiers[jj]; total += times * tt.price; breakdown.push({ qty: tt.rawQty, times: times, price: tt.price }); });
   total = +total.toFixed(2);
-
-  return {
-    qty,
-    requestedQty: qty,
-    total,
-    breakdown: breakdown.sort((a,b)=> a.qty - b.qty),
-    pricingMode: 'combos',
-    adjusted: false
-  };
+  breakdown.sort(function(a,b){ return a.qty - b.qty; });
+  return { qty: qty, requestedQty: qty, total: total, breakdown: breakdown, pricingMode:'combos', adjusted:false };
 }
-
-// Wrapper por id
 function bestPriceById(id, qty){
-  const p = productsById.get(id);
+  var p = productsById.get(id);
   if (!p){
-    const it = cart.get(id);
-    const line = +((it?.unit || 0) * qty).toFixed(2);
-    return { qty, requestedQty: qty, total: line, breakdown: [], pricingMode: 'base', adjusted: false };
+    var it = cart.get(id);
+    var line = +(((it && it.unit) || 0) * qty).toFixed(2);
+    return { qty: qty, requestedQty: qty, total: line, breakdown: [], pricingMode: 'base', adjusted: false };
   }
-  const hasEmbeddedTiers =
-    (Array.isArray(p?.bundlePricing?.tiers) && p.bundlePricing.tiers.length) ||
-    (Array.isArray(p?.kgPricing?.tiers) && p.kgPricing.tiers.length) ||
-    (Array.isArray(p?.priceCombos) && p.priceCombos.length);
-
-  let prod = p;
+  var hasEmbeddedTiers =
+    (p && p.bundlePricing && Array.isArray(p.bundlePricing.tiers) && p.bundlePricing.tiers.length) ||
+    (p && p.kgPricing && Array.isArray(p.kgPricing.tiers) && p.kgPricing.tiers.length) ||
+    (p && Array.isArray(p.priceCombos) && p.priceCombos.length);
+  var prod = p;
   if (!hasEmbeddedTiers){
-    const legacy = pricingById.get(id);
-    if (legacy?.tiers?.length){
-      if ((p.soldBy || 'unit') === 'weight'){
-        prod = { ...p, kgPricing: { tiers: legacy.tiers } };
-      } else {
-        prod = { ...p, bundlePricing: { tiers: legacy.tiers } };
-      }
+    var legacy = pricingById.get(id);
+    if (legacy && legacy.tiers && legacy.tiers.length){
+      if ((p.soldBy || 'unit') === 'weight') prod = Object.assign({}, p, { kgPricing: { tiers: legacy.tiers } });
+      else                                   prod = Object.assign({}, p, { bundlePricing: { tiers: legacy.tiers } });
     }
   }
   return computeBestPriceRaw(prod, qty);
 }
 
-/* == 5) CATEGORÍAS: selects y mapeos == */
-let categoriesMap = null;
-
+/* == 5) Categorías == */
 function fillCategorySelectFromMap() {
   if (!categorySelect) return;
-  const cats = Array.from(categoriesMap.keys()).sort();
-  categorySelect.innerHTML = `<option value="">Todas</option>` +
-    cats.map(c => `<option>${c}</option>`).join('');
-  subcategorySelect.innerHTML = `<option value="">Todas</option>`;
+  var cats = Array.from(categoriesMap.keys()).sort();
+  categorySelect.innerHTML = '<option value=\"\">Todas</option>' + cats.map(function(c){ return '<option>' + c + '</option>'; }).join('');
+  subcategorySelect.innerHTML = '<option value=\"\">Todas</option>';
   subcategorySelect.disabled = true;
 }
 function fillSubcategorySelectFromMap(selectedCat) {
-  const subs = categoriesMap.get(selectedCat) || [];
-  subcategorySelect.innerHTML = `<option value="">Todas</option>` +
-    subs.slice().sort().map(s => `<option>${s}</option>`).join('');
+  var subs = categoriesMap.get(selectedCat) || [];
+  subcategorySelect.innerHTML = '<option value=\"\">Todas</option>' + subs.slice().sort().map(function(s){ return '<option>' + s + '</option>'; }).join('');
   subcategorySelect.disabled = subs.length === 0;
 }
 
-/* == 6) MODALES == */
-btnTransferOK?.addEventListener('click', () => closeModal(modalTransfer));
+/* == 6) Modales == */
+if (btnTransferOK) btnTransferOK.addEventListener('click', function(){ closeModal(modalTransfer); });
 function openModal(modal){
   if (!modal) return;
   modal.inert = false;
   modal.classList.add('open');
   modal.removeAttribute('aria-hidden');
-  setTimeout(() => modal.querySelector('.modal__close, [data-close]')?.focus?.(), 0);
+  setTimeout(function(){ var x = modal.querySelector('.modal__close, [data-close]'); if (x && x.focus) x.focus(); }, 0);
 }
 function closeModal(modal){
   if (!modal) return;
-  const active = document.activeElement;
+  var active = document.activeElement;
   if (active && modal.contains(active)) active.blur();
   modal.classList.remove('open');
   modal.setAttribute('aria-hidden','true');
   modal.inert = true;
 }
 
-/* == 7) UI productos == */
-// ===== Favoritos: UI (carrusel + modal) =====
-const favsSection  = document.getElementById('favsSection');
-const favsTrack    = document.getElementById('favsTrack');
-const favsDots     = document.getElementById('favsDots');
-const favsPrev     = document.getElementById('favsPrev');
-const favsNext     = document.getElementById('favsNext');
-const favsAll      = document.getElementById('favsAll');
-const modalFavs    = document.getElementById('modalFavs');
-const favsModalList= document.getElementById('favsModalList');
-
-function favHeartSVG(active=false){
-  return active
-    ? '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21l-1.45-1.32C6 15.36 3 12.61 3 9.28 3 7 4.79 5 7.05 5c1.4 0 2.75.66 3.6 1.71C11.5 5.66 12.85 5 14.25 5 16.51 5 18.3 7 18.3 9.28c0 3.33-3 6.08-7.55 10.4L12 21z"></path></svg>'
-    : '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12.1 8.64l-.1.1-.1-.1C10.14 6.9 7.1 7.24 5.8 9.28c-1.03 1.62-.72 3.82.74 5.04L12 19l5.46-4.68c1.46-1.22 1.77-3.42.74-5.04-1.3-2.04-4.34-2.38-6.04-.64z" fill="none" stroke="#ef4444" stroke-width="1.8" stroke-linejoin="round"/></svg>';
+/* == 7) FAVORITOS: UI (rail + modal) == */
+function favHeartSVG(active){
+  if (active) return '<svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M12 21l-1.45-1.32C6 15.36 3 12.61 3 9.28 3 7 4.79 5 7.05 5c1.4 0 2.75.66 3.6 1.71C11.5 5.66 12.85 5 14.25 5 16.51 5 18.3 7 18.3 9.28c0 3.33-3 6.08-7.55 10.4L12 21z\"></path></svg>';
+  return '<svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M12.1 8.64l-.1.1-.1-.1C10.14 6.9 7.1 7.24 5.8 9.28c-1.03 1.62-.72 3.82.74 5.04L12 19l5.46-4.68c1.46-1.22 1.77-3.42.74-5.04-1.3-2.04-4.34-2.38-6.04-.64z\" fill=\"none\" stroke=\"#ef4444\" stroke-width=\"1.8\" stroke-linejoin=\"round\"/></svg>';
 }
 
-// Mini-cards del carrusel (track)
+/* ---- RENDER rail ---- */
 function renderFavoritesRail(){
   if (!favsSection || !favsTrack) return;
-
-  const items = Array.from(favorites)
-    .map(id => productsById.get(id))
-    .filter(p => p && p.active !== false);
+  var items = Array.from(favorites).map(function(id){ return productsById.get(id); })
+    .filter(function(p){ return p && p.active !== false; });
 
   favsSection.classList.toggle('hidden', items.length === 0);
   if (!items.length){ favsTrack.innerHTML = ''; favsDots.innerHTML=''; return; }
 
-  const html = items.map(p => {
-    const id   = p.id;
-    const name = p.name || '';
-    const img  = (p.image && String(p.image).trim()) ? p.image : svgPlaceholder('Sin foto');
-    const price= Number(p.price||0).toFixed(2);
-    const isOn = isFav(id);
-
-    return `
-      <article class="fav-card" data-id="${id}">
-        <div class="media">
-          <img src="${img}" alt="${name.replace(/"/g,'&quot;')}">
-          <button class="fav-heart ${isOn ? 'is-fav' : ''}" data-id="${id}" type="button" aria-label="${isOn ? 'Quitar de favoritos':'Marcar como favorito'}">
-            ${favHeartSVG(isOn)}
-          </button>
-        </div>
-        <div class="meta">
-          <h4>${name}</h4>
-          <div class="price">$${price}</div>
-          <button class="btn add" type="button" data-id="${id}">Agregar</button>
-        </div>
-      </article>
-    `;
+  var html = items.map(function(p){
+    var id   = p.id;
+    var name = p.name || '';
+    var img  = (p.image && String(p.image).trim()) ? p.image : svgPlaceholder('Sin foto');
+    var price= Number(p.price||0).toFixed(2);
+    var on   = isFav(id);
+    var safeName = name.replace(/\"/g,'&quot;');
+    return '' +
+      '<article class=\"fav-card\" data-id=\"' + id + '\">' +
+        '<div class=\"media\">' +
+          '<img src=\"' + img + '\" alt=\"' + safeName + '\">' +
+          '<button class=\"fav-heart ' + (on ? 'is-fav' : '') + '\" data-id=\"' + id + '\" type=\"button\" aria-label=\"' + (on ? 'Quitar de favoritos' : 'Marcar como favorito') + '\">' +
+            favHeartSVG(on) +
+          '</button>' +
+        '</div>' +
+        '<div class=\"meta\">' +
+          '<h4>' + name + '</h4>' +
+          '<div class=\"price\">$' + price + '</div>' +
+          '<button class=\"btn add\" type=\"button\" data-id=\"' + id + '\">Agregar</button>' +
+        '</div>' +
+      '</article>';
   }).join('');
-
   favsTrack.innerHTML = html;
 
-  // Delegación de clicks en el track
   if (!favsTrack.dataset.bound){
-    favsTrack.addEventListener('click', (e) => {
-      const heart = e.target.closest('.fav-heart');
-      const add   = e.target.closest('.btn.add');
+    favsTrack.addEventListener('click', function(e){
+      var heart = e.target.closest('.fav-heart');
+      var add   = e.target.closest('.btn.add');
 
       if (heart){
-        const id = heart.dataset.id;
+        var id = heart.dataset.id;
         toggleFav(id);
-        heart.classList.toggle('is-fav', isFav(id));
-        heart.innerHTML = favHeartSVG(isFav(id));
-        updateAllCardHearts(); // sincroniza corazones del grid
+        var on = isFav(id);
+        heart.classList.toggle('is-fav', on);
+        heart.innerHTML = favHeartSVG(on);
+        updateAllCardHearts();
+        favsBindDotsTracking();
         return;
       }
       if (add){
-        const id = add.dataset.id;
-        const p  = productsById.get(id);
-        if (!p || p.active === false) return;
-
-        const card = document.querySelector(`.card[data-id="${CSS.escape(id)}"]`);
+        var id2 = add.dataset.id;
+        var p2  = productsById.get(id2);
+        if (!p2 || p2.active === false) return;
+        var card = document.querySelector('.card[data-id=\"' + CSS.escape(id2) + '\"]');
         if (card && typeof switchToQtyControl === 'function'){
-          const info = getCardInfo(card);
+          var info = getCardInfo(card);
           switchToQtyControl(card, info.minQty, true);
         } else {
-          const soldBy    = p.soldBy || 'unit';
-          const step      = Number(p.step ?? (soldBy==='weight' ? 0.25 : 1));
-          const minQty    = Number(p.minQty ?? step);
-          const unitLabel = p.unitLabel || (soldBy==='weight' ? 'kg' : 'pza');
-          cart.set(id, { id, name: p.name, unit: Number(p.price||0), qty: minQty, soldBy, unitLabel, step, minQty });
+          var soldBy    = p2.soldBy || 'unit';
+          var step      = Number(p2.step != null ? p2.step : (soldBy==='weight' ? 0.25 : 1));
+          var minQty    = Number(p2.minQty != null ? p2.minQty : step);
+          var unitLabel = p2.unitLabel || (soldBy==='weight' ? 'kg' : 'pza');
+          cart.set(id2, { id: id2, name: p2.name, unit: Number(p2.price||0), qty: minQty, soldBy: soldBy, unitLabel: unitLabel, step: step, minQty: minQty });
           renderCart();
-          syncCardsQty(id);
+          syncCardsQty(id2);
         }
       }
     });
     favsTrack.dataset.bound = '1';
-    favsSetupCenteredCarousel();
   }
-
-  // (Opcional) Puntos de paginación simples
-  if (favsDots){
-    const count = items.length;
-    favsDots.innerHTML = Array.from({length: Math.min(count, 8)})
-      .map((_,i)=>`<span class="favs-dot${i===0?' is-active':''}"></span>`).join('');
-  }
+  favsSetupCenteredCarousel();
 }
 
-// Corazones en las TARJETAS del grid
-function bindFavoriteHearts(){
-  document.querySelectorAll('.card .fav-heart').forEach(btn => {
-    if (btn.dataset.bound === '1') return;
-    btn.dataset.bound = '1';
-    btn.addEventListener('click', () => {
-      const id = btn.dataset.id || btn.closest('.card')?.dataset.id;
-      if (!id) return;
-      toggleFav(id);
-      const on = isFav(id);
-      btn.classList.toggle('is-fav', on);
-      btn.setAttribute('aria-pressed', on ? 'true' : 'false');
-      btn.innerHTML = favHeartSVG(on);
-      renderFavoritesRail(); // refresca carrusel
-    });
-  });
-}
-
-// Refresca todos los corazones del grid según estado real
-function updateAllCardHearts(){
-  document.querySelectorAll('.card').forEach(card => {
-    const id  = card.dataset.id;
-    const btn = card.querySelector('.fav-heart');
-    if (!btn || !id) return;
-    const on = isFav(id);
-    btn.classList.toggle('is-fav', on);
-    btn.setAttribute('aria-pressed', on ? 'true':'false');
-    btn.innerHTML = favHeartSVG(on);
-  });
-}
-// === Carrusel centrado estilo "scroll-snap center" ===
-
-// Calcula padding lateral para centrar el slide en el viewport
+/* ---- Dots + centrado ---- */
+var favsIO = null;
 function favsApplyCenteredPadding(){
   if (!favsTrack) return;
-  const first = favsTrack.querySelector('.fav-card');
+  var first = favsTrack.querySelector('.fav-card');
   if (!first) return;
-
-  const vw = favsTrack.clientWidth;       // ancho visible del carril
-  const slideW = first.offsetWidth;       // ancho real de una tarjeta
-  const gap = parseFloat(getComputedStyle(favsTrack).columnGap || getComputedStyle(favsTrack).gap || '12') || 12;
-  const pad = Math.max(0, (vw - slideW) / 2);
-
-  // centrado puro (izq/der iguales)
+  var vw = favsTrack.clientWidth;
+  var slideW = first.offsetWidth;
+  var styles = getComputedStyle(favsTrack);
+  var gap = parseFloat(styles.columnGap || styles.gap || '12') || 12;
+  var pad = Math.max(0, (vw - slideW) / 2);
   favsTrack.style.paddingLeft  = pad + 'px';
   favsTrack.style.paddingRight = pad + 'px';
-
-  // guardamos para las flechas
   favsTrack.dataset.slideW = String(slideW);
   favsTrack.dataset.gap = String(gap);
 }
-
-// Mueve exactamente un slide (izq = -1, der = +1)
 function favsScrollBySlide(dir){
   if (!favsTrack) return;
-  const slideW = parseFloat(favsTrack.dataset.slideW || '220') || 220;
-  const gap    = parseFloat(favsTrack.dataset.gap  || '12')  || 12;
-  const delta  = (slideW + gap) * dir;
-  favsTrack.scrollBy({ left: delta, behavior: 'smooth' });
+  var slideW = parseFloat(favsTrack.dataset.slideW || '220') || 220;
+  var gap    = parseFloat(favsTrack.dataset.gap  || '12')  || 12;
+  favsTrack.scrollBy({ left: (slideW + gap) * dir, behavior: 'smooth' });
 }
-
-// Actualiza el punto activo con IntersectionObserver
-let favsIO = null;
 function favsBindDotsTracking(){
   if (!favsTrack || !favsDots) return;
+  if (favsIO) { try{ favsIO.disconnect(); }catch(_e){} favsIO = null; }
 
-  // limpia IO previo
-  if (favsIO) { try{ favsIO.disconnect(); }catch(_){} favsIO = null; }
-
-  const cards = [...favsTrack.querySelectorAll('.fav-card')];
+  var cards = Array.prototype.slice.call(favsTrack.querySelectorAll('.fav-card'));
   if (!cards.length) { favsDots.innerHTML = ''; return; }
 
-  // render simple de puntos (uno por card)
-  favsDots.innerHTML = cards.map((_,i)=>`<span class="favs-dot${i===0?' is-active':''}"></span>`).join('');
+  favsDots.innerHTML = cards.map(function(_,i){ return '<span class=\"favs-dot' + (i===0?' is-active':'') + '\"></span>'; }).join('');
+  var dots = Array.prototype.slice.call(favsDots.children);
 
-  const dots = [...favsDots.children];
-  favsIO = new IntersectionObserver((entries)=>{
-    // el que tenga mayor intersección será el activo
-    let maxE = null;
-    for (const e of entries){
-      if (!maxE || e.intersectionRatio > maxE.intersectionRatio) maxE = e;
-    }
+  favsIO = new IntersectionObserver(function(entries){
+    var maxE = null;
+    entries.forEach(function(en){ if (!maxE || en.intersectionRatio > maxE.intersectionRatio) maxE = en; });
     if (!maxE) return;
-    const idx = cards.indexOf(maxE.target);
+    var idx = cards.indexOf(maxE.target);
     if (idx < 0) return;
-    dots.forEach(d => d.classList.remove('is-active'));
+    dots.forEach(function(d){ d.classList.remove('is-active'); });
     if (dots[idx]) dots[idx].classList.add('is-active');
-  }, {
-    root: favsTrack,
-    threshold: [0.5, 0.6, 0.7, 0.8, 0.9]   // “centrado” práctico
-  });
+  }, { root: favsTrack, threshold: [0.5, 0.6, 0.7, 0.8, 0.9] });
 
-  cards.forEach(c => favsIO.observe(c));
+  cards.forEach(function(c){ favsIO.observe(c); });
 }
-
-// Llamar SIEMPRE que se renderiza el carrusel
 function favsSetupCenteredCarousel(){
   favsApplyCenteredPadding();
   favsBindDotsTracking();
 }
-
-// Recalcular en resize/orientation
-window.addEventListener('resize', () => {
-  // pequeño debounce
+window.addEventListener('resize', function(){
   clearTimeout(window.__favsResizeT);
   window.__favsResizeT = setTimeout(favsApplyCenteredPadding, 100);
 });
-
 function bindFavsRailEvents(){
-  favsPrev?.addEventListener('click', () => favsScrollBySlide(-1));
-  favsNext?.addEventListener('click', () => favsScrollBySlide(+1));
-  favsAll ?.addEventListener('click', () => { renderFavoritesModal(); openModal(modalFavs); });
-
-  // También al hacer scroll manual, mantenemos puntos actualizados (IO ya lo hace)
-  favsTrack?.addEventListener('scroll', () => { /* IO se encarga */ });
+  if (favsPrev) favsPrev.addEventListener('click', function(){ favsScrollBySlide(-1); });
+  if (favsNext) favsNext.addEventListener('click', function(){ favsScrollBySlide(+1); });
+  if (favsAll)  favsAll.addEventListener('click', function(){ renderFavoritesModal(); openModal(modalFavs); });
 }
+Array.prototype.forEach.call(document.querySelectorAll('[data-close=\"favs\"]'), function(el){
+  el.addEventListener('click', function(){ closeModal(modalFavs); });
+});
 
+/* ---- Modal favoritos ---- */
 function renderFavoritesModal(){
   if (!favsModalList) return;
-  const items = Array.from(favorites)
-    .map(id => productsById.get(id))
-    .filter(p => p && p.active !== false);
+  var items = Array.from(favorites).map(function(id){ return productsById.get(id); })
+    .filter(function(p){ return p && p.active !== false; });
 
-  favsModalList.innerHTML = items.map(p => {
-    const img = (p.image && String(p.image).trim()) ? p.image : svgPlaceholder('Sin foto');
-    const price = Number(p.price||0).toFixed(2);
-    const unitLabel = (p.soldBy === 'weight') ? 'kg' : 'pza';
-    return `
-      <div class="favs-modal-card" data-id="${p.id}">
-        <img src="${img}" alt="">
-        <div class="meta">
-          <h4>${p.name}</h4>
-          <p class="p">$${price} <small>por ${unitLabel}</small></p>
-        </div>
-        <div class="actions">
-          <button class="btn ghost favs-add">Agregar</button>
-          <button class="btn btn-remove favs-remove">Quitar</button>
-        </div>
-      </div>
-    `;
+  favsModalList.innerHTML = items.map(function(p){
+    var img = (p.image && String(p.image).trim()) ? p.image : svgPlaceholder('Sin foto');
+    var price = Number(p.price||0).toFixed(2);
+    var unitLabel = (p.soldBy === 'weight') ? 'kg' : 'pza';
+    return '' +
+      '<div class=\"favs-modal-card\" data-id=\"' + p.id + '\">' +
+        '<img src=\"' + img + '\" alt=\"\">' +
+        '<div class=\"meta\"><h4>' + p.name + '</h4>' +
+        '<p class=\"p\">$' + price + ' <small>por ' + unitLabel + '</small></p></div>' +
+        '<div class=\"actions\"><button class=\"btn ghost favs-add\">Agregar</button>' +
+        '<button class=\"btn btn-remove favs-remove\">Quitar</button></div>' +
+      '</div>';
   }).join('');
 
-  // Delegación (rebind every time)
-  favsModalList.onclick = (e) => {
-    const card = e.target.closest('.favs-modal-card'); if (!card) return;
-    const id = card.dataset.id;
+  favsModalList.onclick = function(e){
+    var card = e.target.closest('.favs-modal-card'); if (!card) return;
+    var id = card.dataset.id;
 
     if (e.target.closest('.favs-add')){
-      const p = productsById.get(id);
+      var p = productsById.get(id);
       if (!p || p.active === false) return;
-      const minQty = Number(p.minQty ?? (p.soldBy === 'weight' ? 0.25 : 1));
-      const unitLabel = p.soldBy === 'weight' ? 'kg' : 'pza';
-      cart.set(id, { id, name:p.name, unit:+Number(p.price||0), qty:minQty, soldBy:p.soldBy||'unit', unitLabel, step:Number(p.step|| (p.soldBy==='weight'?0.25:1)), minQty });
+      var minQty = Number(p.minQty != null ? p.minQty : (p.soldBy === 'weight' ? 0.25 : 1));
+      var unitLabel = p.soldBy === 'weight' ? 'kg' : 'pza';
+      cart.set(id, { id: id, name:p.name, unit:+Number(p.price||0), qty:minQty, soldBy:p.soldBy||'unit', unitLabel:unitLabel, step:Number(p.step|| (p.soldBy==='weight'?0.25:1)), minQty:minQty });
       renderCart(); syncCardsQty(id);
     }
 
@@ -658,97 +468,82 @@ function renderFavoritesModal(){
   };
 }
 
-// Cerrar modal favoritos con overlay o ✕
-document.querySelectorAll('[data-close="favs"]').forEach(el =>
-  el.addEventListener('click', ()=> closeModal(modalFavs))
-);
-
-function svgPlaceholder(text = 'Sin foto') {
-  const svg = `
-    <svg xmlns="http://www.w3.org/2000/svg" width="120" height="120">
-      <rect width="100%" height="100%" fill="#EEE"/>
-      <text x="50%" y="50%" dominant-baseline="middle"
-            text-anchor="middle" fill="#999" font-family="Arial" font-size="12">${text}</text>
-    </svg>`;
+/* == 8) GRID de productos == */
+function svgPlaceholder(text){
+  if (text===void 0) text = 'Sin foto';
+  var svg = '' +
+    '<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"120\" height=\"120\">' +
+      '<rect width=\"100%\" height=\"100%\" fill=\"#EEE\"/>' +
+      '<text x=\"50%\" y=\"50%\" dominant-baseline=\"middle\" text-anchor=\"middle\" fill=\"#999\" font-family=\"Arial\" font-size=\"12\">' + text + '</text>' +
+    '</svg>';
   return 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg);
 }
 
 function renderProductGrid(products){
   if(!grid) return;
-  const html = products.map(p => {
-    const id    = p.id || p.name;
-    const price = Number(p.price || 0);
-    const img   = (p.image && String(p.image).trim()) ? p.image : svgPlaceholder('Sin foto');
-    const cat   = p.category || '';
-    const sub   = p.subcategory || '';
-    const name  = p.name || '';
-    const soldBy    = p.soldBy || 'unit';
-    const unitLabel = p.unitLabel || (soldBy==='weight' ? 'kg' : 'pza');
-    const step      = Number(p.step ?? (soldBy==='weight' ? 0.25 : 1));
-    const minQty    = Number(p.minQty ?? step);
+  var html = products.map(function(p){
+    var id    = p.id || p.name;
+    var price = Number(p.price || 0);
+    var img   = (p.image && String(p.image).trim()) ? p.image : svgPlaceholder('Sin foto');
+    var cat   = p.category || '';
+    var sub   = p.subcategory || '';
+    var name  = p.name || '';
+    var soldBy    = p.soldBy || 'unit';
+    var unitLabel = p.unitLabel || (soldBy==='weight' ? 'kg' : 'pza');
+    var step      = Number(p.step != null ? p.step : (soldBy==='weight' ? 0.25 : 1));
+    var minQty    = Number(p.minQty != null ? p.minQty : step);
+    var isAvailable = (p.active !== false);
 
-    const isAvailable = (p.active !== false); // ← aquí está la regla
-
-    // (tu cálculo displayPrice igual que antes)
-    let displayPrice = price;
-    const allTiers =
-      (Array.isArray(p?.bundlePricing?.tiers) && p.bundlePricing.tiers) ||
-      (Array.isArray(p?.kgPricing?.tiers)     && p.kgPricing.tiers)     ||
-      (Array.isArray(p?.priceCombos)          && p.priceCombos)         || null;
+    var displayPrice = price;
+    var allTiers =
+      (p && p.bundlePricing && Array.isArray(p.bundlePricing.tiers) && p.bundlePricing.tiers) ||
+      (p && p.kgPricing && Array.isArray(p.kgPricing.tiers) && p.kgPricing.tiers) ||
+      (Array.isArray(p.priceCombos) && p.priceCombos) || null;
     if (allTiers) {
-      const t1 = allTiers.find(t => Number(t.qty) === 1);
+      var t1 = allTiers.find(function(t){ return Number(t.qty) === 1; });
       if (t1) displayPrice = Number(t1.price) || price;
     }
 
-    // Botón/estado segun disponibilidad
-    const addLabel = isAvailable
-      ? (soldBy === 'weight'
-          ? ('Agregar ' + formatQty(minQty, step) + ' ' + unitLabel)
-          : 'Agregar')
-      : 'No disponible';
+    var addLabel = isAvailable ? (soldBy === 'weight' ? ('Agregar ' + formatQty(minQty, step) + ' ' + unitLabel) : 'Agregar') : 'No disponible';
+    var addClasses = isAvailable ? 'btn add' : 'btn add unavailable';
+    var addAttrs   = isAvailable ? '' : ' aria-disabled=\"true\" data-unavailable=\"1\"';
 
-    const addClasses = isAvailable ? 'btn add' : 'btn add unavailable';
-    const addAttrs   = isAvailable ? '' : ' aria-disabled="true" data-unavailable="1"';
-// Dentro del map() de renderProductGrid:
-return (
-  '<article class="card' + (isAvailable ? '' : ' is-unavailable') + '"' +
-    ' data-id="' + id + '"' +
-    ' data-category="' + cat + '"' +
-    ' data-subcategory="' + sub + '"' +
-    ' data-soldby="' + soldBy + '"' +
-    ' data-unitlabel="' + unitLabel + '"' +
-    ' data-step="' + step + '"' +
-    ' data-minqty="' + minQty + '"' +
-    (isAvailable ? '' : ' data-available="0"') +
-  '>' +
-    // NUEVO: contenedor de imagen + corazón abajo-izquierda
-    '<div class="media">' +
-      '<img class="thumb" src="' + img + '" alt="' + name.replace(/"/g, '&quot;') + '">' +
-      '<button class="fav-heart' + (isFav(id) ? ' is-fav' : '') + '"'+
-              ' type="button" data-id="' + id + '" aria-pressed="' + (isFav(id) ? 'true':'false') + '"' +
-              ' aria-label="Marcar favorito">' +
-        favHeartSVG(isFav(id)) +
-      '</button>' +
-    '</div>' +
-
-    '<div class="info">' +
-      '<h3>' + name + '</h3>' +
-      '<p class="price">$' + Number(displayPrice).toFixed(2) + '</p>' +
-      '<button class="' + addClasses + '"' + addAttrs + '>' + addLabel + '</button>' +
-    '</div>' +
-  '</article>'
-);
+    var safeName = name.replace(/\"/g, '&quot;');
+    return '' +
+      '<article class=\"card' + (isAvailable ? '' : ' is-unavailable') + '\"' +
+               ' data-id=\"' + id + '\"' +
+               ' data-category=\"' + cat + '\"' +
+               ' data-subcategory=\"' + sub + '\"' +
+               ' data-soldby=\"' + soldBy + '\"' +
+               ' data-unitlabel=\"' + unitLabel + '\"' +
+               ' data-step=\"' + step + '\"' +
+               ' data-minqty=\"' + minQty + '\"' +
+               (isAvailable ? '' : ' data-available=\"0\"') + '>' +
+        '<div class=\"media\">' +
+          '<img class=\"thumb\" src=\"' + img + '\" alt=\"' + safeName + '\">' +
+          '<button class=\"fav-heart' + (isFav(id) ? ' is-fav' : '') + '\"' +
+                  ' type=\"button\" data-id=\"' + id + '\" aria-pressed=\"' + (isFav(id) ? 'true':'false') + '\"' +
+                  ' aria-label=\"Marcar favorito\">' +
+            favHeartSVG(isFav(id)) +
+          '</button>' +
+        '</div>' +
+        '<div class=\"info\">' +
+          '<h3>' + name + '</h3>' +
+          '<p class=\"price\">$' + Number(displayPrice).toFixed(2) + '</p>' +
+          '<button class=\"' + addClasses + '\"' + addAttrs + '>' + addLabel + '</button>' +
+        '</div>' +
+      '</article>';
   }).join('');
   grid.innerHTML = html;
 }
 
 function buildCategoryFilters(products){
   if (categoriesMap && categoriesMap.size) return;
-  const cats = new Set();
-  const subsByCat = new Map();
-  products.forEach(p => {
-    const cat = p.category || '';
-    const sub = p.subcategory || '';
+  var cats = new Set();
+  var subsByCat = new Map();
+  products.forEach(function(p){
+    var cat = p.category || '';
+    var sub = p.subcategory || '';
     if (cat) cats.add(cat);
     if (cat && sub) {
       if (!subsByCat.has(cat)) subsByCat.set(cat, new Set());
@@ -756,253 +551,210 @@ function buildCategoryFilters(products){
     }
   });
   if (categorySelect){
-    const current = categorySelect.value;
-    categorySelect.innerHTML = `<option value="">Todas</option>` +
-      Array.from(cats).sort().map(c => `<option>${c}</option>`).join('');
-    if ([...cats, ''].includes(current)) categorySelect.value = current;
+    var current = categorySelect.value;
+    categorySelect.innerHTML = '<option value=\"\">Todas</option>' +
+      Array.from(cats).sort().map(function(c){ return '<option>' + c + '</option>'; }).join('');
+    if (Array.from(cats).concat(['']).indexOf(current) >= 0) categorySelect.value = current;
   }
   if (subcategorySelect){
-    const cat = categorySelect?.value || '';
-    const subs = subsByCat.get(cat) || new Set();
-    subcategorySelect.innerHTML = `<option value="">Todas</option>` +
-      Array.from(subs).sort().map(s => `<option>${s}</option>`).join('');
+    var cat = (categorySelect && categorySelect.value) || '';
+    var subs = subsByCat.get(cat) || new Set();
+    subcategorySelect.innerHTML = '<option value=\"\">Todas</option>' +
+      Array.from(subs).sort().map(function(s){ return '<option>' + s + '</option>'; }).join('');
     subcategorySelect.disabled = !cat;
   }
 }
 
+/* Botones en tarjetas + corazones */
 function bindAddButtons(){
-  document.querySelectorAll('.card').forEach(card => {
-    const addBtn = card.querySelector('.btn.add');
+  Array.prototype.forEach.call(document.querySelectorAll('.card'), function(card){
+    var addBtn = card.querySelector('.btn.add');
     if (!addBtn || addBtn.dataset.bound === '1') return;
-
-    // Si el producto está marcado como no disponible, no enlazar evento
-    if (addBtn.classList.contains('unavailable') || card.dataset.available === '0') {
-      addBtn.disabled = true; // por si acaso
-      return;
-    }
-
+    if (addBtn.classList.contains('unavailable') || card.dataset.available === '0') { addBtn.disabled = true; return; }
     addBtn.dataset.bound = '1';
-    addBtn.addEventListener('click', () => {
-      const info = getCardInfo(card);
+    addBtn.addEventListener('click', function(){
+      var info = getCardInfo(card);
       switchToQtyControl(card, info.minQty, true);
     });
   });
 }
-function bindFavoriteToggles(){
-  document.querySelectorAll('.card .fav-toggle').forEach(btn => {
+function bindFavoriteHearts(){
+  Array.prototype.forEach.call(document.querySelectorAll('.card .fav-heart'), function(btn){
     if (btn.dataset.bound === '1') return;
     btn.dataset.bound = '1';
-    btn.addEventListener('click', () => {
-      const card = btn.closest('.card'); if (!card) return;
-      const id = card.dataset.id;
+    btn.addEventListener('click', function(){
+      var id = btn.dataset.id || (btn.closest('.card') ? btn.closest('.card').dataset.id : '');
+      if (!id) return;
       toggleFav(id);
-      // UI heart
-      btn.classList.toggle('active', isFav(id));
-      btn.setAttribute('aria-pressed', isFav(id) ? 'true' : 'false');
-      btn.innerHTML = favHeartSVG(isFav(id));
-      // rail + modal
+      var on = isFav(id);
+      btn.classList.toggle('is-fav', on);
+      btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+      btn.innerHTML = favHeartSVG(on);
       renderFavoritesRail();
     });
   });
 }
-
 function updateAllCardHearts(){
-  document.querySelectorAll('.card').forEach(card => {
-    const id = card.dataset.id;
-    const btn = card.querySelector('.fav-toggle');
-    if (!btn) return;
-    const active = isFav(id);
-    btn.classList.toggle('active', active);
-    btn.setAttribute('aria-pressed', active ? 'true':'false');
-    btn.innerHTML = favHeartSVG(active);
+  Array.prototype.forEach.call(document.querySelectorAll('.card'), function(card){
+    var id  = card.dataset.id;
+    var btn = card.querySelector('.fav-heart');
+    if (!btn || !id) return;
+    var on = isFav(id);
+    btn.classList.toggle('is-fav', on);
+    btn.setAttribute('aria-pressed', on ? 'true':'false');
+    btn.innerHTML = favHeartSVG(on);
   });
 }
 
-/* == 8) CARRITO == */
+/* == 9) CARRITO == */
 function renderCart(){
-  const items = Array.from(cart.values());
+  var items = Array.from(cart.values());
   cartList.innerHTML = '';
-
-  let subtotal = 0;
-  items.forEach(it=>{
-    const pricing = bestPriceById(it.id, it.qty);
-    const line = pricing.total;
+  var subtotal = 0;
+  items.forEach(function(it){
+    var pricing = bestPriceById(it.id, it.qty);
+    var line = pricing.total;
     subtotal += line;
 
-    const li = document.createElement('li');
+    var li = document.createElement('li');
     li.className = 'cart-item';
     li.dataset.id = it.id;
-    li.innerHTML = `
-      <div class="row">
-        <span class="name">${it.name}</span>
-        <span class="unit">${money(it.unit)}</span>
-      </div>
-      <div class="row">
-        <div class="qty">
-          <button class="chip cart-minus">-</button>
-          <span class="count">${
-            it.soldBy === 'weight'
-              ? `${formatQty(it.qty, it.step)} ${it.unitLabel}`
-              : `${formatQty(it.qty, 1)}`
-          }</span>
-          <button class="chip cart-plus">+</button>
-        </div>
-        <span class="line-total">${money(line)}</span>
-      </div>
-    `;
-
-    if (pricing.pricingMode === 'combos' && pricing.breakdown?.length){
-      const unitLbl = (it.soldBy === 'weight') ? (it.unitLabel || 'kg') : 'pz';
-      const parts = pricing.breakdown.map(b => `${b.times}×${b.qty} ${unitLbl} = $${b.price.toFixed(2)}`).join('  ·  ');
-      const note = document.createElement('div');
+    li.innerHTML = '' +
+      '<div class=\"row\">' +
+        '<span class=\"name\">' + it.name + '</span>' +
+        '<span class=\"unit\">' + money(it.unit) + '</span>' +
+      '</div>' +
+      '<div class=\"row\">' +
+        '<div class=\"qty\">' +
+          '<button class=\"chip cart-minus\">-</button>' +
+          '<span class=\"count\">' + (it.soldBy === 'weight' ? (formatQty(it.qty, it.step) + ' ' + it.unitLabel) : (formatQty(it.qty, 1))) + '</span>' +
+          '<button class=\"chip cart-plus\">+</button>' +
+        '</div>' +
+        '<span class=\"line-total\">' + money(line) + '</span>' +
+      '</div>';
+    if (pricing.pricingMode === 'combos' && pricing.breakdown && pricing.breakdown.length){
+      var unitLbl = (it.soldBy === 'weight') ? (it.unitLabel || 'kg') : 'pz';
+      var parts = pricing.breakdown.map(function(b){ return b.times + '×' + b.qty + ' ' + unitLbl + ' = $' + b.price.toFixed(2); }).join('  ·  ');
+      var note = document.createElement('div');
       note.className = 'combo-note';
       note.style.cssText = 'font-size:.85rem;color:#64748b;margin-top:2px;';
-      // note.textContent = `Combos: ${parts}`;
+      note.textContent = parts;
       li.appendChild(note);
     }
-
     cartList.appendChild(li);
   });
 
   document.getElementById('cartTotal').textContent = money(+subtotal.toFixed(2));
-
-  const totalQty = items.reduce((a,b)=> a + b.qty, 0);
+  var totalQty = items.reduce(function(a,b){ return a + b.qty; }, 0);
   cartBadge.textContent = totalQty;
   cartBadge.style.display = totalQty ? '' : 'none';
-
   btnContinue.disabled = totalQty === 0;
   if (btnClearCart) btnClearCart.disabled = totalQty === 0;
 
-  const needsScroll = items.length > 4;
+  var needsScroll = items.length > 4;
   cartList.classList.toggle('scroll', needsScroll);
-
   if (needsScroll) {
-    const vh = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0);
+    var vh = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0);
     cartList.style.maxHeight = Math.floor(vh * 0.48) + 'px';
     cartList.style.overflowY = 'auto';
   } else {
     cartList.style.maxHeight = '';
     cartList.style.overflowY = '';
   }
+
   saveCart();
   updateCheckoutTotalPill();
   fsShowOnAdd = true;
   updateFreeShippingPromo();
 }
-
-window.addEventListener('resize', () => {
-  const needsScroll = (cartList.querySelectorAll('.cart-item').length > 4);
+window.addEventListener('resize', function(){
+  var needsScroll = (cartList.querySelectorAll('.cart-item').length > 4);
   cartList.classList.toggle('scroll', needsScroll);
   if (needsScroll) {
-    const vh = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0);
+    var vh = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0);
     cartList.style.maxHeight = Math.floor(vh * 0.48) + 'px';
   } else {
     cartList.style.maxHeight = '';
   }
 });
-
 function clearCart() {
   if (!cart.size) return;
   if (!confirm('¿Vaciar todo el carrito?')) return;
   cart.clear();
   renderCart();
-  document.querySelectorAll('.card').forEach(card => {
-    const qtyCtrl = card.querySelector('.qty-control');
+  Array.prototype.forEach.call(document.querySelectorAll('.card'), function(card){
+    var qtyCtrl = card.querySelector('.qty-control');
     if (qtyCtrl) qtyCtrl.replaceWith(createAddButton(card));
   });
 }
-
-cartList.addEventListener('click', (e) => {
-  const minus = e.target.closest('.cart-minus');
-  const plus  = e.target.closest('.cart-plus');
+cartList.addEventListener('click', function(e){
+  var minus = e.target.closest('.cart-minus');
+  var plus  = e.target.closest('.cart-plus');
   if (!minus && !plus) return;
-
-  const li = e.target.closest('.cart-item');
+  var li = e.target.closest('.cart-item');
   if (!li) return;
-  const id = li.dataset.id;
-  const item = cart.get(id);
+  var id = li.dataset.id;
+  var item = cart.get(id);
   if (!item) return;
 
-  const step   = (typeof item.step === 'number' && item.step > 0) ? item.step : 1;
-  const minQty = (typeof item.minQty === 'number' && item.minQty > 0)
-                  ? item.minQty
-                  : ((item.soldBy === 'weight') ? 0.25 : 1);
-
-  const snap = (n) => +n.toFixed(3);
-  const clampUnits = (n) => Math.max(1, Math.round(n));
+  var step   = (typeof item.step === 'number' && item.step > 0) ? item.step : 1;
+  var minQty = (typeof item.minQty === 'number' && item.minQty > 0) ? item.minQty : ((item.soldBy === 'weight') ? 0.25 : 1);
+  var snap = function(n){ return +n.toFixed(3); };
+  var clampUnits = function(n){ return Math.max(1, Math.round(n)); };
 
   if (plus) {
-    let q = snap((item.qty || minQty) + step);
+    var q = snap((item.qty || minQty) + step);
     if (item.soldBy !== 'weight') q = clampUnits(q);
-    item.qty = q;
-    cart.set(id, item);
-    renderCart();
-    syncCardsQty(id);
-    return;
+    item.qty = q; cart.set(id, item); renderCart(); syncCardsQty(id); return;
   }
-
   if (minus) {
-    const next = snap((item.qty || minQty) - step);
+    var next = snap((item.qty || minQty) - step);
     if (next < (minQty - 1e-6)) {
-      if (confirm('¿Eliminar este artículo del carrito?')) {
-        cart.delete(id);
-        renderCart();
-        syncCardsQty(id);
-      }
+      if (confirm('¿Eliminar este artículo del carrito?')) { cart.delete(id); renderCart(); syncCardsQty(id); }
     } else {
-      let q = next;
-      if (item.soldBy !== 'weight') q = clampUnits(q);
-      item.qty = q;
-      cart.set(id, item);
-      renderCart();
-      syncCardsQty(id);
+      var q2 = next; if (item.soldBy !== 'weight') q2 = clampUnits(q2);
+      item.qty = q2; cart.set(id, item); renderCart(); syncCardsQty(id);
     }
   }
 });
 
-/* == 9) BOTONES EN TARJETAS == */
+/* == 10) Botones tarjeta == */
 function createAddButton(card){
-  const info = getCardInfo(card);
-  const btn = document.createElement('button');
+  var info = getCardInfo(card);
+  var btn = document.createElement('button');
   btn.className = 'btn add';
-  btn.textContent = (info.soldBy === 'weight')
-    ? `Agregar ${formatQty(info.minQty, info.step)} ${info.unitLabel}`
-    : 'Agregar';
-  btn.addEventListener('click', () => switchToQtyControl(card, info.minQty, true));
+  btn.textContent = (info.soldBy === 'weight') ? ('Agregar ' + formatQty(info.minQty, info.step) + ' ' + info.unitLabel) : 'Agregar';
+  btn.addEventListener('click', function(){ switchToQtyControl(card, info.minQty, true); });
   return btn;
 }
-
 function createQtyControl(card, qty){
-  const control = document.createElement('div');
+  var control = document.createElement('div');
   control.className = 'qty-control';
-  const { id, name, unit, soldBy, unitLabel, step, minQty } = getCardInfo(card);
-  const isDecimal = (step % 1) !== 0;
-  const fmt = v => isDecimal ? (+v).toFixed(2).replace(/\.00$/,'') : String(v);
+  var info = getCardInfo(card);
+  var id = info.id, name = info.name, unit = info.unit, soldBy = info.soldBy, unitLabel = info.unitLabel, step = info.step, minQty = info.minQty;
+  var isDecimal = (step % 1) !== 0;
+  var fmt = function(v){ return isDecimal ? (+v).toFixed(2).replace(/\.00$/,'') : String(v); };
 
-  const btnMinus = document.createElement('button'); btnMinus.textContent = '−';
-  const spanQty  = document.createElement('span');   spanQty.textContent  = fmt(qty);
-  const btnPlus  = document.createElement('button'); btnPlus.textContent  = '+';
+  var btnMinus = document.createElement('button'); btnMinus.textContent = '−';
+  var spanQty  = document.createElement('span');   spanQty.textContent  = fmt(qty);
+  var btnPlus  = document.createElement('button'); btnPlus.textContent  = '+';
+  control.appendChild(btnMinus); control.appendChild(spanQty); control.appendChild(btnPlus);
 
-  control.append(btnMinus, spanQty, btnPlus);
-
-  btnPlus.addEventListener('click', () => {
-    const cur = cart.get(id) || { id, name, unit, soldBy, unitLabel, step, minQty, qty: 0 };
+  btnPlus.addEventListener('click', function(){
+    var cur = cart.get(id) || { id: id, name: name, unit: unit, soldBy: soldBy, unitLabel: unitLabel, step: step, minQty: minQty, qty: 0 };
     cur.qty = +(cur.qty + step).toFixed(3);
     if (soldBy === 'unit') cur.qty = Math.round(cur.qty);
     cart.set(id, cur);
     spanQty.textContent = fmt(cur.qty);
-    fsShowOnAdd = true;           // ← también cuenta como "agregar"
+    fsShowOnAdd = true;
     renderCart();
   });
-
-  btnMinus.addEventListener('click', () => {
-    const cur = cart.get(id) || { id, name, unit, soldBy, unitLabel, step, minQty, qty: 0 };
-    const next = +(cur.qty - step).toFixed(3);
+  btnMinus.addEventListener('click', function(){
+    var cur = cart.get(id) || { id: id, name: name, unit: unit, soldBy: soldBy, unitLabel: unitLabel, step: step, minQty: minQty, qty: 0 };
+    var next = +(cur.qty - step).toFixed(3);
     if (next < minQty + 1e-6) {
       if (confirm('¿Eliminar este artículo del carrito?')) {
-        cart.delete(id);
-        renderCart();
-        control.replaceWith(createAddButton(card));
+        cart.delete(id); renderCart(); control.replaceWith(createAddButton(card));
       }
     } else {
       cur.qty = next;
@@ -1012,43 +764,35 @@ function createQtyControl(card, qty){
       renderCart();
     }
   });
-
   return control;
 }
-
-function switchToQtyControl(card, startQty = 1, addToCart = false){
-  const info = getCardInfo(card);
-  const prod = productsById.get(info.id);
-  if (prod && prod.active === false) return; // ← no permitir
-
-  const start = addToCart ? info.minQty : (cart.get(info.id)?.qty || info.minQty);
+function switchToQtyControl(card, startQty, addToCart){
+  if (startQty===void 0) startQty = 1;
+  if (addToCart===void 0) addToCart = false;
+  var info = getCardInfo(card);
+  var prod = productsById.get(info.id);
+  if (prod && prod.active === false) return;
+  var start = addToCart ? info.minQty : ((cart.get(info.id) || {}).qty || info.minQty);
   if (addToCart) {
-    cart.set(info.id, { ...info, qty: start });
+    cart.set(info.id, Object.assign({}, info, { qty: start }));
     renderCart();
   }
-  const addBtn = card.querySelector('.btn.add');
-  const control = createQtyControl(card, cart.get(info.id)?.qty || start);
+  var addBtn = card.querySelector('.btn.add');
+  var control = createQtyControl(card, (cart.get(info.id) || {}).qty || start);
   if (addBtn) addBtn.replaceWith(control);
 }
-
 function syncCardsQty(id){
-  document.querySelectorAll('.card').forEach(card => {
-    const info = getCardInfo(card);
+  Array.prototype.forEach.call(document.querySelectorAll('.card'), function(card){
+    var info = getCardInfo(card);
     if (info.id !== id) return;
-
-    const item = cart.get(id);
-    const qtyControl = card.querySelector('.qty-control');
-
+    var item = cart.get(id);
+    var qtyControl = card.querySelector('.qty-control');
     if (item) {
       if (!qtyControl) {
         switchToQtyControl(card, item.qty, false);
       } else {
-        const span = qtyControl.querySelector('span');
-        if (span) {
-          span.textContent = (item.soldBy === 'weight') 
-            ? formatQty(item.qty, item.step)
-            : formatQty(item.qty, 1);
-        }
+        var span = qtyControl.querySelector('span');
+        if (span) span.textContent = (item.soldBy === 'weight') ? formatQty(item.qty, item.step) : formatQty(item.qty, 1);
       }
     } else {
       if (qtyControl) qtyControl.replaceWith(createAddButton(card));
@@ -1056,572 +800,432 @@ function syncCardsQty(id){
   });
 }
 
-/* == 10) FILTROS == */
-function showEmpty(msg){
-  emptyState.textContent = msg;
-  emptyState.classList.remove('hidden');
-}
-function hideEmpty(){
-  emptyState.textContent = '';
-  emptyState.classList.add('hidden');
-}
-function getCards(){
-  return Array.from(document.querySelectorAll('.card'));
-}
-
+/* == 11) FILTROS == */
+function showEmpty(msg){ emptyState.textContent = msg; emptyState.classList.remove('hidden'); }
+function hideEmpty(){ emptyState.textContent = ''; emptyState.classList.add('hidden'); }
+function getCards(){ return Array.prototype.slice.call(document.querySelectorAll('.card')); }
 function applyFilters(){
-  const searchVal = normalize(searchInput.value);
-  const cards = getCards();
-  let visibleCount = 0;
+  var searchVal = normalize(searchInput.value);
+  var cards = getCards();
+  var visibleCount = 0;
 
   if (searchVal) {
     hideEmpty();
     if (categorySelect.value !== '' || subcategorySelect.value !== '') {
-      categorySelect.value = '';
-      subcategorySelect.value = '';
-      subcategorySelect.disabled = true;
+      categorySelect.value = ''; subcategorySelect.value = ''; subcategorySelect.disabled = true;
     }
-    cards.forEach(card => {
-      const name = normalize(card.querySelector('h3')?.textContent);
-      const match = name.includes(searchVal);
+    cards.forEach(function(card){
+      var name = normalize(card.querySelector('h3') ? card.querySelector('h3').textContent : '');
+      var match = name.indexOf(searchVal) >= 0;
       card.style.display = match ? '' : 'none';
       if (match) visibleCount++;
     });
     if (visibleCount === 0){
-      showEmpty('Verifique que escribió bien el nombre del producto | Posiblemente no haya inventario de este producto. Estamos trabajando para agregarlo a la lista.');
-    } else {
-      hideEmpty();
-    }
-    // 👇 ACTUALIZA CORAZONES ANTES DE SALIR
+      showEmpty('Verifique que escribió bien el nombre del producto | Posiblemente no haya inventario de este producto.');
+    } else { hideEmpty(); }
     updateAllCardHearts();
     return;
   }
 
-  const catVal = categorySelect.value;
-  const hasCategory = !!catVal;
+  var catVal = categorySelect.value;
+  var hasCategory = !!catVal;
   subcategorySelect.disabled = !hasCategory;
   if (!hasCategory) subcategorySelect.value = '';
 
-  cards.forEach(card => {
-    const cardCat = card.getAttribute('data-category') || '';
-    const cardSub = card.getAttribute('data-subcategory') || '';
-    let show = true;
-
+  cards.forEach(function(card){
+    var cardCat = card.getAttribute('data-category') || '';
+    var cardSub = card.getAttribute('data-subcategory') || '';
+    var show = true;
     if (hasCategory) {
       show = (cardCat === catVal);
-      if (show && subcategorySelect.value) {
-        show = (cardSub === subcategorySelect.value);
-      }
+      if (show && subcategorySelect.value) show = (cardSub === subcategorySelect.value);
     }
     card.style.display = show ? '' : 'none';
     if (show) visibleCount++;
   });
 
   if (!hasCategory) {
-    if (visibleCount === 0) { showEmpty('Por el momento no hay productos para mostrar.'); }
-    else { hideEmpty(); }
+    if (visibleCount === 0) showEmpty('Por el momento no hay productos para mostrar.');
+    else hideEmpty();
   } else {
     if (visibleCount === 0) {
-      if (subcategorySelect.value) showEmpty('Aún no contamos con artículos en esta subcategoría. Estamos trabajando constantemente para ir agregando más artículos.');
-      else showEmpty('Aún no contamos con artículos en esta categoría. Estamos trabajando constantemente para ir agregando más artículos.');
-    } else { hideEmpty(); }
+      if (subcategorySelect.value) showEmpty('Aún no contamos con artículos en esta subcategoría.');
+      else showEmpty('Aún no contamos con artículos en esta categoría.');
+    } else hideEmpty();
   }
-  // 👇 ACTUALIZA CORAZONES AL TERMINAR
   updateAllCardHearts();
 }
 
-/* == 11) CARGA: productos, categorías, zonas, servicio == */
-async function loadCategories() {
-  try {
-    const { json } = await fetchFirstOk(API.categorias);
-    const list = Array.isArray(json) ? json : (Array.isArray(json.categories) ? json.categories : []);
-    if (!list.length) throw new Error('categorias.json vacío o con formato inesperado');
+/* == 12) CARGA de datos == */
+function loadCategories() {
+  return fetchFirstOk(API.categorias).then(function(res){
+    var json = res.json;
+    var list = Array.isArray(json) ? json : (Array.isArray(json && json.categories) ? json.categories : []);
+    if (!list.length) throw new Error('categorias.json vacío o inesperado');
     categoriesMap = new Map();
-    list.forEach(item => {
-      const name = item.name || item.category || '';
-      const subs = Array.isArray(item.subcategories) ? item.subcategories
-                : Array.isArray(item.subs) ? item.subs
-                : [];
+    list.forEach(function(item){
+      var name = item.name || item.category || '';
+      var subs = Array.isArray(item.subcategories) ? item.subcategories : (Array.isArray(item.subs) ? item.subs : []);
       if (name) categoriesMap.set(name, subs);
     });
     fillCategorySelectFromMap();
-    console.info('Categorías cargadas:', categoriesMap.size);
-  } catch (e) {
+  }).catch(function(e){
     categoriesMap = null;
-    console.warn('No se cargó categorias.json. Usaremos categorías derivadas de productos.');
-  }
+    console.warn('No se cargó categorias.json. Se derivará de productos.');
+  });
 }
 
-async function loadProducts() {
-  try {
-    // Intentar todas las URLs y quedarnos con la lista más completa
-    const urls = API.productos;
-    const results = await Promise.allSettled(urls.map(u => fetchNoCache(u).then(r => r.ok ? r.json() : Promise.reject())));
-    
-    // Extrae arrays válidos
-    const arrays = results
-      .map(r => (r.status === 'fulfilled' ? r.value : null))
+function loadProducts() {
+  return Promise.allSettled(API.productos.map(function(u){ return fetchNoCache(u).then(function(r){ if (!r.ok) throw new Error('!ok'); return r.json(); }); }))
+  .then(function(results){
+    var arrays = results.map(function(r){ return (r.status === 'fulfilled' ? r.value : null); })
       .filter(Boolean)
-      .map(json => Array.isArray(json) ? json : (Array.isArray(json.products) ? json.products : []))
-      .filter(arr => Array.isArray(arr));
+      .map(function(json){ return Array.isArray(json) ? json : (Array.isArray(json && json.products) ? json.products : []); })
+      .filter(function(arr){ return Array.isArray(arr); });
+    if (!arrays.length) throw new Error('No se pudo leer productos');
 
-    if (!arrays.length) throw new Error('No se pudo leer productos desde ninguna fuente');
-
-    // Merge por id (o name si no hay id)
-    const byId = new Map();
-    const dupes = new Set();
-
-    const toBoolActive = (v) => {
-      // Normaliza active: false/0/"0"/"false" => false
-      if (v === false) return false;
-      if (v === 0) return false;
-      if (typeof v === 'string') {
-        const s = v.trim().toLowerCase();
-        if (s === '0' || s === 'false' || s === 'no') return false;
-      }
-      return true; // default
-    };
-
-    arrays.forEach(list => {
-      list.forEach(raw => {
-        const id = (raw.id ?? raw.name)?.toString() ?? '';
+    var byId = new Map(), dupes = new Set();
+    function toBoolActive(v){
+      if (v === false || v === 0) return false;
+      if (typeof v === 'string') { var s = v.trim().toLowerCase(); if (s === '0' || s === 'false' || s === 'no') return false; }
+      return true;
+    }
+    arrays.forEach(function(list){
+      list.forEach(function(raw){
+        var id = (raw.id != null ? raw.id : raw.name);
+        id = id != null ? String(id) : '';
         if (!id) return;
-
-        // Si ya existe, lo marcamos como duplicado para revisión
         if (byId.has(id)) dupes.add(id);
-
-        // Clona y normaliza lo mínimo
-        const p = { ...raw };
+        var p = Object.assign({}, raw);
         p.id = id;
-        // Asegura active consistente
         p.active = toBoolActive(p.active);
-
         byId.set(id, p);
       });
     });
 
-    const all = Array.from(byId.values());
-    const normalized = all.map(p => ({ ...p, active: (p.active !== false) }));
-    const visible = normalized;
-
-    // Índice y render
+    var all = Array.from(byId.values());
+    var visible = all.map(function(p){ return Object.assign({}, p, { active: (p.active !== false) }); });
     productsById.clear();
-    visible.forEach(p => productsById.set(p.id, p));
+    visible.forEach(function(p){ productsById.set(p.id, p); });
 
     renderProductGrid(visible);
     buildCategoryFilters(visible);
     bindAddButtons();
     bindFavoriteHearts();
     applyFilters();
-    favsSetupCenteredCarousel();
     renderFavoritesRail();
-
-    console.info(
-      'Productos (merge) | Fuentes OK:', arrays.length,
-      '| Total:', all.length,
-      '| Activos:', visible.length,
-      dupes.size ? `| Duplicados id: ${Array.from(dupes).slice(0,5).join(', ')}${dupes.size>5?'…':''}` : ''
-    );
-  } catch (e) {
-    console.error('loadProducts() merge error', e);
-    // Fallback de demostración (tu bloque demo existente)
-    const demo = [
+  }).catch(function(e){
+    console.error('loadProducts() error', e);
+    var demo = [
       { id:'Coca-Cola 2.5lt Retornable', name: 'Coca-Cola 2.5lt Retornable', price: 40, category: 'Sodas', subcategory: 'Coca-Cola', image: 'https://via.placeholder.com/120', active: true, soldBy:'unit' },
       { id:'Coca-Cola 1.5lt Retornable', name: 'Coca-Cola 1.5lt Retornable', price: 28, category: 'Sodas', subcategory: 'Coca-Cola', image: 'https://via.placeholder.com/120', active: true, soldBy:'unit' }
     ];
-    demo.forEach(p=>productsById.set(p.id, p));
+    demo.forEach(function(p){ productsById.set(p.id, p); });
     renderProductGrid(demo);
     buildCategoryFilters(demo);
     bindAddButtons();
     bindFavoriteHearts();
     applyFilters();
-  }
+  });
 }
 
-/* ******************  CORREGIDO  ****************** */
-async function loadZones() {
-  try {
-    const { url, json } = await fetchFirstOk(API.zonas);
-    let zonas = [];
-    if (Array.isArray(json)) {
-      zonas = json;
-    } else if (json && typeof json === 'object') {
-      const keys = ['zonas','zones','items','data','records','rows'];
-      for (const k of keys) {
-        if (Array.isArray(json[k])) { zonas = json[k]; break; }
-      }
-      if (!zonas.length && Object.values(json).every(v => typeof v === 'number')) {
-        zonas = Object.entries(json).map(([nombre, costo]) => ({ nombre, costo }));
+function loadZones() {
+  return fetchFirstOk(API.zonas).then(function(res){
+    var json = res.json;
+    var zonas = [];
+    if (Array.isArray(json)) zonas = json;
+    else if (json && typeof json === 'object') {
+      ['zonas','zones','items','data','records','rows'].some(function(k){
+        if (Array.isArray(json[k])) { zonas = json[k]; return true; }
+        return false;
+      });
+      if (!zonas.length && Object.keys(json).every(function(k){ return typeof json[k] === 'number'; })) {
+        zonas = Object.keys(json).map(function(nombre){ return { nombre: nombre, costo: json[nombre] }; });
       }
     }
-    if (!Array.isArray(zonas) || !zonas.length) {
-      throw new Error('zonas vacío o con formato inesperado');
-    }
+    if (!Array.isArray(zonas) || !zonas.length) throw new Error('zonas vacío/inesperado');
 
-    // ✅ Acepta 2 formatos:
-    // (A) nuevo panel: { nombre, costo, freeShipping: true, freeMin: 149 }
-    // (B) anterior:    { nombre, costo, freeShippingThreshold: 149 } o free_threshold
-    ZONES = zonas.map(z => {
-      const nombre = String(z.nombre ?? z.name ?? '');
-      const costo  = Number(z.costo ?? z.cost ?? z.price ?? 0);
-
-      const hasFlag = (z.freeShipping === true) || (z.envioGratis === true);
-      const minFlag = Number(z.freeMin ?? z.minimoGratis ?? 0);
-      const legacy  = Number(z.freeShippingThreshold ?? z.free_threshold ?? 0);
-
-      // Si viene el flag + mínimo válido, úsalo; si no, cae al legacy; si no, 0
-      const threshold = hasFlag && minFlag > 0 ? minFlag : (legacy > 0 ? legacy : 0);
-
-      return { nombre, costo, freeShippingThreshold: threshold };
-    }).filter(z => z.nombre);
+    ZONES = zonas.map(function(z){
+      var nombre = String(z.nombre != null ? z.nombre : z.name != null ? z.name : '');
+      var costo  = Number(z.costo != null ? z.costo : z.cost != null ? z.cost : z.price != null ? z.price : 0);
+      var hasFlag = (z.freeShipping === true) || (z.envioGratis === true);
+      var minFlag = Number(z.freeMin != null ? z.freeMin : z.minimoGratis != null ? z.minimoGratis : 0);
+      var legacy  = Number(z.freeShippingThreshold != null ? z.freeShippingThreshold : z.free_threshold != null ? z.free_threshold : 0);
+      var threshold = hasFlag && minFlag > 0 ? minFlag : (legacy > 0 ? legacy : 0);
+      return { nombre: nombre, costo: costo, freeShippingThreshold: threshold };
+    }).filter(function(z){ return z.nombre; });
 
     zonesByName.clear();
-    ZONES.forEach(z => zonesByName.set(z.nombre, { cost: z.costo, threshold: z.freeShippingThreshold }));
+    ZONES.forEach(function(z){ zonesByName.set(z.nombre, { cost: z.costo, threshold: z.freeShippingThreshold }); });
 
-    // Pinta el select con data-th correcto
-    zone.innerHTML = [
-      '<option value="">Selecciona una zona…</option>',
-      ...ZONES.map(z =>
-        `<option value="${z.nombre}|${z.costo.toFixed(2)}" data-th="${z.freeShippingThreshold || 0}">` +
-        `${z.nombre} — $${z.costo.toFixed(2)}</option>`
-      )
-    ].join('');
-
-    console.info('Zonas cargadas desde:', url, 'Total:', ZONES.length);
-  } catch (e) {
+    zone.innerHTML = ['<option value=\"\">Selecciona una zona…</option>'].concat(
+      ZONES.map(function(z){
+        return '<option value=\"' + z.nombre + '|' + z.costo.toFixed(2) + '\" data-th=\"' + (z.freeShippingThreshold || 0) + '\">' +
+               z.nombre + ' — $' + z.costo.toFixed(2) + '</option>';
+      })
+    ).join('');
+  }).catch(function(e){
     console.warn('loadZones()', e);
     ZONES = [
       { nombre: 'Montecarlo', costo: 15, freeShippingThreshold: 149 },
       { nombre: 'Haciendas',  costo: 20, freeShippingThreshold: 0 },
-      { nombre: 'Privadas del Roble', costo: 25, freeShippingThreshold: 0 },
+      { nombre: 'Privadas del Roble', costo: 25, freeShippingThreshold: 0 }
     ];
     zonesByName.clear();
-    ZONES.forEach(z => zonesByName.set(z.nombre, { cost: z.costo, threshold: z.freeShippingThreshold }));
-
-    zone.innerHTML = [
-      '<option value="">Selecciona una zona…</option>',
-      ...ZONES.map(z =>
-        `<option value="${z.nombre}|${z.costo.toFixed(2)}" data-th="${z.freeShippingThreshold || 0}">` +
-        `${z.nombre} — $${z.costo.toFixed(2)}</option>`
-      )
-    ].join('');
-  }
-}
-/* ************************************************** */
-
-async function loadServiceStatus(){
-  try{
-    const { json } = await fetchFirstOk(API.servicio);
-    const data = Array.isArray(json) ? {} : (json || {});
-    return {
-      active: data.active !== false,
-      message: data.message || '',
-      image: data.image || ''
-    };
-  }catch(_){
-    return { active: true, message: '', image: '' };
-  }
+    ZONES.forEach(function(z){ zonesByName.set(z.nombre, { cost: z.costo, threshold: z.freeShippingThreshold }); });
+    zone.innerHTML = ['<option value=\"\">Selecciona una zona…</option>'].concat(
+      ZONES.map(function(z){
+        return '<option value=\"' + z.nombre + '|' + z.costo.toFixed(2) + '\" data-th=\"' + (z.freeShippingThreshold || 0) + '\">' +
+               z.nombre + ' — $' + z.costo.toFixed(2) + '</option>';
+      })
+    ).join('');
+  });
 }
 
-/* == 12) EVENTOS GLOBALES == */
-categorySelect.addEventListener('change', () => {
-  if (categoriesMap && categoriesMap.size && categorySelect.value) {
-    fillSubcategorySelectFromMap(categorySelect.value);
-  } else {
-    subcategorySelect.disabled = !categorySelect.value;
-  }
+function loadServiceStatus(){
+  return fetchFirstOk(API.servicio).then(function(res){
+    var json = res.json;
+    var data = Array.isArray(json) ? {} : (json || {});
+    return { active: data.active !== false, message: data.message || '', image: data.image || '' };
+  }).catch(function(){ return { active: true, message: '', image: '' }; });
+}
+
+/* == 13) EVENTOS GLOBALES == */
+categorySelect.addEventListener('change', function(){
+  if (categoriesMap && categoriesMap.size && categorySelect.value) fillSubcategorySelectFromMap(categorySelect.value);
+  else subcategorySelect.disabled = !categorySelect.value;
   applyFilters();
 });
 subcategorySelect.addEventListener('change', applyFilters);
 searchInput.addEventListener('input', applyFilters);
 
-btnCart.addEventListener('click', () => {
-  openModal(modalCart);
-  toggleContinueButton();
-});
+btnCart.addEventListener('click', function(){ openModal(modalCart); toggleContinueButton(); });
 
-let transferNoticeShown = false;
-
-btnContinue.addEventListener('click', () => {
+var transferNoticeShown = false;
+btnContinue.addEventListener('click', function(){
   if (btnContinue.disabled) return;
   closeModal(modalCart);
   transferNoticeShown = false;
   openModal(modalCheckout);
 });
-
-btnConfirmNo?.addEventListener('click', () => closeModal(modalConfirm));
-btnConfirmYes?.addEventListener('click', () => {
+if (btnConfirmNo)  btnConfirmNo.addEventListener('click', function(){ closeModal(modalConfirm); });
+if (btnConfirmYes) btnConfirmYes.addEventListener('click', function(){
   if (typeof clearCart === 'function') clearCart();
   else {
-    cart.clear();
-    renderCart();
-    document.querySelectorAll('.card .qty-control')?.forEach(q => {
-      const card = q.closest('.card');
-      q.replaceWith(createAddButton(card));
+    cart.clear(); renderCart();
+    Array.prototype.forEach.call(document.querySelectorAll('.card .qty-control'), function(q){
+      var card = q.closest('.card'); q.replaceWith(createAddButton(card));
     });
   }
   resetCheckoutForm();
   closeModal(modalConfirm);
   closeModal(modalCheckout);
 });
-
-document.querySelectorAll('[data-close="cart"]').forEach(el=> el.addEventListener('click', ()=> closeModal(modalCart)));
-document.querySelectorAll('[data-close="checkout"]').forEach(el=> el.addEventListener('click', ()=> closeModal(modalCheckout)));
-document.querySelectorAll('[data-close="confirm"]').forEach(el=> el.addEventListener('click', ()=> closeModal(modalConfirm)));
-
-btnCancel.addEventListener('click', () => closeModal(modalCheckout));
+Array.prototype.forEach.call(document.querySelectorAll('[data-close=\"cart\"]'), function(el){ el.addEventListener('click', function(){ closeModal(modalCart); }); });
+Array.prototype.forEach.call(document.querySelectorAll('[data-close=\"checkout\"]'), function(el){ el.addEventListener('click', function(){ closeModal(modalCheckout); }); });
+Array.prototype.forEach.call(document.querySelectorAll('[data-close=\"confirm\"]'), function(el){ el.addEventListener('click', function(){ closeModal(modalConfirm); }); });
+btnCancel.addEventListener('click', function(){ closeModal(modalCheckout); });
 
 checkoutForm.addEventListener('input', validateCheckout);
 checkoutForm.addEventListener('change', validateCheckout);
 checkoutForm.addEventListener('input', saveCheckout);
 checkoutForm.addEventListener('change', saveCheckout);
 
-// Aviso Transferencia
-function attachTransferNotice() {
+/* Aviso Transferencia */
+(function attachTransferNotice(){
   if (!checkoutForm) return;
-  const radios = checkoutForm.querySelectorAll('input[name="pay"]');
-  radios.forEach(r => {
-    r.addEventListener('change', (e) => {
-      const v = e.target.value;
-      if (v === 'Transferencia') {
-        if (!transferNoticeShown) {
-          if (modalTransfer) openModal(modalTransfer);
-          transferNoticeShown = true;
-        }
-      } else {
-        transferNoticeShown = false;
-      }
+  var radios = checkoutForm.querySelectorAll('input[name=\"pay\"]');
+  Array.prototype.forEach.call(radios, function(r){
+    r.addEventListener('change', function(e){
+      var v = e.target.value;
+      if (v === 'Transferencia') { if (!transferNoticeShown) { if (modalTransfer) openModal(modalTransfer); transferNoticeShown = true; } }
+      else transferNoticeShown = false;
     });
   });
-}
-attachTransferNotice();
+})();
 
-/* == FREE SHIPPING: helpers y UI == */
+/* FREE SHIPPING helpers */
 function getCartSubtotalFast(){
-  const txt = document.getElementById('cartTotal')?.textContent || '$0.00';
+  var txt = (document.getElementById('cartTotal') ? document.getElementById('cartTotal').textContent : '$0.00') || '$0.00';
   return parseFloat(txt.replace(/[^0-9.]/g,'')) || 0;
 }
 function getSelectedZoneInfo(){
-  const val = zone.value || '';
+  var val = zone.value || '';
   if (!val) return { name:'', cost:0, threshold:0 };
-  const [name, costStr] = val.split('|');
-  const opt = zone.selectedOptions?.[0];
-  const th  = opt ? Number(opt.dataset.th || 0) : (zonesByName.get(name)?.threshold || 0);
-  const cost = parseFloat(costStr || '0') || 0;
-  return { name, cost, threshold: th };
+  var parts = val.split('|');
+  var name = parts[0];
+  var costStr = parts[1];
+  var opt = zone.selectedOptions && zone.selectedOptions[0];
+  var th  = opt ? Number(opt.dataset.th || 0) : ((zonesByName.get(name) || {}).threshold || 0);
+  var cost = parseFloat(costStr || '0') || 0;
+  return { name: name, cost: cost, threshold: th };
 }
 function computeShippingWithThreshold(subtotal){
-  const { cost, threshold } = getSelectedZoneInfo();
+  var z = getSelectedZoneInfo();
+  var cost = z.cost, threshold = z.threshold;
   if (threshold > 0 && subtotal >= threshold) return 0;
   return cost;
 }
 function updateFreeShippingPromo(){
   if (!fsPill) return;
-
-  const { name, threshold } = getSelectedZoneInfo();
-  const subtotal = getCartSubtotalFast();
-  // Si no hay zona o no hay umbral, ocultamos el toast.
+  var z = getSelectedZoneInfo();
+  var name = z.name, threshold = z.threshold;
+  var subtotal = getCartSubtotalFast();
   if (!name || !(threshold > 0)) {
-    fsPill.classList.remove('show');
-    fsPill.classList.add('hidden');
-    return;
+    fsPill.classList.remove('show'); fsPill.classList.add('hidden'); return;
   }
-  let progress = Math.max(0, Math.min(100, Math.round((subtotal / threshold) * 100)));
-  const remaining = Math.max(0, threshold - subtotal);
-
+  var progress = Math.max(0, Math.min(100, Math.round((subtotal / threshold) * 100)));
+  var remaining = Math.max(0, threshold - subtotal);
   if (remaining > 0){
-    fsMsg.innerHTML = `Agrega <strong>${currency(remaining)}</strong> al carrito para Envío <strong>GRATIS</strong>.`;
+    if (fsMsg) fsMsg.innerHTML = 'Agrega <strong>' + currency(remaining) + '</strong> al carrito para Envío <strong>GRATIS</strong>.';
   } else {
-    fsMsg.innerHTML = `¡Genial! Obtienes <strong>ENVÍO GRATIS</strong>.
-    Aprovecha y Agrega más productos a tu carrito.`;
+    if (fsMsg) fsMsg.innerHTML = '¡Genial! Obtienes <strong>ENVÍO GRATIS</strong>. Aprovecha y agrega más productos.';
     progress = 100;
   }
-  fsBar.style.width = progress + '%';
+  if (fsBar) fsBar.style.width = progress + '%';
   fsPill.classList.remove('is-red','is-amber','is-green');
   if (progress < 40) fsPill.classList.add('is-red');
   else if (progress < 100) fsPill.classList.add('is-amber');
   else fsPill.classList.add('is-green');
 
-  // Mostrar como "toast" solo en acciones clave:
-  // - si el usuario acaba de agregar productos
-  // - si cambió la zona (veremos un trigger desde el listener de zone)
-  if (fsShowOnAdd) {
-    showFsToastOnce();
-    fsShowOnAdd = false; // consumir bandera
-  }
+  if (fsShowOnAdd) { showFsToastOnce(); fsShowOnAdd = false; }
 }
-
-zone.addEventListener('change', () => {
+function showFsToastOnce() {
+  if (!fsPill) return;
+  var isShowing = fsPill.classList.contains('show');
+  var current = (fsMsg && fsMsg.innerHTML) || '';
+  if (isShowing && current === fsLastText) return;
+  fsLastText = current;
+  clearTimeout(fsTimer);
+  fsPill.classList.remove('hidden');
+  void fsPill.offsetWidth;
+  fsPill.classList.add('show');
+  fsTimer = setTimeout(function(){
+    fsPill.classList.remove('show');
+    setTimeout(function(){ fsPill.classList.add('hidden'); }, FS_COOLDOWN_MS);
+  }, FS_SHOW_MS);
+}
+zone.addEventListener('change', function(){
   validateCheckout();
   updateCheckoutTotalPill();
-  fsShowOnAdd = true;           // ← fuerza mostrar el toast con la nueva info
+  fsShowOnAdd = true;
   updateFreeShippingPromo();
 });
 
-/* == 13) WHATSAPP == */
-checkoutForm.addEventListener('submit', (e) => {
+/* == 14) WHATSAPP == */
+checkoutForm.addEventListener('submit', function(e){
   e.preventDefault();
   validateCheckout();
-  if (!checkoutForm.checkValidity()) {
-    checkoutForm.reportValidity();
-    return;
-  }
-  const items = getCartItemsDetailed();
-  const subtotal = items.reduce((acc, it)=> acc + it.line, 0);
-
-  const { name: zoneName } = getSelectedZoneInfo();
-  const shipping = computeShippingWithThreshold(subtotal);
-
-  const pay = checkoutForm.querySelector('input[name="pay"]:checked')?.value || 'Efectivo';
-  const base = subtotal + shipping;
-  const totalDue = pay === 'Tarjeta' ? +(base * 1.043).toFixed(2) : +base.toFixed(2);
-
-  const addressText = address.value.trim();
-
-  let efectivo = null;
+  if (!checkoutForm.checkValidity()) { checkoutForm.reportValidity(); return; }
+  var items = getCartItemsDetailed();
+  var subtotal = items.reduce(function(acc, it){ return acc + it.line; }, 0);
+  var zoneInfo = getSelectedZoneInfo();
+  var shipping = computeShippingWithThreshold(subtotal);
+  var pay = (checkoutForm.querySelector('input[name=\"pay\"]:checked') || {}).value || 'Efectivo';
+  var base = subtotal + shipping;
+  var totalDue = pay === 'Tarjeta' ? +(base * 1.043).toFixed(2) : +base.toFixed(2);
+  var addressText = address.value.trim();
+  var efectivo = null;
   if (pay === 'Efectivo') {
-    const pagaCon = parseFloat(cashGiven.value || '0') || 0;
-    const cambio  = +(pagaCon - totalDue).toFixed(2);
-    efectivo = { pagaCon, cambio };
+    var pagaCon = parseFloat(cashGiven.value || '0') || 0;
+    var cambio  = +(pagaCon - totalDue).toFixed(2);
+    efectivo = { pagaCon: pagaCon, cambio: cambio };
   }
-
-  const ticket = buildTicket({
-    items,
-    zoneName,
-    shipping,
-    pay,
-    subtotal,
-    totalDue,
-    address: addressText,
-    efectivo,
-  });
-
+  var ticket = buildTicket({ items: items, zoneName: zoneInfo.name, shipping: shipping, pay: pay, subtotal: subtotal, totalDue: totalDue, address: addressText, efectivo: efectivo });
   openWhatsAppWithMessage(ticket);
   openModal(modalConfirm);
 });
-
 function getCartItemsDetailed(){
-  const items = [];
-  for (const it of cart.values()){
+  var items = [];
+  cart.forEach(function(it){
     items.push({
-      id: it.id,
-      name: it.name,
-      unit: Number(it.unit),
-      qty: Number(it.qty),
+      id: it.id, name: it.name, unit: Number(it.unit), qty: Number(it.qty),
       line: bestPriceById(it.id, it.qty).total,
-      soldBy: it.soldBy,
-      unitLabel: it.unitLabel,
-      step: it.step
+      soldBy: it.soldBy, unitLabel: it.unitLabel, step: it.step
     });
-  }
+  });
   return items;
 }
-
-function buildTicket({ items, zoneName, shipping, pay, subtotal, totalDue, address, efectivo }) {
-  const lines = [];
-
+function buildTicket(data) {
+  var items = data.items, zoneName = data.zoneName, shipping = data.shipping, pay = data.pay, subtotal = data.subtotal, totalDue = data.totalDue, address = data.address, efectivo = data.efectivo;
+  var lines = [];
   lines.push('*KaChu Domicilio*');
   lines.push('');
-
   if (items && items.length) {
     lines.push('*Artículos:*');
-    items.forEach(it => {
-      const prod = productsById.get(it.id);
-      const pricing = prod ? computeBestPriceRaw(prod, it.qty) : { total: it.line, breakdown: [] };
-      const unitTxt = (it.soldBy === 'weight') ? (it.unitLabel || 'kg') : 'pza';
-
-      lines.push(`* ${it.name}`);
-      if (pricing.breakdown?.length) {
-        pricing.breakdown.forEach(b => {
-          lines.push(`> ${b.times} × ${b.qty} ${unitTxt} = $${Number(b.price).toFixed(2)}`);
+    items.forEach(function(it){
+      var prod = productsById.get(it.id);
+      var pricing = prod ? computeBestPriceRaw(prod, it.qty) : { total: it.line, breakdown: [] };
+      var unitTxt = (it.soldBy === 'weight') ? (it.unitLabel || 'kg') : 'pza';
+      lines.push('* ' + it.name);
+      if (pricing.breakdown && pricing.breakdown.length) {
+        pricing.breakdown.forEach(function(b){
+          lines.push('> ' + b.times + ' × ' + b.qty + ' ' + unitTxt + ' = $' + Number(b.price).toFixed(2));
         });
-        if (pricing.adjusted && it.soldBy === 'weight') {
-          lines.push(`> Ajustado a ${pricing.qty} ${unitTxt} para cuadrar combos`);
-        }
-        lines.push(`> Total: $${Number(pricing.total).toFixed(2)}`);
+        lines.push('> Total: $' + Number(pricing.total).toFixed(2));
       } else {
-        const u = Number(it.unit).toFixed(2);
-        const l = Number(it.line).toFixed(2);
-        const qtyTxt = (it.soldBy === 'weight')
-          ? `${formatQty(it.qty, it.step)} ${unitTxt}`
-          : `${formatQty(it.qty, 1)}`;
-        lines.push(`> ${qtyTxt} x $${u} = $${l}`);
+        var u = Number(it.unit).toFixed(2);
+        var l = Number(it.line).toFixed(2);
+        var qtyTxt = (it.soldBy === 'weight') ? (formatQty(it.qty, it.step) + ' ' + unitTxt) : (formatQty(it.qty, 1));
+        lines.push('> ' + qtyTxt + ' x $' + u + ' = $' + l);
       }
       lines.push('');
     });
   }
-
-  const isFree = Number(shipping) === 0;
-  const envioTag = isFree ? `${zoneName || 'Zona'}` : (zoneName || 'Zona');
-
-  lines.push(`*Subtotal:* $${Number(subtotal).toFixed(2)}`);
-  lines.push(`*Envío:* (${envioTag}) $${Number(shipping).toFixed(2)}`);
-  lines.push(`*Total a pagar:* $${Number(totalDue).toFixed(2)}`);
+  var isFree = Number(shipping) === 0;
+  var envioTag = isFree ? (zoneName || 'Zona') : (zoneName || 'Zona');
+  lines.push('*Subtotal:* $' + Number(subtotal).toFixed(2));
+  lines.push('*Envío:* (' + envioTag + ') $' + Number(shipping).toFixed(2));
+  lines.push('*Total a pagar:* $' + Number(totalDue).toFixed(2));
   lines.push('');
-
-  lines.push(`*Pago:* ${pay}`);
+  lines.push('*Pago:* ' + pay);
   if (efectivo) {
-    lines.push(`*Paga con:* $${Number(efectivo.pagaCon).toFixed(2)}`);
-    lines.push(`*Cambio:* $${Number(efectivo.cambio).toFixed(2)}`);
+    lines.push('*Paga con:* $' + Number(efectivo.pagaCon).toFixed(2));
+    lines.push('*Cambio:* $' + Number(efectivo.cambio).toFixed(2));
   }
   lines.push('');
-  if (address) {
-    lines.push('*Dirección de entrega:*');
-    lines.push(`> ${address}`);
-    lines.push('');
-  }
+  if (address) { lines.push('*Dirección de entrega:*'); lines.push('> ' + address); lines.push(''); }
   lines.push('*Aviso:* _Hemos recibido tu solicitud, en un máximo de *15min-20min* te estaríamos entregando tu pedido_');
   lines.push('');
   if (pay === 'Transferencia') {
-    lines.push('');
     lines.push('*Aviso:* _Pago Transferencia_');
     lines.push('> Con *este método de pago* la *entrega* de tu pedido puede *tardar un poco más de lo establecido.*');
-    lines.push('> Esperamos la captura de tu transferencia, cuando se *refleje el pago* en nuestra Banca *procedemos a enviar* tu pedido');
+    lines.push('> Esperamos la captura de tu transferencia y, cuando se *refleje* en nuestra banca, *enviamos* tu pedido.');
   }
   lines.push(' ```Gracias por tu compra...``` ');
   return lines.join('\n');
 }
-
-const STORE_WHATSAPP = '528135697787';
+var STORE_WHATSAPP = '528135697787';
 function openWhatsAppWithMessage(text){
-  const base = STORE_WHATSAPP
-    ? `https://wa.me/${STORE_WHATSAPP}?text=`
-// eslint-disable-next-line no-useless-escape
-    : `https://wa.me/?text=`;
-  const url = base + encodeURIComponent(text);
+  var base = STORE_WHATSAPP ? ('https://wa.me/' + STORE_WHATSAPP + '?text=') : 'https://wa.me/?text=';
+  var url = base + encodeURIComponent(text);
   window.open(url, '_blank', 'noopener');
 }
 
-/* == 14) CHECKOUT == */
+/* == 15) CHECKOUT == */
 function toggleContinueButton(){
-  const items = cartList.querySelectorAll('.cart-item').length;
+  var items = cartList.querySelectorAll('.cart-item').length;
   btnContinue.disabled = items === 0;
   cartBadge.style.display = items === 0 ? 'none' : '';
 }
-
 function validateCheckout() {
-  const zoneOk    = zone.value.trim() !== '';
-  const pay       = checkoutForm.querySelector('input[name="pay"]:checked')?.value || '';
-  const addressOk = address.value.trim().length > 0;
+  var zoneOk    = zone.value.trim() !== '';
+  var pay       = (checkoutForm.querySelector('input[name=\"pay\"]:checked') || {}).value || '';
+  var addressOk = address.value.trim().length > 0;
 
-  const subtotal = getCartSubtotalFast();
-  const shipping = computeShippingWithThreshold(subtotal);
-  const base = subtotal + shipping;
-  const totalDue = pay === 'Tarjeta' ? +(base * 1.043).toFixed(2) : +base.toFixed(2);
+  var subtotal = getCartSubtotalFast();
+  var shipping = computeShippingWithThreshold(subtotal);
+  var base = subtotal + shipping;
+  var totalDue = pay === 'Tarjeta' ? +(base * 1.043).toFixed(2) : +base.toFixed(2);
 
-  let cashOk = true;
+  var cashOk = true;
   if (pay === 'Efectivo') {
-    const raw  = cashGiven.value.trim();
-    const cash = parseFloat(raw);
-    let msg = '';
-
-    if (!raw.length) {
-      cashOk = false; msg = 'Con este dato calcularemos tu feria/cambio.';
-    } else if (isNaN(cash)) {
-      cashOk = false; msg = 'Coloca un número válido (ej. 500.00).';
-    } else if (cash < totalDue) {
-      cashOk = false; msg = `El efectivo ingresado no cubre el total ($${totalDue.toFixed(2)}).`;
-    }
+    var raw  = cashGiven.value.trim();
+    var cash = parseFloat(raw);
+    var msg = '';
+    if (!raw.length)           { cashOk = false; msg = 'Con este dato calcularemos tu feria/cambio.'; }
+    else if (isNaN(cash))      { cashOk = false; msg = 'Coloca un número válido (ej. 500.00).'; }
+    else if (cash < totalDue)  { cashOk = false; msg = 'El efectivo ingresado no cubre el total ($' + totalDue.toFixed(2) + ').'; }
 
     if (!cashOk) {
       cashGiven.setCustomValidity(msg);
@@ -1638,41 +1242,92 @@ function validateCheckout() {
   btnWhatsApp.disabled = !(zoneOk && pay && addressOk && cashOk);
   updateCheckoutTotalPill();
 }
-
 function resetCheckoutForm() {
   if (zone) zone.selectedIndex = 0;
   if (address) address.value = '';
   if (cashGiven) cashGiven.value = '';
-  checkoutForm.querySelectorAll('input[name="pay"]').forEach(r => (r.checked = false));
+  Array.prototype.forEach.call(checkoutForm.querySelectorAll('input[name=\"pay\"]'), function(r){ r.checked = false; });
   cashField.classList.add('hidden');
   localStorage.removeItem(CHECKOUT_KEY);
   validateCheckout();
-  updateCheckoutTotalPill?.();
+  if (typeof updateCheckoutTotalPill === 'function') updateCheckoutTotalPill();
 }
-
 function updateCheckoutTotalPill(){
   if (!checkoutTotalPill) return;
-  const subtotal = getCartSubtotalFast();
-  const shipping = computeShippingWithThreshold(subtotal);
-  const pay = checkoutForm.querySelector('input[name="pay"]:checked')?.value || '';
-  const base = subtotal + shipping;
-  const totalDue = pay === 'Tarjeta' ? +(base * 1.043).toFixed(2) : +base.toFixed(2);
-  checkoutTotalPill.textContent = `Total: $${totalDue.toFixed(2)}`;
+  var subtotal = getCartSubtotalFast();
+  var shipping = computeShippingWithThreshold(subtotal);
+  var pay = (checkoutForm.querySelector('input[name=\"pay\"]:checked') || {}).value || '';
+  var base = subtotal + shipping;
+  var totalDue = pay === 'Tarjeta' ? +(base * 1.043).toFixed(2) : +base.toFixed(2);
+  checkoutTotalPill.textContent = 'Total: $' + totalDue.toFixed(2);
 }
-
-checkoutForm.addEventListener('change', () => {
-  const pay = checkoutForm.querySelector('input[name="pay"]:checked')?.value;
+checkoutForm.addEventListener('change', function(){
+  var pay = (checkoutForm.querySelector('input[name=\"pay\"]:checked') || {}).value;
   cashField.classList.toggle('hidden', pay !== 'Efectivo');
   validateCheckout();
 });
 
-/* == 15) INIT == */
-window.addEventListener('DOMContentLoaded', async () => {
+/* == 16) Social FABs == */
+(function(){
+  function closeAll(except){
+    Array.prototype.forEach.call(document.querySelectorAll('.social-fabs .fab'), function(f){
+      if (except && f===except) return;
+      f.classList.remove('open');
+      var btn = f.querySelector('.fab-btn');
+      if (btn) btn.setAttribute('aria-expanded','false');
+      var title = f.querySelector('.fab-title');
+      if (title) title.textContent = title.getAttribute('data-name') || title.textContent;
+    });
+  }
+  function initAlternator(fab){
+    var title = fab.querySelector('.fab-title'); if (!title) return;
+    var name = title.getAttribute('data-name') || title.textContent.trim();
+    var alt  = 'click aquí';
+    setInterval(function(){
+      if (!fab.classList.contains('open')) { title.textContent = name; return; }
+      title.textContent = (title.textContent === name) ? alt : name;
+    }, 2400);
+  }
+  function initFab(fab){
+    var btn = fab.querySelector('.fab-btn'); if (!btn) return;
+    initAlternator(fab);
+    function toggle(){
+      if (fab.classList.contains('open')) { fab.classList.remove('open'); btn.setAttribute('aria-expanded','false'); }
+      else { closeAll(fab); fab.classList.add('open'); btn.setAttribute('aria-expanded','true'); }
+    }
+    btn.addEventListener('click', toggle);
+    btn.addEventListener('keydown', function(e){ if (e.key==='Enter' || e.key===' ') { e.preventDefault(); toggle(); } });
+  }
+  function initRail(){
+    var rail = document.querySelector('.social-fabs'); if (!rail) return;
+    Array.prototype.forEach.call(rail.querySelectorAll('.fab'), initFab);
+    document.addEventListener('click', function(e){ if (!rail.contains(e.target)) closeAll(); });
+  }
+  if (document.readyState==='loading'){ window.addEventListener('DOMContentLoaded', initRail); }
+  else { initRail(); }
+})();
+
+/* == 17) OVERLAY SERVICIO OFF == */
+function showServiceOverlay(data){
+  var message = data.message, image = data.image;
+  var overlay = document.createElement('div');
+  overlay.className = 'service-overlay';
+  overlay.innerHTML = '' +
+    '<div class=\"service-card\">' +
+      (image ? ('<img src=\"' + image + '\" alt=\"\">') : '') +
+      '<h1>' + (message || 'Servicio temporalmente no disponible') + '</h1>' +
+      (!image ? '<p>Gracias por tu comprensión.</p>' : '') +
+    '</div>';
+  document.body.appendChild(overlay);
+  document.body.classList.add('service-blocked');
+}
+
+/* == 18) INIT == */
+window.addEventListener('DOMContentLoaded', function(){
   (function fixTopbarOffset(){
-    const topbar = document.querySelector('.topbar');
-    if (!topbar) return;
-    const applyOffset = () => {
-      const h = topbar.offsetHeight || 0;
+    var topbar = document.querySelector('.topbar'); if (!topbar) return;
+    var applyOffset = function(){
+      var h = topbar.offsetHeight || 0;
       document.body.classList.add('has-fixed-topbar');
       document.body.style.setProperty('--topbar-h', h + 'px');
     };
@@ -1681,99 +1336,26 @@ window.addEventListener('DOMContentLoaded', async () => {
     if (document.readyState !== 'loading') applyOffset();
   })();
 
-  try {
-    const service = await loadServiceStatus();
-    if (!service.active) {
-      showServiceOverlay(service);
-      return;
-    }
-  } catch (err) {
-    console.error('Service status error', err);
-  }
+  loadServiceStatus().then(function(service){
+    if (!service.active) { showServiceOverlay(service); return; }
+  }).catch(function(err){ console.error('Service status error', err); });
 
-  loadCart();
-  renderCart();
-  validateCheckout();
-  loadCheckout();
-// ⬇️ NUEVO
+  loadCart();   renderCart(); validateCheckout(); loadCheckout();
+
+  // Favoritos
   loadFavs();
   favsSetupCenteredCarousel();
   bindFavsRailEvents();
-  try {
-    await Promise.all([ loadCategories(), loadProducts(), loadZones() ]);
-    Array.from(cart.keys()).forEach(id => syncCardsQty(id));
+
+  Promise.all([ loadCategories(), loadProducts(), loadZones() ]).then(function(){
+    Array.from(cart.keys()).forEach(function(id){ syncCardsQty(id); });
     toggleContinueButton();
-    updateFreeShippingPromo();   // estado inicial (si ya hay zona guardada)
-    // ⬇️ NUEVO: inicial pintado del rail
+    updateFreeShippingPromo();
     renderFavoritesRail();
     updateAllCardHearts();
-    if (zone.value && (cart.size > 0)) {
-      fsShowOnAdd = true;
-      updateFreeShippingPromo();
-    }
-  } catch (e) {
-    console.error(e);
-  }
+
+    if (zone.value && (cart.size > 0)) { fsShowOnAdd = true; updateFreeShippingPromo(); }
+    bindAddButtons();
+    bindFavoriteHearts();
+  }).catch(function(e){ console.error(e); });
 });
-
-/* == Social FABs == */
-(function(){
-  function closeAll(except=null){
-    document.querySelectorAll('.social-fabs .fab').forEach(f=>{
-      if (except && f===except) return;
-      f.classList.remove('open');
-      const btn = f.querySelector('.fab-btn');
-      if (btn) btn.setAttribute('aria-expanded','false');
-      const title = f.querySelector('.fab-title');
-      if (title) title.textContent = title.getAttribute('data-name') || title.textContent;
-    });
-  }
-  function initAlternator(fab){
-    const title = fab.querySelector('.fab-title');
-    if (!title) return;
-    const name = title.getAttribute('data-name') || title.textContent.trim();
-    const alt  = 'click aquí';
-    setInterval(() => {
-      if (!fab.classList.contains('open')) { title.textContent = name; return; }
-      title.textContent = (title.textContent === name) ? alt : name;
-    }, 2400);
-  }
-  function initFab(fab){
-    const btn = fab.querySelector('.fab-btn');
-    if (!btn) return;
-    initAlternator(fab);
-    const toggle = () => {
-      if (fab.classList.contains('open')){
-        fab.classList.remove('open'); btn.setAttribute('aria-expanded','false');
-      } else {
-        closeAll(fab);
-        fab.classList.add('open');    btn.setAttribute('aria-expanded','true');
-      }
-    };
-    btn.addEventListener('click', toggle);
-    btn.addEventListener('keydown', (e)=>{ if (e.key==='Enter' || e.key===' ') { e.preventDefault(); toggle(); } });
-  }
-  function initRail(){
-    const rail = document.querySelector('.social-fabs');
-    if (!rail) return;
-    rail.querySelectorAll('.fab').forEach(initFab);
-    document.addEventListener('click', (e)=>{ if (!rail.contains(e.target)) closeAll(); });
-  }
-  if (document.readyState==='loading'){ window.addEventListener('DOMContentLoaded', initRail); }
-  else { initRail(); }
-})();
-
-/* == 16) OVERLAY SERVICIO OFF == */
-function showServiceOverlay({ message, image }){
-  const overlay = document.createElement('div');
-  overlay.className = 'service-overlay';
-  overlay.innerHTML = `
-    <div class="service-card">
-      ${image ? `<img src="${image}" alt="">` : ''}
-      <h1>${message || 'Servicio temporalmente no disponible'}</h1>
-      ${!image ? `<p>Gracias por tu comprensión.</p>` : ''}
-    </div>
-  `;
-  document.body.appendChild(overlay);
-  document.body.classList.add('service-blocked');
-}

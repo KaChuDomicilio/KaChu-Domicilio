@@ -34,32 +34,34 @@
           </select>
         </label>
       </div>
+
       <div class="row">
         <label class="field field-search">
           <span>Buscar producto</span>
           <input id="searchInput" type="search" placeholder="Escribe el nombre…">
         </label>
       </div>
-<!-- FAVORITOS: carrusel -->
-<section class="favs" id="favsSection">
-  <div class="favs-head">
-    <h3 class="favs-title">⭐ Tus favoritos</h3>
-    <div class="favs-actions">
-      <button class="favs-nav" id="favsPrev">‹</button>
-      <button class="favs-nav" id="favsNext">›</button>
-      <button class="btn small" id="favsAll">Ver todos</button>
-    </div>
-  </div>
 
-  <div class="favs-viewport">
-    <div class="favs-track" id="favsTrack">
-      <!-- aquí van .fav-card generadas por JS -->
-    </div>
-  </div>
+      <!-- FAVORITOS: carrusel -->
+      <section class="favs" id="favsSection" role="region" aria-label="Tus favoritos">
+        <div class="favs-head">
+          <h3 class="favs-title">⭐ Tus favoritos</h3>
+          <div class="favs-actions">
+            <button class="favs-nav" id="favsPrev" type="button" aria-label="Anterior">‹</button>
+            <button class="favs-nav" id="favsNext" type="button" aria-label="Siguiente">›</button>
+            <button class="btn small" id="favsAll" type="button">Ver todos</button>
+          </div>
+        </div>
 
-  <div class="favs-dots" id="favsDots"></div>
-</section>
+        <div class="favs-viewport" aria-live="polite">
+          <div class="favs-track" id="favsTrack" aria-label="Carrusel de favoritos">
+            <!-- aquí van .fav-card generadas por JS -->
+          </div>
+        </div>
 
+        <div class="favs-dots" id="favsDots" aria-label="Indicadores de página"></div>
+      </section>
+      <!-- /FAVORITOS -->
     </div>
   </header>
 
@@ -102,7 +104,7 @@
   </main>
 
   <!-- BOTÓN FLOTANTE CARRITO -->
-  <button id="btnCart" class="fab" aria-label="Carrito">
+  <button id="btnCart" class="fab" aria-label="Carrito" type="button">
     🛒
     <span class="badge" id="cartBadge">2</span>
   </button>
@@ -111,7 +113,7 @@
   <div id="modalCart" class="modal" aria-hidden="true">
     <div class="modal__overlay" data-close="cart"></div>
     <div class="modal__content" role="dialog" aria-modal="true" aria-labelledby="cartTitle">
-      <button class="modal__close" data-close="cart" aria-label="Cerrar">✕</button>
+      <button class="modal__close" data-close="cart" aria-label="Cerrar" type="button">✕</button>
       <h2 id="cartTitle">Tu carrito</h2>
       <ul class="cart-list" id="cartList"></ul>
       <div class="cart-total">
@@ -119,38 +121,38 @@
           <span>Total:</span>
           <strong id="cartTotal"></strong>
         </div>
-        <p class="note">NOTA: El total cambia dependiendo zona y tipo de pago | los precios mostrados son exclusivos del catálago.</p>
+        <p class="note">NOTA: El total cambia dependiendo zona y tipo de pago | los precios mostrados son exclusivos del catálogo.</p>
       </div>
       <div class="actions">
-        <button id="btnClearCart" class="btn ghost" disabled>Vaciar/Carrito</button>
-        <button id="btnContinue" class="btn primary" disabled>Continuar</button>
+        <button id="btnClearCart" class="btn ghost" disabled type="button">Vaciar/Carrito</button>
+        <button id="btnContinue" class="btn primary" disabled type="button">Continuar</button>
       </div>
     </div>
   </div>
 
-<!-- FREE SHIPPING PROMO PILL -->
-<div id="fs-promo" class="fs-pill hidden" aria-live="polite">
-  <div class="fs-msg">Agrega <strong>$0.00</strong> al carrito para conseguir Envío <strong>GRATIS</strong>.</div>
-  <div class="fs-progress"><div class="fs-bar"></div></div>
-</div>
+  <!-- FREE SHIPPING PROMO PILL -->
+  <div id="fs-promo" class="fs-pill hidden" aria-live="polite">
+    <div class="fs-msg">Agrega <strong>$0.00</strong> al carrito para conseguir Envío <strong>GRATIS</strong>.</div>
+    <div class="fs-progress"><div class="fs-bar"></div></div>
+  </div>
 
-<!-- MODAL FAVORITOS -->
-<div id="modalFavs" class="modal" aria-hidden="true">
-  <div class="modal__overlay" data-close="favs"></div>
-  <div class="modal__content" role="dialog" aria-modal="true" aria-labelledby="favsTitle">
-    <button class="modal__close" data-close="favs" aria-label="Cerrar">✕</button>
-    <h2 id="favsTitle">Tus favoritos</h2>
-    <div id="favsModalList" class="favs-modal-list">
-      <!-- Tarjetas de favoritos completas se inyectan por JS -->
+  <!-- MODAL FAVORITOS -->
+  <div id="modalFavs" class="modal" aria-hidden="true">
+    <div class="modal__overlay" data-close="favs"></div>
+    <div class="modal__content" role="dialog" aria-modal="true" aria-labelledby="favsTitle">
+      <button class="modal__close" data-close="favs" aria-label="Cerrar" type="button">✕</button>
+      <h2 id="favsTitle">Tus favoritos</h2>
+      <div id="favsModalList" class="favs-modal-list">
+        <!-- Tarjetas de favoritos completas se inyectan por JS -->
+      </div>
     </div>
   </div>
-</div>
 
   <!-- MODAL CHECKOUT -->
   <div id="modalCheckout" class="modal" aria-hidden="true">
     <div class="modal__overlay" data-close="checkout"></div>
     <div class="modal__content" role="dialog" aria-modal="true" aria-labelledby="checkoutTitle">
-      <button class="modal__close" data-close="checkout" aria-label="Cerrar">✕</button>
+      <button class="modal__close" data-close="checkout" aria-label="Cerrar" type="button">✕</button>
       <h2 id="checkoutTitle">Finalizar pedido</h2>
 
       <form id="checkoutForm" class="form">
@@ -197,12 +199,12 @@
   <div id="modalConfirm" class="modal" aria-hidden="true">
     <div class="modal__overlay" data-close="confirm"></div>
     <div class="modal__content" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
-      <button class="modal__close" data-close="confirm" aria-label="Cerrar">✕</button>
+      <button class="modal__close" data-close="confirm" aria-label="Cerrar" type="button">✕</button>
       <h2 id="confirmTitle">¿Se envió correctamente tu pedido por WhatsApp?</h2>
       <p>Si ya lo enviaste y todo bien, liberaremos tu carrito para un proximo pedido, de lo contrario tu carrito sigue tal cual como lo dejaste.</p>
       <div class="actions" style="display:flex; gap:10px;">
-        <button id="btnConfirmNo" class="btn ghost">No, mantener</button>
-        <button id="btnConfirmYes" class="btn primary">Sí, limpiar</button>
+        <button id="btnConfirmNo" class="btn ghost" type="button">No, mantener</button>
+        <button id="btnConfirmYes" class="btn primary" type="button">Sí, limpiar</button>
       </div>
     </div>
   </div>
@@ -225,7 +227,7 @@
       <div class="sum-row" style="margin-top:14px;">
         <span></span>
         <div style="display:flex; gap:8px;">
-          <button class="btn primary" id="btnTransferOK">Entendido</button>
+          <button class="btn primary" id="btnTransferOK" type="button">Entendido</button>
         </div>
       </div>
     </div>

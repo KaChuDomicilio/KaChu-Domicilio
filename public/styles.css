@@ -9,6 +9,11 @@
   --text: var(--gray-800);
   --radius: 16px;
   --shadow: 0 8px 24px rgba(0,0,0,.12);
+
+  /* capas */
+  --z-fabs: 1200;
+  --z-modal-overlay: 2000;
+  --z-modal: 2100;
 }
 
 *{box-sizing:border-box}
@@ -20,20 +25,16 @@ body{
   background:var(--bg);
 }
 
-/* Top bar fija de verdad */
+/* Top bar fija */
 .topbar{
-  position: fixed;       /* antes: sticky */
-  top: 0;
-  left: 0;
-  right: 0;
+  position: fixed;
+  top: 0; left: 0; right: 0;
   width: 100%;
-  z-index: 100;          /* debajo de modales (2000+) y por encima del contenido */
+  z-index: 100;
   background: linear-gradient(180deg, var(--white), #ffffffd9);
   backdrop-filter: blur(6px);
   border-bottom: 1px solid #e9e9e9;
 }
-/* Cuando la topbar es fija, empuja el contenido hacia abajo.
-   JS medirá la altura real y pondrá --topbar-h; aquí dejamos un fallback. */
 body.has-fixed-topbar{
   padding-top: var(--topbar-h, 120px);
 }
@@ -68,9 +69,7 @@ body.has-fixed-topbar{
   outline: none;
   background:#fff;
 }
-.field input[type="search"]{
-  width:100%;
-}
+.field input[type="search"]{ width:100%; }
 .field-search{ grid-column: 1 / -1; }
 
 .container{
@@ -94,129 +93,58 @@ body.has-fixed-topbar{
   box-shadow: var(--shadow);
 }
 .card img{
-  width: 110px;
-  height: 110px;
-  object-fit: cover;
-  border-radius: 12px;
-  background: #eee;
+  width: 110px; height: 110px; object-fit: cover;
+  border-radius: 12px; background: #eee;
 }
 .card .info{
-  display:flex;
-  flex-direction: column;
-  justify-content: space-between;
-  flex:1;
-  min-width: 0;
+  display:flex; flex-direction: column; justify-content: space-between;
+  flex:1; min-width: 0;
 }
-.card h3{
-  margin:0;
-  font-size:1rem;
-  line-height:1.2;
-}
-.price{
-  margin:6px 0;
-  font-weight: 700;
-  color: var(--green);
-}
+.card h3{ margin:0; font-size:1rem; line-height:1.2; }
+.price{ margin:6px 0; font-weight: 700; color: var(--green); }
 
 /* Botones */
 .btn{
-  appearance: none;
-  border: none;
-  padding: 10px 14px;
-  border-radius: 999px;
-  cursor: pointer;
-  font-weight: 600;
+  appearance: none; border: none;
+  padding: 10px 14px; border-radius: 999px;
+  cursor: pointer; font-weight: 600;
   transition: transform .05s ease, box-shadow .2s ease, background .2s ease;
 }
 .btn:active{ transform: translateY(1px); }
-.btn.primary{
-  background: var(--green);
-  color: #fff;
-  box-shadow: 0 6px 14px rgba(76,175,80,.35);
-}
-.btn.primary:disabled{
-  opacity:.5; cursor:not-allowed; box-shadow:none;
-}
-.btn.ghost{
-  background:#fff; color: var(--text); border:1px solid #ddd;
-}
-.btn.ghost:disabled{
-  opacity:.5; cursor:not-allowed; box-shadow:none;
-}
-.btn.add{
-  background: linear-gradient(180deg, var(--green), #3b9b41);
-  color:#fff;
-}
+.btn.primary{ background: var(--green); color: #fff; box-shadow: 0 6px 14px rgba(76,175,80,.35); }
+.btn.primary:disabled{ opacity:.5; cursor:not-allowed; box-shadow:none; }
+.btn.ghost{ background:#fff; color: var(--text); border:1px solid #ddd; }
+.btn.ghost:disabled{ opacity:.5; cursor:not-allowed; box-shadow:none; }
+.btn.add{ background: linear-gradient(180deg, var(--green), #3b9b41); color:#fff; }
 
 /* FAB carrito */
 .fab{
-  position: fixed;
-  right: 18px;
-  bottom: 18px;
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  background: var(--green);
-  color:#fff;
-  border:none;
-  font-size: 20px;
-  box-shadow: var(--shadow);
-  cursor:pointer;
-  z-index: 100;
+  position: fixed; right: 18px; bottom: 18px;
+  width: 56px; height: 56px; border-radius: 50%;
+  background: var(--green); color:#fff; border:none; font-size: 20px;
+  box-shadow: var(--shadow); cursor:pointer; z-index: 100;
 }
 .badge{
-  position:absolute;
-  top:-6px; right:-6px;
-  min-width: 22px;
-  height:22px;
-  padding:0 6px;
-  border-radius:11px;
-  background:#e53935;
-  color:#fff;
-  font-size:12px;
+  position:absolute; top:-6px; right:-6px;
+  min-width: 22px; height:22px; padding:0 6px; border-radius:11px;
+  background:#e53935; color:#fff; font-size:12px;
   display:flex; align-items:center; justify-content:center;
   box-shadow: 0 2px 8px rgba(0,0,0,.25);
 }
 
 /* Modal base */
-.modal{
-  position: fixed;
-  inset:0;
-  display:none;
-  z-index: 2000; /* ↑ más que .topbar (50) */
-}
+.modal{ position: fixed; inset:0; display:none; z-index: var(--z-modal); }
 .modal.open{ display:block; }
-.modal__overlay{
-  position:absolute; inset:0;
-  background: rgba(0,0,0,.35);
-  backdrop-filter: blur(2px);
-  z-index: 2000;
-}
+.modal__overlay{ position:absolute; inset:0; background: rgba(0,0,0,.35); backdrop-filter: blur(2px); z-index: var(--z-modal-overlay); }
 .modal__content{
-  position:absolute;
-  inset:auto 0 0 0;
-  margin: auto;
-  background:#fff;
-  border-radius: 16px 16px 0 0;
-  padding: 16px;
-  max-width: 720px;
-  width: 100%;
-  box-shadow: var(--shadow);
-  animation: slideUp .2s ease-out;
-  z-index: 2001;
+  position:absolute; inset:auto 0 0 0; margin:auto;
+  background:#fff; border-radius: 16px 16px 0 0;
+  padding: 16px; max-width: 720px; width: 100%;
+  box-shadow: var(--shadow); animation: slideUp .2s ease-out; z-index: var(--z-modal);
 }
-@keyframes slideUp{
-  from{ transform: translateY(10px); opacity:.9; }
-  to{ transform: translateY(0); opacity:1; }
-}
+@keyframes slideUp{ from{ transform: translateY(10px); opacity:.9; } to{ transform: translateY(0); opacity:1; } }
 @media (min-width: 780px){
-  .modal__content{
-    inset: 0;
-    height: fit-content;
-    max-height: 82vh;
-    border-radius: 20px;
-    overflow: auto;
-  }
+  .modal__content{ inset: 0; height: fit-content; max-height: 82vh; border-radius: 20px; overflow: auto; }
 }
 .modal__close{
   position:absolute; right:10px; top:10px;
@@ -225,58 +153,25 @@ body.has-fixed-topbar{
 }
 
 /* Carrito */
-.cart-list{
-  list-style:none; margin:0; padding:0; display:grid; gap:12px;
-}
-.cart-item{
-  border:1px solid #eee; border-radius: 12px; padding: 12px;
-  background: #fff;
-}
-.cart-item .row{
-  display:flex; align-items:center; justify-content:space-between;
-  gap:10px;
-}
+.cart-list{ list-style:none; margin:0; padding:0; display:grid; gap:12px; }
+.cart-item{ border:1px solid #eee; border-radius: 12px; padding: 12px; background: #fff; }
+.cart-item .row{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
 .cart-item .name{ font-weight:600; }
 .cart-item .unit{ color:#666; }
 .qty{ display:flex; align-items:center; gap:10px; }
-.chip{
-  border:1px solid #ddd; background:#fff; padding:6px 10px; border-radius:999px;
-  cursor: pointer; /* demo: deshabilitado */
-}
+.chip{ border:1px solid #ddd; background:#fff; padding:6px 10px; border-radius:999px; cursor: pointer; }
 .line-total{ font-weight:700; color:var(--green); }
-.cart-total{
-  margin-top: 14px; border-top:1px solid #eee; padding-top: 12px;
-}
-.sum-row{
-  display:flex; align-items:center; justify-content:space-between;
-  font-size:1.05rem;
-}
+.cart-total{ margin-top: 14px; border-top:1px solid #eee; padding-top: 12px; }
+.sum-row{ display:flex; align-items:center; justify-content:space-between; font-size:1.05rem; }
 .note{ margin:.35rem 0 0; font-size:.85rem; color:#cf7500; }
 
 /* Formulario checkout */
-.form{
-  display:grid; gap:14px; margin-top: 8px;
-}
-/* Antes: .radios { display: grid; ... }  */
-/* Ahora: horizontales en una fila */
+.form{ display:grid; gap:14px; margin-top: 8px; }
 .radios{
-  display: flex;           /* ← fila horizontal */
-  flex-direction: row;
-  align-items: center;     /* centra el texto con el radio */
-  gap: 20px;               /* espacio entre opciones */
-  flex-wrap: nowrap;       /* todas en la misma línea (cámbialo a wrap si quieres que salten) */
-  border: none;
-  padding: 0;
-  margin: 0;
+  display: flex; flex-direction: row; align-items: center; gap: 20px; flex-wrap: nowrap;
+  border: none; padding: 0; margin: 0;
 }
-/* Etiquetas en línea, sin ocupar ancho completo */
-.radios label{
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  margin: 0;
-  white-space: nowrap;     /* evita que se rompa “Pago por transferencia” */
-}
+.radios label{ display: inline-flex; align-items: center; gap: 8px; margin: 0; white-space: nowrap; }
 textarea{ resize: vertical; }
 
 /* Títulos */
@@ -287,694 +182,231 @@ select:focus, input:focus, textarea:focus, .btn:focus{
   outline: 3px solid var(--mint);
   outline-offset: 2px;
 }
-/* Utilidad para mostrar/ocultar */
-.hidden{ display: none; }
+
+/* Utilidad */
+.hidden{ display: none !important; }
 
 .empty{
-  max-width: 1100px;
-  margin: 24px auto;
-  padding: 18px 16px;
-  color: #555;
-  background: #fff;
-  border: 1px dashed #ddd;
-  border-radius: 12px;
-  text-align: center;
+  max-width: 1100px; margin: 24px auto; padding: 18px 16px;
+  color: #555; background: #fff; border: 1px dashed #ddd; border-radius: 12px; text-align: center;
   box-shadow: var(--shadow);
 }
 
-
-.qty-control {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+.qty-control{ display:flex; align-items:center; gap:8px; }
+.qty-control button{
+  border: 1px solid #ddd; background:#fff; padding: 6px 10px; border-radius: 999px;
+  cursor: pointer; font-weight: bold; font-size: 1rem;
 }
+.qty-control span{ min-width: 20px; text-align: center; font-weight: 600; }
 
-.qty-control button {
-  border: 1px solid #ddd;
-  background: #fff;
-  padding: 6px 10px;
-  border-radius: 999px;
-  cursor: pointer;
-  font-weight: bold;
-  font-size: 1rem;
-}
-
-.qty-control span {
-  min-width: 20px;
-  text-align: center;
-  font-weight: 600;
-}
-
-/* === SOCIAL FABs: botón cuadrado gris -> píldora derecha con color de marca === */
-
-/* El botón ES el panel: colapsado = cuadrado; expandido = píldora derecha */
+/* === SOCIAL FABs (rail izquierda) === */
 .fab-btn{
-  --w-collapsed: 44px;
-  --w-expanded: 280px;
-
-  width: var(--w-collapsed);
-  height: 44px;
-  display: flex; align-items: center;
-  padding: 0; gap: 10px;
-  border: none;
-  background: #1f2937;   /* gris oscuro */
-  color: #e5e7eb;        /* icono claro */
-  cursor: pointer;
+  --w-collapsed: 44px; --w-expanded: 280px;
+  width: var(--w-collapsed); height: 44px;
+  display:flex; align-items:center; gap:10px; padding:0; border:none;
+  background:#1f2937; color:#e5e7eb; cursor:pointer;
   box-shadow: 0 6px 14px rgba(2,6,23,.15);
-  border-radius: 8px;    /* cuadrado */
-  overflow: hidden;      /* oculta textos cuando está colapsado */
+  border-radius: 8px; overflow:hidden;
   transition: width .22s ease, background .18s ease, border-radius .18s ease, box-shadow .2s ease;
 }
-
-/* Icono (siempre el mismo, sin duplicado) */
-.fab-icon-wrap{
-  width: 44px; height: 44px; display:grid; place-items:center;
-  flex: 0 0 auto;
-}
+.fab-icon-wrap{ width:44px; height:44px; display:grid; place-items:center; flex:0 0 auto; }
 .fab-icon{ width:26px; height:26px; fill: currentColor; }
-
-/* Textos (quedan ocultos en colapsado) */
-.fab-text{
-  display: flex; flex-direction: column; justify-content:center;
-  min-width: 0; /* para truncamiento */
-  opacity: 0; transform: translateX(-6px);
-  transition: opacity .18s ease, transform .18s ease;
-}
-.fab-subtitle{
-  font-size:.86rem; line-height:1.1; opacity:.85; color: inherit;
-}
-.fab-title{
-  font-weight:700; color: inherit; text-decoration:none; line-height:1.2;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-
-/* EXPANDIDO (clase .open en el contenedor .fab) */
-.fab.open .fab-btn{
-  width: var(--w-expanded);
-  border-radius: 8px 9999px 9999px 8px; /* lado derecho redondo, izquierdo cuadrado */
-}
-/* FB color al expandir */
-.fab[data-net="fb"].open .fab-btn{
-  background: #1877F2;
-  color: #ffffff;
-}
-/* WA color al expandir */
-.fab[data-net="wa"].open .fab-btn{
-  background: #25D366;
-  color: #0b301c;
-}
-
-/* Mostrar textos cuando está expandido */
-.fab.open .fab-text{
-  opacity: 1; transform: translateX(0);
-}
-
-/* Hover sutil */
+.fab-text{ display:flex; flex-direction:column; justify-content:center; min-width:0; opacity:0; transform: translateX(-6px); transition: opacity .18s ease, transform .18s ease; }
+.fab.open .fab-btn{ width: var(--w-expanded); border-radius: 8px 9999px 9999px 8px; }
+.fab[data-net="fb"].open .fab-btn{ background:#1877F2; color:#fff; }
+.fab[data-net="wa"].open .fab-btn{ background:#25D366; color:#0b301c; }
+.fab.open .fab-text{ opacity:1; transform:translateX(0); }
 .fab-btn:hover{ box-shadow: 0 8px 18px rgba(2,6,23,.18); }
 
-/* Responsivo */
 @media (max-width: 768px){
   .social-fabs{ left: 10px !important; top: 18vh !important; gap: 10px; }
   .fab-btn{ --w-expanded: 240px; }
 }
 
-
-
-
-/* === FIX redes: anula estilos globales de .fab (carrito) === */
 .social-fabs{
-  position: fixed !important;
-  left: 16px !important;
-  top: 30vh !important;
-  z-index: 3000 !important;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+  position: fixed !important; left: 0 !important; top: 30vh !important;
+  z-index: var(--z-fabs) !important; display:flex; flex-direction:column; gap:12px;
+  margin-left:0 !important; padding-left:0 !important;
 }
-
 .social-fabs .fab{
-  /* anula el “botón verde redondo de 56px” del carrito */
-  position: static !important;
-  width: auto !important;
-  height: auto !important;
-  background: transparent !important;
-  border-radius: 0 !important;
-  box-shadow: none !important;
-  overflow: visible !important;
-  right: auto !important;
-  left: auto !important;
-  top: auto !important;
-  bottom: auto !important;
-
-  display: flex !important;
-  align-items: center;
+  position: static !important; width:auto !important; height:auto !important;
+  background:transparent !important; border-radius:0 !important; box-shadow:none !important; overflow:visible !important;
+  right:auto !important; left:auto !important; top:auto !important; bottom:auto !important;
+  display:flex !important; align-items:center;
 }
+.social-fabs .fab, .social-fabs .fab-btn{ margin-left:0 !important; }
+.social-fabs .fab-btn{ border-radius:0 8px 8px 0 !important; opacity:.5; transition: opacity .18s ease, box-shadow .2s ease; }
+.social-fabs .fab.open .fab-btn{ border-radius:0 9999px 9999px 0 !important; opacity:1; }
+.social-fabs .fab-btn:focus-visible{ outline:2px solid rgba(59,130,246,.6); outline-offset:2px; }
 
-/* botón cuadrado gris que se EXPANDE (tu estilo actual) */
-.fab-btn{
-  --w-collapsed: 44px;
-  --w-expanded: 280px;
-  width: var(--w-collapsed);
-  height: 44px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 0;
-  border: none;
-  background: #1f2937;   /* gris oscuro */
-  color: #e5e7eb;
-  border-radius: 8px;     /* cuadrado */
-  overflow: hidden;       /* oculta textos en colapsado */
-  box-shadow: 0 6px 14px rgba(2,6,23,.15);
-  transition: width .22s ease, background .18s ease, border-radius .18s ease, box-shadow .2s ease;
-}
-
-/* expandido: píldora hacia la derecha, mismo logo (sin duplicados) */
-.fab.open .fab-btn{
-  width: var(--w-expanded);
-  border-radius: 8px 9999px 9999px 8px; /* izq. cuadrado, der. redondo */
-}
-
-/* colores de marca SOLO al expandir */
-.fab[data-net="fb"].open .fab-btn{ background:#1877F2; color:#fff; }
-.fab[data-net="wa"].open .fab-btn{ background:#25D366; color:#0b301c; }
-
-.fab-icon-wrap{ width:44px; height:44px; display:grid; place-items:center; flex:0 0 auto; }
-.fab-icon{ width:22px; height:22px; fill: currentColor; }
-.fab-text{ display:flex; flex-direction:column; justify-content:center; opacity:0; transform:translateX(-6px); transition:opacity .18s, transform .18s; }
-.fab.open .fab-text{ opacity:1; transform:translateX(0); }
-
-
-/* === OVERRIDES DE TAMAÑO (forzar icono más grande y píldora más corta) === */
-.social-fabs .fab{
-  width: auto !important;
-}
-
-/* Botón cerrado (cuadro) */
-.social-fabs .fab-btn{
-  --fab-size: 52px;     /* ← tamaño del CUADRO (alto y ancho cerrados) */
-  --fab-open: 220px;    /* ← LARGO de la píldora al abrirse (más corto) */
-
-  width: var(--fab-size) !important;
-  height: var(--fab-size) !important;
-  max-width: none !important;     /* evita límites de reglas anteriores */
-  border-radius: 8px !important;  /* sigue cuadrado al cerrar */
-}
-
-/* Botón abierto (píldora derecha) */
-.social-fabs .fab.open .fab-btn{
-  width: var(--fab-open) !important;
-  border-radius: 8px 9999px 9999px 8px !important;
-}
-
-/* Contenedor del ícono (que no se quede chico) */
-.social-fabs .fab-icon-wrap{
-  width: var(--fab-size) !important;
-  height: var(--fab-size) !important;
-  flex: 0 0 var(--fab-size) !important;
-}
-
-/* Tamaño del ícono (un poco más grande) */
-.social-fabs .fab-icon{
-  width: 26px !important;
-  height: 26px !important;
-}
-
-
-
-/* === Pegar al final: Social FABs pegados a la orilla izquierda === */
-
-/* 1) Rail sin margen a la izquierda */
-.social-fabs{
-  left: 0 !important;           /* antes: 16px */
-  margin-left: 0 !important;
-  padding-left: 0 !important;
-}
-@media (max-width: 768px){
-  .social-fabs{ left: 0 !important; }   /* también en móvil */
-}
-
-/* 2) Asegura que nada meta margen extra */
-.social-fabs .fab,
-.social-fabs .fab-btn{
-  margin-left: 0 !important;
-}
-
-/* 3) Esquinas IZQUIERDAS rectas (cuadrado pegado al borde) */
-.social-fabs .fab-btn{
-  border-radius: 0 8px 8px 0 !important;              /* cerrado */
-}
-.social-fabs .fab.open .fab-btn{
-  border-radius: 0 9999px 9999px 0 !important;        /* abierto: píldora sólo a la derecha */
-}
-
-
-/* === Opacidad de redes: discreto cerrado, 100% en hover/expandido === */
-.social-fabs .fab-btn{
-  opacity: .5;
-  transition: opacity .18s ease, box-shadow .2s ease; /* mantiene tu sombra suave */
-}
-
-/* Al pasar el cursor o con foco de teclado: 100% */
-.social-fabs .fab-btn:hover,
-.social-fabs .fab-btn:focus-visible{
-  opacity: 1;
-}
-
-/* Cuando el botón está expandido (clase .open en el contenedor) también 100% */
-.social-fabs .fab.open .fab-btn{
-  opacity: 1;
-}
-
-/* (Opcional) Anillo de accesibilidad en focus */
-.social-fabs .fab-btn:focus-visible{
-  outline: 2px solid rgba(59,130,246,.6);
-  outline-offset: 2px;
-}
-
-/* ===== Overlay bloqueo de servicio ===== */
+/* Overlay servicio OFF */
 .service-overlay{
   position: fixed; inset: 0; z-index: 9999;
-  background: rgba(15,23,42,.92); /* casi negro azulado */
-  color: #e5e7eb;
-  display: grid; place-items: center;
-  padding: 24px;
+  background: rgba(15,23,42,.92); color:#e5e7eb;
+  display:grid; place-items:center; padding:24px;
 }
 .service-card{
   max-width: 860px; width: 100%;
-  background: rgba(2,6,23,.35);
-  backdrop-filter: blur(4px);
-  border: 1px solid rgba(148,163,184,.25);
-  border-radius: 18px;
-  padding: 28px;
-  text-align: center;
-  box-shadow: 0 30px 80px rgba(0,0,0,.35);
+  background: rgba(2,6,23,.35); backdrop-filter: blur(4px);
+  border: 1px solid rgba(148,163,184,.25); border-radius: 18px;
+  padding: 28px; text-align: center; box-shadow: 0 30px 80px rgba(0,0,0,.35);
 }
-.service-card h1{
-  font-size: clamp(22px, 4vw, 36px);
-  margin: 0 0 8px;
-}
-.service-card p{
-  font-size: clamp(15px, 2.2vw, 18px);
-  opacity: .95;
-}
+.service-card h1{ font-size: clamp(22px, 4vw, 36px); margin: 0 0 8px; }
+.service-card p{ font-size: clamp(15px, 2.2vw, 18px); opacity: .95; }
 .service-card img{
   max-width: 220px; max-height: 220px; object-fit: cover;
-  border-radius: 16px; margin: 14px auto 6px; display: block;
+  border-radius: 16px; margin: 14px auto 6px; display:block;
   box-shadow: 0 0 0 1px rgba(226,232,240,.25) inset;
 }
 body.service-blocked{ overflow: hidden; }
 
-/* --- Capas (z-index) --- */
-:root{
-  --z-fabs: 1200;          /* redes sociales */
-  --z-modal-overlay: 2000; /* fondo del modal (oscurecido) */
-  --z-modal: 2100;         /* ventana del modal */
+/* Botón del carrito colores */
+#btnCart{ background:#22c55e; color:#fff; }
+#btnCart svg, #btnCart svg *{ fill: currentColor !important; stroke: currentColor !important; }
+#btnCart img{ filter: brightness(0) invert(1) !important; }
+#btnCart svg{ width:22px; height:22px; }
+
+/* Carrito: scroll cuando hay muchos items */
+#cartList{ margin:0; padding:0; list-style:none; }
+#cartList.scroll{ max-height:48vh; overflow-y:auto; padding-right:.25rem; overscroll-behavior:contain; }
+#cartList.scroll::-webkit-scrollbar{ width:8px; }
+#cartList.scroll::-webkit-scrollbar-track{ background: rgba(0,0,0,.06); border-radius:8px; }
+#cartList.scroll::-webkit-scrollbar-thumb{ background: rgba(0,0,0,.18); border-radius:8px; }
+#cartList.scroll::-webkit-scrollbar-thumb:hover{ background: rgba(0,0,0,.28); }
+
+/* Campo efectivo */
+#cashField{ position: relative; }
+.cash-bubble{
+  position:absolute; left:0; top:calc(100% + 6px);
+  background:#FDE68A; border:1px solid #F59E0B; color:#111827;
+  padding:6px 10px; border-radius:10px; font-size:.9rem; box-shadow:0 6px 18px rgba(0,0,0,.12);
+  z-index:60; max-width:320px;
 }
-
-/* Asegura orden correcto de capas */
-.social-fabs{ z-index: var(--z-fabs) !important; }
-
-/* Ajusta a como se llamen tus modales/backdrop */
-.modal,
-.modal.open,
-[data-modal].open { z-index: var(--z-modal) !important; }
-
-.modal-backdrop,
-.backdrop,
-.modal-overlay { z-index: var(--z-modal-overlay) !important; }
-
-/* Botón del carrito */
-#btnCart{
-  /* tu verde actual */
-  background: #22c55e;
-  color: #fff;                 /* <— hace blanco a los iconos que usan currentColor */
+.cash-bubble::before{
+  content:""; position:absolute; left:16px; top:-6px;
+  border-width:6px; border-style:solid; border-color:transparent transparent #F59E0B transparent;
 }
-
-/* Si es SVG embebido (lo más común): */
-#btnCart svg, 
-#btnCart svg *{
-  fill: currentColor !important;
-  stroke: currentColor !important;
+.cash-bubble::after{
+  content:""; position:absolute; left:16px; top:-5px;
+  border-width:6px; border-style:solid; border-color:transparent transparent #FDE68A transparent;
 }
+#cashField input:invalid{ border-color:#e53e3e; box-shadow:0 0 0 2px rgba(229,62,62,.12); }
 
-/* Si usas <img src="carrito.svg"> (bitmap o svg con color fijo): */
-#btnCart img{
-  filter: brightness(0) invert(1) !important;  /* lo vuelve blanco */
-}
-
-/* (Opcional) tamaño del icono */
-#btnCart svg{ width: 22px; height: 22px; }
-
-/* --- Carrito: hacer scroll si hay muchos items --- */
-#cartList {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-/* Se activa desde JS cuando hay >5 ítems */
-#cartList.scroll {
-  /* límite relativo a la pantalla para que no tape el total/botones */
-  max-height: 48vh;
-  overflow-y: auto;
-  padding-right: .25rem; /* espacio para el scrollbar */
-  overscroll-behavior: contain;
-}
-
-/* Estilo opcional del scrollbar (webkit) */
-#cartList.scroll::-webkit-scrollbar { width: 8px; }
-#cartList.scroll::-webkit-scrollbar-track { background: rgba(0,0,0,.06); border-radius: 8px; }
-#cartList.scroll::-webkit-scrollbar-thumb { background: rgba(0,0,0,.18); border-radius: 8px; }
-#cartList.scroll::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,.28); }
-
-/* Para posicionar el globo respecto al campo */
-#cashField { position: relative; }
-
-/* Globo de error/ayuda */
-.cash-bubble {
-  position: absolute;
-  left: 0;
-  top: calc(100% + 6px);
-  background: #FDE68A;           /* amarillo suave */
-  border: 1px solid #F59E0B;     /* naranja */
-  color: #111827;                /* casi negro */
-  padding: 6px 10px;
-  border-radius: 10px;
-  font-size: .9rem;
-  box-shadow: 0 6px 18px rgba(0,0,0,.12);
-  z-index: 60;
-  max-width: 320px;
-}
-
-/* Flechita del globo */
-.cash-bubble::before {
-  content: "";
-  position: absolute;
-  left: 16px;
-  top: -6px;
-  border-width: 6px;
-  border-style: solid;
-  border-color: transparent transparent #F59E0B transparent; /* borde */
-}
-.cash-bubble::after {
-  content: "";
-  position: absolute;
-  left: 16px;
-  top: -5px;
-  border-width: 6px;
-  border-style: solid;
-  border-color: transparent transparent #FDE68A transparent; /* relleno */
-}
-
-/* Si ya usas .hidden, perfecto; si no: */
-.hidden { display: none !important; }
-
-/* Borde rojo opcional cuando es inválido */
-#cashField input:invalid {
-  border-color: #e53e3e;
-  box-shadow: 0 0 0 2px rgba(229,62,62,.12);
-}
-/* === Free Shipping Toast (derecha→izquierda, sobre modales, sin bloquear clics) === */
+/* === Free Shipping Toast === */
 .fs-pill{
-  position: fixed;
-  right: 0;                   /* pegado a la orilla derecha */
-  top: 30%;                   /* a la altura del modal “Finalizar pedido” */
-  transform: translateY(-50%) translateX(24px); /* inicia apenas fuera de pantalla */
+  position: fixed; right: 0; top: 30%;
+  transform: translateY(-50%) translateX(24px);
   transform-origin: right center;
-  background: #111827;
-  color: #fff;
-  padding: 10px 14px;
-  border-radius: 999px 0 0 999px; /* abre hacia la izquierda */
-  box-shadow: 0 10px 30px rgba(0,0,0,.25);
-  max-width: min(92vw, 520px);
-  width: max-content;
-  display: grid;
-  gap: 8px;
-  justify-items: center;
-
-  opacity: 0;
-  clip-path: inset(0 0 0 100%); /* totalmente cerrado desde la derecha */
-  transition:
-    opacity .25s ease,
-    transform .25s ease,
-    clip-path .45s cubic-bezier(.22,.61,.36,1);
-  z-index: 4000;             /* por encima del modal */
-  pointer-events: none;      /* ¡no bloquea clics! */
+  background:#111827; color:#fff; padding:10px 14px;
+  border-radius: 999px 0 0 999px; box-shadow: 0 10px 30px rgba(0,0,0,.25);
+  max-width: min(92vw, 520px); width:max-content;
+  display:grid; gap:8px; justify-items:center;
+  opacity:0; clip-path: inset(0 0 0 100%);
+  transition: opacity .25s ease, transform .25s ease, clip-path .45s cubic-bezier(.22,.61,.36,1);
+  z-index: 4000; pointer-events:none;
 }
-
-.fs-pill.show{
-  opacity: 1;
-  transform: translateY(-50%) translateX(0);
-  clip-path: inset(0 0 0 0); /* expandido hacia la izquierda */
-}
-
+.fs-pill.show{ opacity:1; transform: translateY(-50%) translateX(0); clip-path: inset(0 0 0 0); }
 .fs-pill.hidden{ display:none; }
-
-.fs-msg{ font-size: .95rem; text-align:center; line-height:1.25; }
-
-.fs-progress{
-  width: 100%;
-  height: 8px;
-  background: rgba(255,255,255,.15);
-  border-radius: 8px 0 0 8px;
-  overflow: hidden;
-}
-.fs-bar{
-  height: 100%;
-  width: 0%;
-  background: linear-gradient(90deg, #ef4444, #f59e0b, #22c55e);
-  transition: width .35s ease;
-  box-shadow: inset 0 0 6px rgba(255,255,255,.25);
-}
-
-/* color de estado opcional (para texto) */
-.fs-pill.is-red  .fs-msg{ color:#fee2e2; }
+.fs-msg{ font-size:.95rem; text-align:center; line-height:1.25; }
+.fs-progress{ width:100%; height:8px; background:rgba(255,255,255,.15); border-radius:8px 0 0 8px; overflow:hidden; }
+.fs-bar{ height:100%; width:0%; background: linear-gradient(90deg, #ef4444, #f59e0b, #22c55e); transition: width .35s ease; box-shadow: inset 0 0 6px rgba(255,255,255,.25); }
+.fs-pill.is-red .fs-msg{ color:#fee2e2; }
 .fs-pill.is-amber .fs-msg{ color:#ffedd5; }
 .fs-pill.is-green .fs-msg{ color:#dcfce7; }
+@media (max-width: 480px){ .fs-msg{ font-size:.9rem; } }
 
-@media (max-width: 480px){
-  .fs-msg{ font-size: .9rem; }
-}
-/* Botón cuando el producto está visible pero no disponible */
-.btn.add.unavailable{
-  background: #f59e0b;       /* naranja */
-  color: #111827;
-  cursor: not-allowed;
-  box-shadow: none;
-  opacity: 0.95;
-}
-.card.is-unavailable .price{
-  opacity: .75;
-}
+/* Estado no disponible */
+.btn.add.unavailable{ background:#f59e0b; color:#111827; cursor:not-allowed; box-shadow:none; opacity:.95; }
+.card.is-unavailable .price{ opacity:.75; }
+.btn.add.unavailable:focus{ outline: 2px dashed rgba(245,158,11,.6); outline-offset: 2px; }
 
-/* Por accesibilidad, al enfocarlo no debe parecer accionable */
-.btn.add.unavailable:focus{
-  outline: 2px dashed rgba(245,158,11,.6);
-  outline-offset: 2px;
-}
-/* ===== Favoritos (carrusel y modal) — REEMPLAZO COMPLETO ===== */
+/* ======== FAVORITOS (Carrusel) — centrado real ======== */
 .favs{
-  max-width:1100px;
-  margin:0 auto;
-  padding:8px 16px 6px;
-  border-top:1px solid #e9e9e9;
+  max-width:1100px; margin:0 auto; padding:8px 16px 6px; border-top:1px solid #e9e9e9; position:relative;
 }
 .favs.hidden{ display:none; }
 
-.favs-head{
-  display:flex; align-items:center; justify-content:space-between;
-  margin:2px 0 8px;
-}
+.favs-head{ display:flex; align-items:center; justify-content:space-between; margin:2px 0 8px; }
 .favs-title{ margin:0; font-size:1rem; font-weight:700; color:#111827; }
 .favs-actions{ display:flex; gap:8px; align-items:center; }
-.favs-nav{
-  width:34px; height:34px; border-radius:999px; border:1px solid #ddd; background:#fff; cursor:pointer;
-}
+.favs-nav{ width:34px; height:34px; border-radius:999px; border:1px solid #ddd; background:#fff; cursor:pointer; }
 .btn.small{ padding:6px 10px; font-size:.9rem; }
 
-/* --- Viewport y pista del carrusel --- */
-.favs-viewport{
-  overflow:hidden;               /* evita que nada se “desborde” gigante */
-}
+/* Viewport */
+.favs-viewport{ position:relative; overflow:hidden; }
+
+/* Track con slide variable y padding para centrar 1.º/último */
 .favs-track{
-  display:grid;
-  grid-auto-flow: column;        /* items en fila continua */
-  gap:12px;
-  padding:4px 0 10px;
-  /* cada slide mide entre 180 y 240px en función del viewport */
-  grid-auto-columns: clamp(180px, 45vw, 240px);
-  scroll-snap-type: x mandatory;
-  overflow-x:auto;
-  -webkit-overflow-scrolling: touch;
+  /* ancho de cada slide (móvil: ~2 por viewport) */
+  --slide: clamp(200px, 42vw, 240px);
+  display:flex; gap:12px;
+  overflow-x:auto; -webkit-overflow-scrolling:touch;
+  scroll-snap-type: x mandatory; scroll-behavior: smooth;
+  padding-block: 4px 16px;
+  /* centrar extremos: medio de viewport - medio del slide */
+  padding-inline: max(12px, calc(50% - var(--slide) / 2));
+  scroll-padding-inline: calc(50% - var(--slide) / 2);
 }
 .favs-track::-webkit-scrollbar{ height:8px; }
 .favs-track::-webkit-scrollbar-thumb{ background:rgba(0,0,0,.15); border-radius:999px; }
 
-/* --- Mini-card del carrusel --- */
+/* Mini-card */
 .fav-card{
-  scroll-snap-align: start;
-  background:#fff;
-  border:1px solid #e5e7eb;
-  border-radius:14px;
-  padding:10px;
-  box-shadow: var(--shadow);
-  display:grid;
-  grid-template-columns: 84px 1fr;  /* miniatura + info */
-  gap:10px;
-  align-items:center;
+  flex: 0 0 var(--slide);
+  scroll-snap-align: center;            /* ❤️ centra cada item */
+  background:#fff; border:1px solid #e5e7eb; border-radius:14px;
+  padding:10px; box-shadow: var(--shadow);
+  display:grid; grid-template-columns: 84px 1fr; gap:10px; align-items:center;
 }
-
-/* Contenedor de miniatura */
 .fav-card .media{
-  position:relative;
-  width:84px;
-  height:84px;
-  border-radius:10px;
-  overflow:hidden;
-  background:#eee;
-  flex:0 0 84px;
+  position:relative; width:84px; height:84px; border-radius:10px; overflow:hidden; background:#eee; flex:0 0 84px;
 }
-.fav-card .media img{
-  width:100%;
-  height:100%;
-  object-fit:cover;
-  display:block;
-}
-
-/* Corazón dentro de la miniatura (abajo-izquierda) */
+.fav-card .media img{ width:100%; height:100%; object-fit:cover; display:block; }
 .fav-card .fav-heart{
-  position:absolute;
-  left:6px;
-  bottom:6px;
-  width:28px;
-  height:28px;
-  border:none;
-  border-radius:999px;
-  background:rgba(255,255,255,.92);
-  backdrop-filter: blur(4px);
-  box-shadow:0 4px 12px rgba(0,0,0,.18);
-  display:grid; place-items:center;
-  cursor:pointer;
-  transition: transform .12s ease, background .2s ease;
+  position:absolute; left:6px; bottom:6px; width:28px; height:28px; border:none; border-radius:999px;
+  background:rgba(255,255,255,.92); backdrop-filter: blur(4px); box-shadow:0 4px 12px rgba(0,0,0,.18);
+  display:grid; place-items:center; cursor:pointer; transition: transform .12s ease, background .2s ease;
 }
 .fav-card .fav-heart:active{ transform: translateY(1px); }
-
-/* Icono del corazón (trazo/lleno) */
 .fav-card .fav-heart svg{ width:16px; height:16px; }
 .fav-card .fav-heart .icon-fill{ display:none; }
 .fav-card .fav-heart.is-fav .icon-stroke{ display:none; }
 .fav-card .fav-heart.is-fav .icon-fill{ display:block; }
 
-/* Meta (nombre + precio + botón) */
-.fav-card .meta{
-  min-width:0;
-  display:grid;
-  gap:6px;
-}
-.fav-card .meta h4{
-  margin:0;
-  font-size:.95rem;
-  line-height:1.15;
-  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-}
-.fav-card .price{
-  margin:0; color:#16a34a; font-weight:700;
-}
-.fav-card .btn.add{
-  width:100%;
-  padding:8px 10px;
-  border-radius:999px;
-}
+.fav-card .meta{ min-width:0; display:grid; gap:6px; }
+.fav-card .meta h4{ margin:0; font-size:.95rem; line-height:1.15; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.fav-card .price{ margin:0; color:#16a34a; font-weight:700; }
+.fav-card .btn.add{ width:100%; padding:8px 10px; border-radius:999px; }
 
-/* Paginación opcional (puntitos) */
+/* Dots */
 .favs-dots{
-  display:flex; gap:6px; justify-content:center; margin-top:6px;
+  pointer-events:none;
+  position:absolute; left:50%; bottom:4px; transform:translateX(-50%);
+  display:grid; grid-auto-flow:column; gap:8px;
 }
-.favs-dot{
-  width:8px; height:8px; border-radius:999px; background:#d1d5db;
-}
+.favs-dot{ width:8px; height:8px; border-radius:999px; background:#d1d5db; }
 .favs-dot.is-active{ background:#6366f1; }
 
-/* --- Reubicación del corazón en tarjetas del grid normal --- */
-.card .media{
-  position:relative;
-  width:110px; height:110px;
-  flex:0 0 110px; border-radius:12px; overflow:hidden; background:#eee;
-}
+/* Corazón en tarjetas del grid normal */
+.card .media{ position:relative; width:110px; height:110px; flex:0 0 110px; border-radius:12px; overflow:hidden; background:#eee; }
 .card .media img{ width:100%; height:100%; object-fit:cover; display:block; }
 .card .media .fav-heart{
-  position:absolute;
-  left:8px; bottom:8px;
-  width:34px; height:34px;
-  display:grid; place-items:center;
-  border:none; border-radius:999px;
-  background:rgba(255,255,255,.92);
-  box-shadow:0 6px 16px rgba(0,0,0,.18);
+  position:absolute; left:8px; bottom:8px; width:34px; height:34px;
+  display:grid; place-items:center; border:none; border-radius:999px;
+  background:rgba(255,255,255,.92); box-shadow:0 6px 16px rgba(0,0,0,.18);
 }
 .card .media .fav-heart svg{ width:18px; height:18px; }
 .card .media .fav-heart .icon-fill{ display:none; }
 .card .media .fav-heart.is-fav .icon-stroke{ display:none; }
 .card .media .fav-heart.is-fav .icon-fill{ display:block; }
-/* ===== Carrusel Favoritos: centrado real por slide ===== */
 
-.favs { position: relative; }
-
-.favs-viewport{
-  position: relative;
-  overflow: hidden;                      /* oculta la “colita” de sombras */
+/* Breakpoints: más tarjetas visibles en pantallas grandes */
+@media (min-width: 640px){
+  .favs-track{ --slide: clamp(210px, 36vw, 260px); }
 }
-
-/* Track en fila con scroll-snap y gap controlado */
-.favs-track{
-  display: flex;
-  gap: 12px;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  scroll-snap-type: x mandatory;
-  scroll-behavior: smooth;
-  padding: 4px 0 16px;                   /* padding lateral se ajusta por JS */
+@media (min-width: 900px){
+  .favs-track{ --slide: clamp(220px, 28vw, 280px); }
 }
-
-/* Cada mini-card ocupa ancho fijo/fluido y se centra */
-.fav-card{
-  flex: 0 0 clamp(200px, 42vw, 240px);
-  scroll-snap-align: center;             /* ❤️ centrado como en tu ejemplo */
-}
-
-/* Puntos centrados, flotando abajo del viewport */
-.favs-dots{
-  pointer-events: none;                  /* no bloquea scroll */
-  position: absolute;
-  left: 50%;
-  bottom: 4px;
-  transform: translateX(-50%);
-  display: grid;
-  grid-auto-flow: column;
-  gap: 8px;
-}
-.favs-dot{
-  width: 8px; height: 8px; border-radius: 999px;
-  background: #d1d5db;
-}
-.favs-dot.is-active{ background: #6366f1; }
-
-/* Flechas (usamos tus botones existentes) como overlay lateral */
-.favs-head{ position: relative; }
-.favs-actions{
-  display: flex; gap: 8px; align-items: center;
-}
-@media (min-width: 700px){
-  /* en pantallas medianas, ponemos Prev/Next sobre el carrusel */
-  .favs { /* contenedor relativo para posicionar */
-    position: relative;
-  }
-  .favs-actions .favs-nav{
-    position: absolute;
-    top: calc(100% + 14px);              /* justo bajo el header, sobre el carrusel */
-    transform: translateY(-50%);
-    z-index: 2;
-  }
-  .favs-actions #favsPrev{ left: 8px; }
-  .favs-actions #favsNext{ right: 8px; }
+@media (min-width: 1200px){
+  .favs-track{ --slide: clamp(230px, 22vw, 300px); }
 }
