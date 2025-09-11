@@ -916,3 +916,65 @@ body.service-blocked{ overflow: hidden; }
 .card .media .fav-heart .icon-fill{ display:none; }
 .card .media .fav-heart.is-fav .icon-stroke{ display:none; }
 .card .media .fav-heart.is-fav .icon-fill{ display:block; }
+/* ===== Carrusel Favoritos: centrado real por slide ===== */
+
+.favs { position: relative; }
+
+.favs-viewport{
+  position: relative;
+  overflow: hidden;                      /* oculta la “colita” de sombras */
+}
+
+/* Track en fila con scroll-snap y gap controlado */
+.favs-track{
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+  padding: 4px 0 16px;                   /* padding lateral se ajusta por JS */
+}
+
+/* Cada mini-card ocupa ancho fijo/fluido y se centra */
+.fav-card{
+  flex: 0 0 clamp(200px, 42vw, 240px);
+  scroll-snap-align: center;             /* ❤️ centrado como en tu ejemplo */
+}
+
+/* Puntos centrados, flotando abajo del viewport */
+.favs-dots{
+  pointer-events: none;                  /* no bloquea scroll */
+  position: absolute;
+  left: 50%;
+  bottom: 4px;
+  transform: translateX(-50%);
+  display: grid;
+  grid-auto-flow: column;
+  gap: 8px;
+}
+.favs-dot{
+  width: 8px; height: 8px; border-radius: 999px;
+  background: #d1d5db;
+}
+.favs-dot.is-active{ background: #6366f1; }
+
+/* Flechas (usamos tus botones existentes) como overlay lateral */
+.favs-head{ position: relative; }
+.favs-actions{
+  display: flex; gap: 8px; align-items: center;
+}
+@media (min-width: 700px){
+  /* en pantallas medianas, ponemos Prev/Next sobre el carrusel */
+  .favs { /* contenedor relativo para posicionar */
+    position: relative;
+  }
+  .favs-actions .favs-nav{
+    position: absolute;
+    top: calc(100% + 14px);              /* justo bajo el header, sobre el carrusel */
+    transform: translateY(-50%);
+    z-index: 2;
+  }
+  .favs-actions #favsPrev{ left: 8px; }
+  .favs-actions #favsNext{ right: 8px; }
+}

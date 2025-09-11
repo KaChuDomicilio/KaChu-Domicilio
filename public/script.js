@@ -482,6 +482,7 @@ function renderFavoritesRail(){
       }
     });
     favsTrack.dataset.bound = '1';
+    favsSetupCenteredCarousel();
   }
 
   // (Opcional) Puntos de paginación simples
@@ -522,11 +523,91 @@ function updateAllCardHearts(){
     btn.innerHTML = favHeartSVG(on);
   });
 }
+// === Carrusel centrado estilo "scroll-snap center" ===
+
+// Calcula padding lateral para centrar el slide en el viewport
+function favsApplyCenteredPadding(){
+  if (!favsTrack) return;
+  const first = favsTrack.querySelector('.fav-card');
+  if (!first) return;
+
+  const vw = favsTrack.clientWidth;       // ancho visible del carril
+  const slideW = first.offsetWidth;       // ancho real de una tarjeta
+  const gap = parseFloat(getComputedStyle(favsTrack).columnGap || getComputedStyle(favsTrack).gap || '12') || 12;
+  const pad = Math.max(0, (vw - slideW) / 2);
+
+  // centrado puro (izq/der iguales)
+  favsTrack.style.paddingLeft  = pad + 'px';
+  favsTrack.style.paddingRight = pad + 'px';
+
+  // guardamos para las flechas
+  favsTrack.dataset.slideW = String(slideW);
+  favsTrack.dataset.gap = String(gap);
+}
+
+// Mueve exactamente un slide (izq = -1, der = +1)
+function favsScrollBySlide(dir){
+  if (!favsTrack) return;
+  const slideW = parseFloat(favsTrack.dataset.slideW || '220') || 220;
+  const gap    = parseFloat(favsTrack.dataset.gap  || '12')  || 12;
+  const delta  = (slideW + gap) * dir;
+  favsTrack.scrollBy({ left: delta, behavior: 'smooth' });
+}
+
+// Actualiza el punto activo con IntersectionObserver
+let favsIO = null;
+function favsBindDotsTracking(){
+  if (!favsTrack || !favsDots) return;
+
+  // limpia IO previo
+  if (favsIO) { try{ favsIO.disconnect(); }catch(_){} favsIO = null; }
+
+  const cards = [...favsTrack.querySelectorAll('.fav-card')];
+  if (!cards.length) { favsDots.innerHTML = ''; return; }
+
+  // render simple de puntos (uno por card)
+  favsDots.innerHTML = cards.map((_,i)=>`<span class="favs-dot${i===0?' is-active':''}"></span>`).join('');
+
+  const dots = [...favsDots.children];
+  favsIO = new IntersectionObserver((entries)=>{
+    // el que tenga mayor intersección será el activo
+    let maxE = null;
+    for (const e of entries){
+      if (!maxE || e.intersectionRatio > maxE.intersectionRatio) maxE = e;
+    }
+    if (!maxE) return;
+    const idx = cards.indexOf(maxE.target);
+    if (idx < 0) return;
+    dots.forEach(d => d.classList.remove('is-active'));
+    if (dots[idx]) dots[idx].classList.add('is-active');
+  }, {
+    root: favsTrack,
+    threshold: [0.5, 0.6, 0.7, 0.8, 0.9]   // “centrado” práctico
+  });
+
+  cards.forEach(c => favsIO.observe(c));
+}
+
+// Llamar SIEMPRE que se renderiza el carrusel
+function favsSetupCenteredCarousel(){
+  favsApplyCenteredPadding();
+  favsBindDotsTracking();
+}
+
+// Recalcular en resize/orientation
+window.addEventListener('resize', () => {
+  // pequeño debounce
+  clearTimeout(window.__favsResizeT);
+  window.__favsResizeT = setTimeout(favsApplyCenteredPadding, 100);
+});
 
 function bindFavsRailEvents(){
-  favsPrev?.addEventListener('click', () => favsTrack?.scrollBy({ left: -320, behavior: 'smooth' }));
-  favsNext?.addEventListener('click', () => favsTrack?.scrollBy({ left:  320, behavior: 'smooth' }));
+  favsPrev?.addEventListener('click', () => favsScrollBySlide(-1));
+  favsNext?.addEventListener('click', () => favsScrollBySlide(+1));
   favsAll ?.addEventListener('click', () => { renderFavoritesModal(); openModal(modalFavs); });
+
+  // También al hacer scroll manual, mantenemos puntos actualizados (IO ya lo hace)
+  favsTrack?.addEventListener('scroll', () => { /* IO se encarga */ });
 }
 
 function renderFavoritesModal(){
@@ -1132,6 +1213,7 @@ async function loadProducts() {
     bindAddButtons();
     bindFavoriteHearts();
     applyFilters();
+    favsSetupCenteredCarousel();
     renderFavoritesRail();
 
     console.info(
@@ -1615,6 +1697,7 @@ window.addEventListener('DOMContentLoaded', async () => {
   loadCheckout();
 // ⬇️ NUEVO
   loadFavs();
+  favsSetupCenteredCarousel();
   bindFavsRailEvents();
   try {
     await Promise.all([ loadCategories(), loadProducts(), loadZones() ]);
