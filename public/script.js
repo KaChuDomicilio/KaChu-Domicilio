@@ -82,10 +82,9 @@ function fetchNoCache(url){
   return fetch(u, { cache: 'no-store' });
 }
 function fetchFirstOk(urls){
-  var i, url;
   function tryOne(idx, resolve, reject){
     if (idx >= urls.length) { reject(new Error('No se pudo leer ninguna URL')); return; }
-    url = urls[idx];
+    var url = urls[idx];
     fetchNoCache(url).then(function(r){
       if (!r.ok) { tryOne(idx+1, resolve, reject); return; }
       r.json().then(function(json){ resolve({ url: url, json: json }); }).catch(function(){ tryOne(idx+1, resolve, reject); });
@@ -300,7 +299,7 @@ function renderFavoritesRail(){
     .filter(function(p){ return p && p.active !== false; });
 
   favsSection.classList.toggle('hidden', items.length === 0);
-  if (!items.length){ favsTrack.innerHTML = ''; favsDots.innerHTML=''; return; }
+  if (!items.length){ favsTrack.innerHTML = ''; favsDots.innerHTML=''; updateFavsNavVisibility(); return; }
 
   var html = items.map(function(p){
     var id   = p.id;
@@ -338,7 +337,7 @@ function renderFavoritesRail(){
         heart.classList.toggle('is-fav', on);
         heart.innerHTML = favHeartSVG(on);
         updateAllCardHearts();
-        favsBindDotsTracking();
+        renderFavoritesRail(); // recomponer carrusel/dots/nav
         return;
       }
       if (add){
@@ -362,10 +361,80 @@ function renderFavoritesRail(){
     });
     favsTrack.dataset.bound = '1';
   }
+
+  // ⬇️ Recalcular centrado, puntitos y flechas
   favsSetupCenteredCarousel();
+  updateFavsNavVisibility();
+  favsBuildDotsByGroups();
 }
 
-/* ---- Dots + centrado ---- */
+/* ====== FAVORITOS: helpers de carrusel por grupos ====== */
+
+// Tamaño de grupo: móvil = 2; en pantallas mayores, según ancho visible
+function favsGroupSize() {
+  var vw = window.innerWidth || document.documentElement.clientWidth || 360;
+  if (vw < 640) return 2; // móvil
+  if (!favsTrack) return 2;
+
+  var first = favsTrack.querySelector('.fav-card');
+  if (!first) return 2;
+
+  var slideW = first.offsetWidth;
+  var styles = getComputedStyle(favsTrack);
+  var gap = parseFloat(styles.columnGap || styles.gap || '12') || 12;
+  var visible = Math.max(1, Math.floor((favsTrack.clientWidth + gap) / (slideW + gap)));
+  return Math.max(2, visible);
+}
+
+// Scroll exactamente un grupo
+function favsScrollBySlide(dir) {
+  if (!favsTrack) return;
+  var first = favsTrack.querySelector('.fav-card');
+  if (!first) return;
+
+  var slideW = first.offsetWidth;
+  var styles = getComputedStyle(favsTrack);
+  var gap = parseFloat(styles.columnGap || styles.gap || '12') || 12;
+  var group = favsGroupSize();
+  var delta = dir * group * (slideW + gap);
+  favsTrack.scrollBy({ left: delta, behavior: 'smooth' });
+}
+
+// Puntitos por grupo
+function favsBuildDotsByGroups() {
+  if (!favsTrack || !favsDots) return;
+  var cards = Array.prototype.slice.call(favsTrack.querySelectorAll('.fav-card'));
+  if (!cards.length) { favsDots.innerHTML = ''; return; }
+
+  var totalGroups = Math.ceil(cards.length / favsGroupSize());
+  // Índice aproximado del grupo actual por scroll
+  var current = Math.round(favsTrack.scrollLeft / Math.max(1, favsTrack.clientWidth));
+  if (current < 0) current = 0;
+  if (current > totalGroups - 1) current = totalGroups - 1;
+
+  favsDots.innerHTML = Array.from({ length: totalGroups })
+    .map(function(_, i){ return '<span class=\"favs-dot' + (i === current ? ' is-active' : '') + '\"></span>'; })
+    .join('');
+}
+
+// Mostrar/ocultar flechas según haya más contenido
+function updateFavsNavVisibility() {
+  if (!favsTrack) return;
+  var atStart = favsTrack.scrollLeft <= 1;
+  var maxScroll = favsTrack.scrollWidth - favsTrack.clientWidth - 1;
+  var atEnd = favsTrack.scrollLeft >= maxScroll;
+
+  if (favsPrev) {
+    favsPrev.hidden = atStart;
+    favsPrev.setAttribute('aria-hidden', atStart ? 'true' : 'false');
+  }
+  if (favsNext) {
+    favsNext.hidden = atEnd;
+    favsNext.setAttribute('aria-hidden', atEnd ? 'true' : 'false');
+  }
+}
+
+/* ---- Centrado y setup ---- */
 var favsIO = null;
 function favsApplyCenteredPadding(){
   if (!favsTrack) return;
@@ -381,42 +450,35 @@ function favsApplyCenteredPadding(){
   favsTrack.dataset.slideW = String(slideW);
   favsTrack.dataset.gap = String(gap);
 }
-function favsScrollBySlide(dir){
-  if (!favsTrack) return;
-  var slideW = parseFloat(favsTrack.dataset.slideW || '220') || 220;
-  var gap    = parseFloat(favsTrack.dataset.gap  || '12')  || 12;
-  favsTrack.scrollBy({ left: (slideW + gap) * dir, behavior: 'smooth' });
-}
+
 function favsBindDotsTracking(){
-  if (!favsTrack || !favsDots) return;
-  if (favsIO) { try{ favsIO.disconnect(); }catch(_e){} favsIO = null; }
-
-  var cards = Array.prototype.slice.call(favsTrack.querySelectorAll('.fav-card'));
-  if (!cards.length) { favsDots.innerHTML = ''; return; }
-
-  favsDots.innerHTML = cards.map(function(_,i){ return '<span class=\"favs-dot' + (i===0?' is-active':'') + '\"></span>'; }).join('');
-  var dots = Array.prototype.slice.call(favsDots.children);
-
-  favsIO = new IntersectionObserver(function(entries){
-    var maxE = null;
-    entries.forEach(function(en){ if (!maxE || en.intersectionRatio > maxE.intersectionRatio) maxE = en; });
-    if (!maxE) return;
-    var idx = cards.indexOf(maxE.target);
-    if (idx < 0) return;
-    dots.forEach(function(d){ d.classList.remove('is-active'); });
-    if (dots[idx]) dots[idx].classList.add('is-active');
-  }, { root: favsTrack, threshold: [0.5, 0.6, 0.7, 0.8, 0.9] });
-
-  cards.forEach(function(c){ favsIO.observe(c); });
+  // Ya no usamos IntersectionObserver por tarjeta; ahora los dots son por grupo.
+  // Esta función se deja vacía a propósito para mantener compatibilidad.
 }
+
 function favsSetupCenteredCarousel(){
   favsApplyCenteredPadding();
-  favsBindDotsTracking();
+  favsBuildDotsByGroups();
+  updateFavsNavVisibility();
+
+  if (favsTrack && !favsTrack.dataset._groupBound) {
+    favsTrack.addEventListener('scroll', function(){
+      favsBuildDotsByGroups();
+      updateFavsNavVisibility();
+    }, { passive: true });
+    favsTrack.dataset._groupBound = '1';
+  }
 }
+
 window.addEventListener('resize', function(){
   clearTimeout(window.__favsResizeT);
-  window.__favsResizeT = setTimeout(favsApplyCenteredPadding, 100);
+  window.__favsResizeT = setTimeout(function(){
+    favsApplyCenteredPadding();
+    favsBuildDotsByGroups();
+    updateFavsNavVisibility();
+  }, 100);
 });
+
 function bindFavsRailEvents(){
   if (favsPrev) favsPrev.addEventListener('click', function(){ favsScrollBySlide(-1); });
   if (favsNext) favsNext.addEventListener('click', function(){ favsScrollBySlide(+1); });
@@ -438,7 +500,7 @@ function renderFavoritesModal(){
     var unitLabel = (p.soldBy === 'weight') ? 'kg' : 'pza';
     return '' +
       '<div class=\"favs-modal-card\" data-id=\"' + p.id + '\">' +
-        '<img src=\"' + img + '\" alt=\"\">' +
+        '<img src=\"' + img + '" alt=\"\">' +
         '<div class=\"meta\"><h4>' + p.name + '</h4>' +
         '<p class=\"p\">$' + price + ' <small>por ' + unitLabel + '</small></p></div>' +
         '<div class=\"actions\"><button class=\"btn ghost favs-add\">Agregar</button>' +
@@ -786,7 +848,7 @@ function syncCardsQty(id){
     var info = getCardInfo(card);
     if (info.id !== id) return;
     var item = cart.get(id);
-    var qtyControl = card.querySelector('.qty-control');
+    var qtyControl = card.querySelector(' .qty-control');
     if (item) {
       if (!qtyControl) {
         switchToQtyControl(card, item.qty, false);
@@ -869,7 +931,7 @@ function loadCategories() {
       if (name) categoriesMap.set(name, subs);
     });
     fillCategorySelectFromMap();
-  }).catch(function(e){
+  }).catch(function(){
     categoriesMap = null;
     console.warn('No se cargó categorias.json. Se derivará de productos.');
   });

@@ -43,26 +43,31 @@
       </div>
     </div>
   </header>
-      <!-- FAVORITOS: carrusel -->
-      <section class="favs" id="favsSection" role="region" aria-label="Tus favoritos">
-        <div class="favs-head">
-          <h3 class="favs-title">⭐ Tus favoritos</h3>
-          <div class="favs-actions">
-            <button class="favs-nav" id="favsPrev" type="button" aria-label="Anterior">‹</button>
-            <button class="favs-nav" id="favsNext" type="button" aria-label="Siguiente">›</button>
-            <button class="btn small" id="favsAll" type="button">Ver todos</button>
-          </div>
-        </div>
+<!-- ================= FAVORITOS: carrusel ================= -->
+<section class="favs" id="favsSection" role="region" aria-label="Tus favoritos">
+  <div class="favs-head">
+    <h3 class="favs-title">⭐ Tus favoritos</h3>
 
-        <div class="favs-viewport" aria-live="polite">
-          <div class="favs-track" id="favsTrack" aria-label="Carrusel de favoritos">
-            <!-- aquí van .fav-card generadas por JS -->
-          </div>
-        </div>
+    <div class="favs-actions">
+      <!-- Flechas: el JS las mostrará/ocultará según haya más ítems -->
+      <button class="favs-nav" id="favsPrev" type="button" aria-label="Anterior" aria-hidden="true" hidden>‹</button>
+      <button class="favs-nav" id="favsNext" type="button" aria-label="Siguiente" aria-hidden="true" hidden>›</button>
 
-        <div class="favs-dots" id="favsDots" aria-label="Indicadores de página"></div>
-      </section>
-      <!-- /FAVORITOS -->
+      <button class="btn small" id="favsAll" type="button">Ver todos</button>
+    </div>
+  </div>
+
+  <div class="favs-viewport" aria-live="polite">
+    <div class="favs-track" id="favsTrack" aria-label="Carrusel de favoritos">
+      <!-- Aquí el JS inyecta <article class="fav-card">… -->
+    </div>
+  </div>
+
+  <!-- Puntitos de paginación (1 por “paso/grupo”) -->
+  <div class="favs-dots" id="favsDots" aria-label="Indicadores"></div>
+</section>
+<!-- =============== /FAVORITOS: carrusel ================== -->
+
   <!-- Rail de redes -->
   <div class="social-fabs" aria-label="Redes sociales">
     <div class="fab" data-net="fb">
@@ -134,17 +139,23 @@
     <div class="fs-progress"><div class="fs-bar"></div></div>
   </div>
 
-  <!-- MODAL FAVORITOS -->
-  <div id="modalFavs" class="modal" aria-hidden="true">
-    <div class="modal__overlay" data-close="favs"></div>
-    <div class="modal__content" role="dialog" aria-modal="true" aria-labelledby="favsTitle">
-      <button class="modal__close" data-close="favs" aria-label="Cerrar" type="button">✕</button>
-      <h2 id="favsTitle">Tus favoritos</h2>
-      <div id="favsModalList" class="favs-modal-list">
-        <!-- Tarjetas de favoritos completas se inyectan por JS -->
-      </div>
+<!-- ================== MODAL: Ver todos =================== -->
+<div class="modal" id="modalFavs" aria-hidden="true" inert>
+  <div class="modal__overlay" data-close="favs" aria-hidden="true"></div>
+
+  <div class="modal__content" role="dialog" aria-modal="true" aria-labelledby="favsModalTitle">
+    <button class="modal__close" type="button" data-close="favs" aria-label="Cerrar">✕</button>
+
+    <h2 id="favsModalTitle" style="margin-top:0">Todos tus favoritos</h2>
+
+    <!-- Contenedor donde el JS renderiza la grilla de favoritos -->
+    <div id="favsModalList" class="favs-modal-grid">
+      <!-- JS inyecta .favs-modal-card -->
     </div>
   </div>
+</div>
+<!-- ================= /MODAL: Ver todos =================== -->
+
 
   <!-- MODAL CHECKOUT -->
   <div id="modalCheckout" class="modal" aria-hidden="true">
