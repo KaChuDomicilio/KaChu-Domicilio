@@ -923,7 +923,7 @@ cartList.addEventListener('click', function(e){
   if (minus) {
     var next = snap((item.qty || minQty) - step);
     if (next < (minQty - 1e-6)) {
-      if (confirm('¿Eliminar este artículo del carrito?')) { cart.delete(id); renderCart(); syncCardsQty(id); }
+      if (confirm('¿Eliminar este artículo del carrito?')) { cart.delete(id); renderCart(); refreshAllFavQtyUIs(); syncCardsQty(id); }
     } else {
       var q2 = next; if (item.soldBy !== 'weight') q2 = clampUnits(q2);
       item.qty = q2; cart.set(id, item); renderCart(); syncCardsQty(id); updateFavCardQtyUI(id);
@@ -968,7 +968,7 @@ function createQtyControl(card, qty){
     var next = +(cur.qty - step).toFixed(3);
     if (next < minQty + 1e-6) {
       if (confirm('¿Eliminar este artículo del carrito?')) {
-        cart.delete(id); renderCart(); control.replaceWith(createAddButton(card));
+        cart.delete(id); renderCart(); refreshAllFavQtyUIs(); control.replaceWith(createAddButton(card));
       }
     } else {
       cur.qty = next;
