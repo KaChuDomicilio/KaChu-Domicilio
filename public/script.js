@@ -786,6 +786,7 @@ function bindAddButtons(){
     addBtn.addEventListener('click', function(){
       var info = getCardInfo(card);
       switchToQtyControl(card, info.minQty, true);
+      refreshAllFavQtyUIs();
       updateFavCardQtyUI(info.id);
     });
   });
