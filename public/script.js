@@ -446,7 +446,11 @@ function renderFavoritesRail(){
         } else {
           var next = +(it.qty - stepv).toFixed(3);
           if (next < (minQ - EPS)) {
-            cart.delete(idq);
+            if (confirm('¿Eliminar este artículo del carrito?')) {
+              cart.delete(idq);
+            } else {
+              return; // no hacer nada si cancelan
+            }
           } else {
             if (it.soldBy !== 'weight') next = Math.max(1, Math.round(next));
             it.qty = next; cart.set(idq, it);
@@ -536,7 +540,13 @@ function renderFavoritesModal(){
         it.qty = nxt; cart.set(id, it);
       } else {
         var next = +(it.qty - stepv).toFixed(3);
-        if (next < (minQ - EPS)) { cart.delete(id); }
+        if (next < (minQ - EPS)) {
+          if (confirm('¿Eliminar este artículo del carrito?')) {
+            cart.delete(id);
+          } else {
+            return; // cancelar => mantener cantidad
+          }
+        }
         else {
           if (it.soldBy !== 'weight') next = Math.max(1, Math.round(next));
           it.qty = next; cart.set(id, it);
