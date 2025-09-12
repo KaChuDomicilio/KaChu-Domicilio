@@ -477,3 +477,44 @@ body.service-blocked{ overflow: hidden; }
 .btn.btn-remove:hover{
   filter: brightness(.97);
 }
+/* ======== FAVORITOS: control de cantidad compacto en el rail ======== */
+.fav-qty{
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  padding: 6px 10px;
+  border-radius: 999px;
+  box-shadow: 0 4px 10px rgba(0,0,0,.06);
+}
+.fav-qty .qminus,
+.fav-qty .qplus{
+  appearance: none; border: none; background: #fff;
+  width: 28px; height: 28px; border-radius: 999px;
+  display: grid; place-items: center; cursor: pointer;
+  font-weight: 700; font-size: 16px; line-height: 1;
+  border: 1px solid #e5e7eb;
+}
+.fav-qty .qminus:active,
+.fav-qty .qplus:active{ transform: translateY(1px); }
+.fav-qty .qcount{ min-width: 22px; text-align: center; font-weight: 700; }
+/* Lista con scroll si hay muchos favoritos */
+#favsModalList.scroll{
+  max-height: 60vh;           /* ajustable */
+  overflow-y: auto;
+  padding-right: 6px;
+}
+#favsModalList.scroll::-webkit-scrollbar{ width: 8px; }
+#favsModalList.scroll::-webkit-scrollbar-thumb{
+  background: rgba(0,0,0,.15); border-radius: 999px;
+}
+
+/* En móviles, un poco más alto (para 3-4 tarjetas visibles) */
+@media (max-width: 480px){
+  #favsModalList.scroll{ max-height: 66vh; }
+}
+/* En tablets */
+@media (min-width: 481px) and (max-width: 779px){
+  #favsModalList.scroll{ max-height: 68vh; }
+}

@@ -319,7 +319,7 @@ function renderFavoritesRail(){
         '<div class=\"meta\">' +
           '<h4>' + name + '</h4>' +
           '<div class=\"price\">$' + price + '</div>' +
-          '<button class=\"btn add\" type=\"button\" data-id=\"' + id + '\">Agregar</button>' +
+          favQtyOrAddHTML(p) +
         '</div>' +
       '</article>';
   }).join('');
@@ -356,8 +356,60 @@ function renderFavoritesRail(){
           cart.set(id2, { id: id2, name: p2.name, unit: Number(p2.price||0), qty: minQty, soldBy: soldBy, unitLabel: unitLabel, step: step, minQty: minQty });
           renderCart();
           syncCardsQty(id2);
+          updateFavCardQtyUI(id2);
         }
       }
+      // Controles de cantidad en el rail
+var qplus  = e.target.closest('.qplus');
+var qminus = e.target.closest('.qminus');
+if (qplus || qminus){
+  var wrap = e.target.closest('.fav-qty');
+  if (!wrap) return;
+  var idq = wrap.dataset.id;
+  var p3 = productsById.get(idq);
+  if (!p3) return;
+
+  var it = cart.get(idq);
+  // Si por algo no existe, lo creamos con minQty
+  if (!it){
+    var soldBy = p3.soldBy || 'unit';
+    var step   = Number(p3.step != null ? p3.step : (soldBy==='weight' ? 0.25 : 1));
+    var minQty = Number(p3.minQty != null ? p3.minQty : step);
+    var unitLabel = p3.unitLabel || (soldBy==='weight' ? 'kg' : 'pza');
+    it = { id:idq, name:p3.name, unit:+Number(p3.price||0), qty:minQty, soldBy:soldBy, unitLabel:unitLabel, step:step, minQty:minQty };
+  }
+
+  var step = it.step > 0 ? it.step : 1;
+  var minQ = it.minQty > 0 ? it.minQty : (it.soldBy==='weight' ? 0.25 : 1);
+  var isDecimal = (step % 1) !== 0;
+
+  if (qplus){
+    var nxt = +(it.qty + step).toFixed(3);
+    if (it.soldBy !== 'weight') nxt = Math.max(1, Math.round(nxt));
+    it.qty = nxt; cart.set(idq, it);
+  } else if (qminus){
+    var next = +(it.qty - step).toFixed(3);
+    if (next < (minQ - 1e-6)) {
+      // eliminar del carrito
+      cart.delete(idq);
+      // Volver a mostrar "Agregar" en la fav-card
+      var meta = wrap.parentElement;
+      wrap.remove();
+      meta.insertAdjacentHTML('beforeend', '<button class="btn add" type="button" data-id="' + idq + '">Agregar</button>');
+    } else {
+      if (it.soldBy !== 'weight') next = Math.max(1, Math.round(next));
+      it.qty = next; cart.set(idq, it);
+      // actualiza contador
+      var span = wrap.querySelector('.qcount');
+      if (span) span.textContent = isDecimal ? (+it.qty).toFixed(2).replace(/\.00$/,'') : String(it.qty);
+    }
+  }
+
+  renderCart();      // actualiza totales y combos
+  syncCardsQty(idq); // sincroniza tarjetas del grid con el carrito
+  return;
+}
+
     });
     favsTrack.dataset.bound = '1';
   }
@@ -367,8 +419,47 @@ function renderFavoritesRail(){
   updateFavsNavVisibility();
   favsBuildDotsByGroups();
 }
-
 /* ====== FAVORITOS: helpers de carrusel por grupos ====== */
+/* --- FAVORITOS: helpers de Qty en rail --- */
+
+/* Devuelve HTML de "Agregar" o control de cantidad según si ya está en carrito */
+function favQtyOrAddHTML(p){
+  var it = cart.get(p.id);
+  if (!it){
+    return '<button class="btn add" type="button" data-id="' + p.id + '">Agregar</button>';
+  }
+  var isDecimal = (it.step % 1) !== 0;
+  var countTxt = isDecimal ? (+it.qty).toFixed(2).replace(/\.00$/,'') : String(it.qty);
+  return '' +
+    '<div class="fav-qty" data-id="' + p.id + '">' +
+      '<button class="qminus" type="button" aria-label="Restar">−</button>' +
+      '<span class="qcount">' + countTxt + '</span>' +
+      '<button class="qplus" type="button" aria-label="Sumar">+</button>' +
+    '</div>';
+}
+
+/* Reemplaza el botón Agregar de una fav-card por el control de qty */
+function updateFavCardQtyUI(id){
+  var card = favsTrack ? favsTrack.querySelector('.fav-card[data-id="' + CSS.escape(id) + '"]') : null;
+  if (!card) return;
+  var meta = card.querySelector('.meta');
+  if (!meta) return;
+  var oldAdd = meta.querySelector('.btn.add');
+  if (!oldAdd) return;
+  var p = productsById.get(id);
+  if (!p) return;
+  oldAdd.insertAdjacentHTML('afterend', favQtyOrAddHTML(p));
+  oldAdd.remove();
+}
+
+/* Aplica scroll en el modal según cantidad y ancho de pantalla */
+function applyFavsModalScroll(itemsLen){
+  if (!favsModalList) return;
+  var w = window.innerWidth || document.documentElement.clientWidth || 1024;
+  var limit = (w < 480) ? 3 : (w < 780) ? 6 : 10; // umbrales sugeridos
+  if (itemsLen > limit) favsModalList.classList.add('scroll');
+  else favsModalList.classList.remove('scroll');
+}
 
 // Tamaño de grupo: móvil = 2; en pantallas mayores, según ancho visible
 function favsGroupSize() {
@@ -528,6 +619,7 @@ function renderFavoritesModal(){
       updateAllCardHearts();
     }
   };
+  applyFavsModalScroll(items.length);
 }
 
 /* == 8) GRID de productos == */
