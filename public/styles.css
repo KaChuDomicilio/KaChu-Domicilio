@@ -481,24 +481,31 @@ body.service-blocked{ overflow: hidden; }
 .fav-qty{
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;                 /* antes 8px */
   border: 1px solid #e5e7eb;
   background: #fff;
-  padding: 6px 10px;
+  padding: 4px 8px;         /* antes 6px 10px */
   border-radius: 999px;
-  box-shadow: 0 4px 10px rgba(0,0,0,.06);
+  box-shadow: 0 3px 8px rgba(0,0,0,.05);
+  max-width: 100%;
 }
 .fav-qty .qminus,
 .fav-qty .qplus{
   appearance: none; border: none; background: #fff;
-  width: 28px; height: 28px; border-radius: 999px;
-  display: grid; place-items: center; cursor: pointer;
-  font-weight: 700; font-size: 16px; line-height: 1;
+  width: 24px; height: 24px;     /* antes 28x28 */
+  border-radius: 999px;
+  display: grid; place-items: center;
+  cursor: pointer;
+  font-weight: 700; font-size: 14px; line-height: 1; /* más compacto */
   border: 1px solid #e5e7eb;
 }
 .fav-qty .qminus:active,
 .fav-qty .qplus:active{ transform: translateY(1px); }
-.fav-qty .qcount{ min-width: 22px; text-align: center; font-weight: 700; }
+.fav-qty .qcount{
+  min-width: 20px;              /* antes 22px */
+  text-align: center; font-weight: 700;
+  font-size: 14px;
+}
 /* Lista con scroll si hay muchos favoritos */
 #favsModalList.scroll{
   max-height: 60vh;           /* ajustable */
@@ -511,8 +518,10 @@ body.service-blocked{ overflow: hidden; }
 }
 
 /* En móviles, un poco más alto (para 3-4 tarjetas visibles) */
-@media (max-width: 480px){
-  #favsModalList.scroll{ max-height: 66vh; }
+@media (max-width: 380px){
+  .fav-qty{ gap: 4px; padding: 3px 6px; }
+  .fav-qty .qminus, .fav-qty .qplus{ width: 22px; height: 22px; font-size: 13px; }
+  .fav-qty .qcount{ min-width: 18px; font-size: 13px; }
 }
 /* En tablets */
 @media (min-width: 481px) and (max-width: 779px){

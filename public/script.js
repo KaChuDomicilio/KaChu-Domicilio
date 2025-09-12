@@ -359,7 +359,7 @@ function renderFavoritesRail(){
           updateFavCardQtyUI(id2);
         }
       }
-      // Controles de cantidad en el rail
+// Controles de cantidad en el rail
 var qplus  = e.target.closest('.qplus');
 var qminus = e.target.closest('.qminus');
 if (qplus || qminus){
@@ -387,6 +387,11 @@ if (qplus || qminus){
     var nxt = +(it.qty + step).toFixed(3);
     if (it.soldBy !== 'weight') nxt = Math.max(1, Math.round(nxt));
     it.qty = nxt; cart.set(idq, it);
+
+    // 🔹 ACTUALIZA EL NÚMERO EN VIVO
+    var spanP = wrap.querySelector('.qcount');
+    if (spanP) spanP.textContent = isDecimal ? (+it.qty).toFixed(2).replace(/\.00$/,'') : String(it.qty);
+
   } else if (qminus){
     var next = +(it.qty - step).toFixed(3);
     if (next < (minQ - 1e-6)) {
@@ -400,16 +405,15 @@ if (qplus || qminus){
       if (it.soldBy !== 'weight') next = Math.max(1, Math.round(next));
       it.qty = next; cart.set(idq, it);
       // actualiza contador
-      var span = wrap.querySelector('.qcount');
-      if (span) span.textContent = isDecimal ? (+it.qty).toFixed(2).replace(/\.00$/,'') : String(it.qty);
+      var spanM = wrap.querySelector('.qcount');
+      if (spanM) spanM.textContent = isDecimal ? (+it.qty).toFixed(2).replace(/\.00$/,'') : String(it.qty);
     }
   }
 
-  renderCart();      // actualiza totales y combos
-  syncCardsQty(idq); // sincroniza tarjetas del grid con el carrito
+  renderCart();      // actualiza totales/combos
+  syncCardsQty(idq); // sincroniza tarjetas del grid
   return;
 }
-
     });
     favsTrack.dataset.bound = '1';
   }
