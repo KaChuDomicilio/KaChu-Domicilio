@@ -412,18 +412,71 @@ if (qplus || qminus){
 
   renderCart();      // actualiza totales/combos
   syncCardsQty(idq); // sincroniza tarjetas del grid
+  updateFavCardQtyUI(idq);
   return;
 }
     });
     favsTrack.dataset.bound = '1';
   }
-
   // ⬇️ Recalcular centrado, puntitos y flechas
   favsSetupCenteredCarousel();
+  refreshAllFavQtyUIs();
   updateFavsNavVisibility();
   favsBuildDotsByGroups();
 }
 /* ====== FAVORITOS: helpers de carrusel por grupos ====== */
+/* === FAVORITOS: helpers para pintar/actualizar controles === */
+function favQtyMarkup(id, qty, step){
+  var isDec = (step % 1) !== 0;
+  var show  = isDec ? (+qty).toFixed(2).replace(/\.00$/,'') : String(qty);
+  return '' +
+    '<div class="fav-qty" data-id="'+id+'">' +
+      '<button class="qminus" type="button" aria-label="Disminuir">−</button>' +
+      '<span class="qcount">'+ show +'</span>' +
+      '<button class="qplus"  type="button" aria-label="Aumentar">+</button>' +
+    '</div>';
+}
+
+/* Pone/quita los controles − 1 + en la fav-card según esté en carrito */
+function updateFavCardQtyUI(id){
+  if (!favsTrack) return;
+  var card = favsTrack.querySelector('.fav-card[data-id="'+CSS.escape(id)+'"]');
+  if (!card) return;
+
+  var meta = card.querySelector('.meta');
+  if (!meta) return;
+
+  var addBtn = meta.querySelector('.btn.add');
+  var existingCtrl = meta.querySelector('.fav-qty');
+  var item = cart.get(id);
+
+  if (item){ 
+    // Debe mostrar controles
+    var html = favQtyMarkup(id, item.qty, item.step > 0 ? item.step : 1);
+    if (existingCtrl){
+      existingCtrl.outerHTML = html;
+    } else {
+      if (addBtn) addBtn.remove();
+      meta.insertAdjacentHTML('beforeend', html);
+    }
+  } else {
+    // No está en carrito → vuelve el botón Agregar
+    if (!addBtn){
+      if (existingCtrl) existingCtrl.remove();
+      meta.insertAdjacentHTML('beforeend', '<button class="btn add" type="button" data-id="'+id+'">Agregar</button>');
+    }
+  }
+}
+
+/* Recorre todas las tarjetas de favoritos y sincroniza su estado */
+function refreshAllFavQtyUIs(){
+  if (!favsTrack) return;
+  favsTrack.querySelectorAll('.fav-card').forEach(function(c){
+    var id = c.getAttribute('data-id');
+    if (id) updateFavCardQtyUI(id);
+  });
+}
+
 /* --- FAVORITOS: helpers de Qty en rail --- */
 
 /* Devuelve HTML de "Agregar" o control de cantidad según si ya está en carrito */
@@ -733,6 +786,7 @@ function bindAddButtons(){
     addBtn.addEventListener('click', function(){
       var info = getCardInfo(card);
       switchToQtyControl(card, info.minQty, true);
+      updateFavCardQtyUI(info.id);
     });
   });
 }
@@ -863,7 +917,7 @@ cartList.addEventListener('click', function(e){
   if (plus) {
     var q = snap((item.qty || minQty) + step);
     if (item.soldBy !== 'weight') q = clampUnits(q);
-    item.qty = q; cart.set(id, item); renderCart(); syncCardsQty(id); return;
+    item.qty = q; cart.set(id, item); renderCart(); syncCardsQty(id); updateFavCardQtyUI(id); return;
   }
   if (minus) {
     var next = snap((item.qty || minQty) - step);
@@ -871,7 +925,7 @@ cartList.addEventListener('click', function(e){
       if (confirm('¿Eliminar este artículo del carrito?')) { cart.delete(id); renderCart(); syncCardsQty(id); }
     } else {
       var q2 = next; if (item.soldBy !== 'weight') q2 = clampUnits(q2);
-      item.qty = q2; cart.set(id, item); renderCart(); syncCardsQty(id);
+      item.qty = q2; cart.set(id, item); renderCart(); syncCardsQty(id); updateFavCardQtyUI(id);
     }
   }
 });
@@ -906,6 +960,7 @@ function createQtyControl(card, qty){
     spanQty.textContent = fmt(cur.qty);
     fsShowOnAdd = true;
     renderCart();
+    updateFavCardQtyUI(id);
   });
   btnMinus.addEventListener('click', function(){
     var cur = cart.get(id) || { id: id, name: name, unit: unit, soldBy: soldBy, unitLabel: unitLabel, step: step, minQty: minQty, qty: 0 };
@@ -920,6 +975,7 @@ function createQtyControl(card, qty){
       cart.set(id, cur);
       spanQty.textContent = fmt(cur.qty);
       renderCart();
+      updateFavCardQtyUI(id);
     }
   });
   return control;
