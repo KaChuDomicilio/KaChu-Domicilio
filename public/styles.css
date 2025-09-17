@@ -527,3 +527,7 @@ body.service-blocked{ overflow: hidden; }
 @media (min-width: 481px) and (max-width: 779px){
   #favsModalList.scroll{ max-height: 68vh; }
 }
+.fab-title{
+  text-decoration: none;
+  color: #FFF;
+}
