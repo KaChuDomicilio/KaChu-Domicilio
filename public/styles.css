@@ -340,7 +340,7 @@ body.service-blocked{ overflow: hidden; }
 /* Track con slide variable y padding para centrar 1.º/último */
 .favs-track{
   /* ancho de cada slide (móvil: ~2 por viewport) */
-  --slide: clamp(180px, 36vw, 220px);
+  --slide: clamp(190px, 40vw, 200px);
   display:flex; gap:12px;
   overflow-x:auto; -webkit-overflow-scrolling:touch;
   scroll-snap-type: x mandatory; scroll-behavior: smooth;

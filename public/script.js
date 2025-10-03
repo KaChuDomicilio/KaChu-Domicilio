@@ -1615,7 +1615,7 @@ var PROMO_KEY = 'kachu_promo_last_dismissed';
 
 async function fetchPromoData() {
   try {
-    var r = await fetch('/api/data/ad.json', { cache: 'no-store' });
+    var r = await fetch('/public/data/ad.json', { cache: 'no-store' });
     if (!r.ok) throw new Error('No se pudo obtener la promo');
     return await r.json();
   } catch (e) {
