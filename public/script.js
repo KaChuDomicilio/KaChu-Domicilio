@@ -1615,14 +1615,33 @@ var PROMO_KEY = 'kachu_promo_last_dismissed';
 
 async function fetchPromoData() {
   try {
-    var r = await fetch('/public/data/ad.json', { cache: 'no-store' });
-    if (!r.ok) throw new Error('No se pudo obtener la promo');
-    return await r.json();
+    var r = await fetch('/api/data/ad.json', { cache: 'no-store' });
+    if (!r.ok) throw new Error('No ad.json');
+    var json = await r.json();
+    // Defaults seguros: si no viene "enabled", lo tratamos como true.
+    return {
+      enabled: json.enabled !== false,
+      frequency: json.frequency || 'always',   // 'always' | 'daily' | 'weekly'
+      title: json.title || 'Recomendado',
+      text: json.text || '',
+      ctaText: json.ctaText || 'Ver más',
+      url: json.url || '#',
+      position: json.position || 'bottom-left' // 'bottom-left' | 'bottom-right'
+    };
   } catch (e) {
-    console.warn('Promo fallback (disabled):', e);
-    return { enabled:false };
+    // Fallback visible para que puedas probar aunque el JSON no exista/rompa
+    return {
+      enabled: true,
+      frequency: 'always',
+      title: '¡Promo de prueba!',
+      text: 'Aparece porque /api/data/ad.json no respondió.',
+      ctaText: 'Abrir',
+      url: '#',
+      position: 'bottom-left'
+    };
   }
 }
+
 function shouldShowPromo(freq) {
   var last = localStorage.getItem(PROMO_KEY);
   if (!last) return true;
@@ -1632,30 +1651,47 @@ function shouldShowPromo(freq) {
   if (freq === 'weekly') return (now - lastDt) > (7*24*60*60*1000);
   return true;
 }
+
 function placePromoPosition(el, pos) {
   el.classList.remove('bottom-left','bottom-right');
   if (pos === 'bottom-right') el.classList.add('bottom-right');
+  else el.classList.add('bottom-left');
 }
-async function initPromoPop() {
-  var el = document.getElementById('promoPop');
-  if (!el) return;
-  var data = await fetchPromoData();
-  if (!data.enabled) { el.classList.add('hidden'); return; }
-  if (!shouldShowPromo(data.frequency)) { el.classList.add('hidden'); return; }
 
-  el.querySelector('.promo-title').textContent = data.title || 'Recomendado';
-  el.querySelector('.promo-text').textContent  = data.text || '';
+async function initPromoPop() {
+  var el = document.getElementById('promoPop') || document.querySelector('.promo-pop');
+  if (!el) return;
+
+  var data = await fetchPromoData();
+  if (!data.enabled || !shouldShowPromo(data.frequency)) {
+    el.classList.add('hidden');
+    return;
+  }
+
+  el.querySelector('.promo-title').textContent = data.title;
+  el.querySelector('.promo-text').textContent  = data.text;
+
   var cta = el.querySelector('.promo-cta');
-  cta.textContent = data.ctaText || 'Ver más';
-  cta.href = data.url || '#';
-  placePromoPosition(el, data.position || 'bottom-left');
+  if (cta) { cta.textContent = data.ctaText; cta.href = data.url; }
+
+  placePromoPosition(el, data.position);
 
   el.classList.remove('hidden');
-  el.querySelector('.promo-close').addEventListener('click', function(){
-    localStorage.setItem(PROMO_KEY, new Date().toISOString());
-    el.classList.add('hidden');
-  });
+
+  var closeBtn = el.querySelector('.promo-close');
+  if (closeBtn) {
+    closeBtn.addEventListener('click', function(){
+      localStorage.setItem(PROMO_KEY, new Date().toISOString());
+      el.classList.add('hidden');
+    });
+  }
 }
+
+// Utilidad opcional para pruebas desde la consola
+window.forcePromo = function(){
+  localStorage.removeItem(PROMO_KEY);
+  initPromoPop();
+};
 
 /* ======= IMPLEMENTACIÓN FALTANTE: RENDER del RIEL de FAVORITOS ======= */
 function renderFavoritesRail(){

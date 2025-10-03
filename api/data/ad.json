@@ -1,0 +1,9 @@
+{
+  "enabled": true,
+  "frequency": "daily",
+  "title": "2x1 sólo hoy",
+  "text": "Aprovecha nuestra promo en snacks seleccionados.",
+  "ctaText": "Ver productos",
+  "url": "/promo/2x1",
+  "position": "bottom-right"
+}
