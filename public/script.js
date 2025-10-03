@@ -306,6 +306,10 @@ function favQtyMarkup(id, qty, step){
 /* Si está en carrito: controles; si no: botón Agregar */
 function favQtyOrAddHTML(p){
   var it = cart.get(p.id);
+  var isAvailable = (p.active !== false);
+  if (!isAvailable){
+    return '<button class="btn add unavailable" type="button" disabled aria-disabled="true" title="No disponible">No disponible</button>';
+  }
   if (!it){
     return '<button class="btn add" type="button" data-id="' + p.id + '">Agregar</button>';
   }
@@ -349,148 +353,31 @@ function refreshAllFavQtyUIs(){
 }
 
 /* ===== RENDER rail ===== */
-function renderFavoritesRail(){
-  if (!favsSection || !favsTrack) return;
-  var items = Array.from(favorites).map(function(id){ return productsById.get(id); })
-    .filter(function(p){ return p && p.active !== false; });
-
-  favsSection.classList.toggle('hidden', items.length === 0);
-  if (!items.length){ favsTrack.innerHTML = ''; favsDots.innerHTML=''; updateFavsNavVisibility(); return; }
-
-  var html = items.map(function(p){
-    var id   = p.id;
-    var name = p.name || '';
-    var img  = (p.image && String(p.image).trim()) ? p.image : svgPlaceholder('Sin foto');
-    var price= Number(p.price||0).toFixed(2);
-    var on   = isFav(id);
-    var safeName = name.replace(/\"/g,'&quot;');
-    return '' +
-      '<article class="fav-card" data-id="' + id + '">' +
-        '<div class="media">' +
-          '<img src="' + img + '" alt="' + safeName + '">' +
-          '<button class="fav-heart ' + (on ? 'is-fav' : '') + '" data-id="' + id + '" type="button" aria-label="' + (on ? 'Quitar de favoritos' : 'Marcar como favorito') + '">' +
-            favHeartSVG(on) +
-          '</button>' +
-        '</div>' +
-        '<div class="meta">' +
-          '<h4>' + name + '</h4>' +
-          '<div class="price">$' + price + '</div>' +
-          favQtyOrAddHTML(p) +
-        '</div>' +
-      '</article>';
-  }).join('');
-  favsTrack.innerHTML = html;
-
-  if (!favsTrack.dataset.bound){
-    favsTrack.addEventListener('click', function(e){
-      var heart = e.target.closest('.fav-heart');
-      var add   = e.target.closest('.btn.add');
-
-      if (heart){
-        var id = heart.dataset.id;
-        toggleFav(id);
-        heart.classList.toggle('is-fav', isFav(id));
-        heart.innerHTML = favHeartSVG(isFav(id));
-        updateAllCardHearts();
-        renderFavoritesRail();
-        if (modalFavs && modalFavs.classList.contains('open')) renderFavoritesModal();
-        return;
-      }
-
-      if (add){
-        var id2 = add.dataset.id;
-        var p2  = productsById.get(id2);
-        if (!p2 || p2.active === false) return;
-        var card = document.querySelector('.card[data-id="'+CSS.escape(id2)+'"]');
-        if (card && typeof switchToQtyControl === 'function'){
-          var info = getCardInfo(card);
-          switchToQtyControl(card, info.minQty, true);
-        } else {
-          var soldBy = p2.soldBy || 'unit';
-          var step   = Number(p2.step != null ? p2.step : (soldBy==='weight' ? 0.25 : 1));
-          var minQty = Number(p2.minQty != null ? p2.minQty : step);
-          var unitLabel = p2.unitLabel || (soldBy==='weight' ? 'kg' : 'pza');
-          cart.set(id2, { id:id2, name:p2.name, unit:+Number(p2.price||0), qty:minQty, soldBy:soldBy, unitLabel:unitLabel, step:step, minQty:minQty });
-          renderCart(); syncCardsQty(id2);
-        }
-        updateFavCardQtyUI(id2);
-        if (modalFavs && modalFavs.classList.contains('open')) renderFavoritesModal();
-        return;
-      }
-
-      // Controles de cantidad del rail
-      var qplus  = e.target.closest('.qplus');
-      var qminus = e.target.closest('.qminus');
-      if (qplus || qminus){
-        var wrap = e.target.closest('.fav-qty'); if (!wrap) return;
-        var idq = wrap.dataset.id;
-        var p3 = productsById.get(idq); if (!p3) return;
-
-        var it = cart.get(idq);
-        if (!it){
-          var soldBy = p3.soldBy || 'unit';
-          var step   = Number(p3.step != null ? p3.step : (soldBy==='weight' ? 0.25 : 1));
-          var minQty = Number(p3.minQty != null ? p3.minQty : step);
-          var unitLabel = p3.unitLabel || (soldBy==='weight' ? 'kg' : 'pza');
-          it = { id:idq, name:p3.name, unit:+Number(p3.price||0), qty:minQty, soldBy:soldBy, unitLabel:unitLabel, step:step, minQty:minQty };
-        }
-
-        var stepv = it.step > 0 ? it.step : 1;
-        var minQ  = it.minQty > 0 ? it.minQty : (it.soldBy==='weight' ? 0.25 : 1);
-        var isDecimal = (stepv % 1) !== 0;
-
-        if (qplus){
-          var nxt = +(it.qty + stepv).toFixed(3);
-          if (it.soldBy !== 'weight') nxt = Math.max(1, Math.round(nxt));
-          it.qty = nxt; cart.set(idq, it);
-        } else {
-          var next = +(it.qty - stepv).toFixed(3);
-          if (next < (minQ - EPS)) {
-            if (confirm('¿Eliminar este artículo del carrito?')) {
-              cart.delete(idq);
-            } else {
-              return; // no hacer nada si cancelan
-            }
-          } else {
-            if (it.soldBy !== 'weight') next = Math.max(1, Math.round(next));
-            it.qty = next; cart.set(idq, it);
-          }
-        }
-
-        renderCart(); syncCardsQty(idq);
-        updateFavCardQtyUI(idq);
-        if (modalFavs && modalFavs.classList.contains('open')) renderFavoritesModal();
-        return;
-      }
-    });
-    favsTrack.dataset.bound = '1';
-  }
-
-  favsSetupCenteredCarousel();
-  refreshAllFavQtyUIs();
-  updateFavsNavVisibility();
-  favsBuildDotsByGroups();
-}
-
-/* ===== Modal de favoritos ===== */
 function renderFavoritesModal(){
   if (!favsModalList) return;
-  var items = Array.from(favorites).map(function(id){ return productsById.get(id); })
-    .filter(function(p){ return p && p.active !== false; });
+  var items = Array.from(favorites)
+    .map(function(id){ return productsById.get(id); })
+    .filter(function(p){ return !!p; }); // incluye inactivos
 
   favsModalList.innerHTML = items.map(function(p){
     var it = cart.get(p.id);
     var img = (p.image && String(p.image).trim()) ? p.image : svgPlaceholder('Sin foto');
     var price = Number(p.price||0).toFixed(2);
     var unitLabel = (p.soldBy === 'weight') ? 'kg' : 'pza';
+    var isAvailable = (p.active !== false);
+    var agotado = isAvailable ? '' : '<span class="status-badge">Agotado</span>';
 
-    var actions = it
-      ? ('<div class="actions">'+ favQtyMarkup(p.id, it.qty, it.step || (p.soldBy==='weight'?0.25:1)) +'</div>')
-      : ('<div class="actions"><button class="btn ghost favs-add">Agregar</button></div>');
+    var actions = isAvailable
+      ? (it ? ('<div class="actions">'+ favQtyMarkup(p.id, it.qty, it.step || (p.soldBy==='weight'?0.25:1)) +'</div>')
+             : ('<div class="actions"><button class="btn ghost favs-add">Agregar</button></div>'))
+      : ('<div class="actions"><button class="btn add unavailable" type="button" disabled aria-disabled="true">No disponible</button></div>');
 
     return '' +
-      '<div class="favs-modal-card" data-id="' + p.id + '">' +
-        '<img src="' + img + '" alt="">' +
+      '<div class="favs-modal-card' + (isAvailable ? '' : ' is-unavailable') + '" data-id="' + p.id + '">' +
+        '<div style="position:relative">' +
+          '<img src="' + img + '" alt="">' +
+          agotado +
+        '</div>' +
         '<div class="meta"><h4>' + p.name + '</h4>' +
         '<p class="p">$' + price + ' <small>por ' + unitLabel + '</small></p></div>' +
         actions +
@@ -504,6 +391,7 @@ function renderFavoritesModal(){
     var p = productsById.get(id); if (!p) return;
 
     if (e.target.closest('.favs-add')){
+      if (p.active === false) return;
       var minQty = Number(p.minQty != null ? p.minQty : (p.soldBy === 'weight' ? 0.25 : 1));
       var unitLabel = p.soldBy === 'weight' ? 'kg' : 'pza';
       cart.set(id, { id:id, name:p.name, unit:+Number(p.price||0), qty:minQty, soldBy:p.soldBy||'unit', unitLabel:unitLabel, step:Number(p.step|| (p.soldBy==='weight'?0.25:1)), minQty:minQty });
@@ -519,10 +407,10 @@ function renderFavoritesModal(){
       return;
     }
 
-    // plus/minus dentro del modal
     var qplus  = e.target.closest('.qplus');
     var qminus = e.target.closest('.qminus');
     if (qplus || qminus){
+      if (p.active === false) return;
       var it = cart.get(id);
       if (!it){
         var soldBy = p.soldBy || 'unit';
@@ -544,7 +432,7 @@ function renderFavoritesModal(){
           if (confirm('¿Eliminar este artículo del carrito?')) {
             cart.delete(id);
           } else {
-            return; // cancelar => mantener cantidad
+            return;
           }
         }
         else {
@@ -1220,21 +1108,58 @@ checkoutForm.addEventListener('submit', function(e){
   e.preventDefault();
   validateCheckout();
   if (!checkoutForm.checkValidity()) { checkoutForm.reportValidity(); return; }
+
   var items = getCartItemsDetailed();
   var subtotal = items.reduce(function(acc, it){ return acc + it.line; }, 0);
   var zoneInfo = getSelectedZoneInfo();
   var shipping = computeShippingWithThreshold(subtotal);
+  var base     = subtotal + shipping;
+
+  var splitInfo = collectSplitPayForOrder();
   var pay = (checkoutForm.querySelector('input[name="pay"]:checked') || {}).value || 'Efectivo';
-  var base = subtotal + shipping;
-  var totalDue = pay === 'Tarjeta' ? +(base * 1.043).toFixed(2) : +base.toFixed(2);
-  var addressText = address.value.trim();
+
+  var totalDue = +base.toFixed(2);
   var efectivo = null;
-  if (pay === 'Efectivo') {
-    var pagaCon = parseFloat(cashGiven.value || '0') || 0;
-    var cambio  = +(pagaCon - totalDue).toFixed(2);
-    efectivo = { pagaCon: pagaCon, cambio: cambio };
+  var ticket;
+
+  if (splitInfo && splitInfo.splitEnabled){
+    // Validación final de seguridad
+    if (splitInfo.paid + 1e-6 < splitInfo.total){
+      alert('Faltan ' + formatMoney(splitInfo.total - splitInfo.paid) + ' para cubrir el total.');
+      return;
+    }
+    totalDue = splitInfo.total;
+
+    ticket = buildTicket({
+      items: items,
+      zoneName: zoneInfo.name,
+      shipping: shipping,
+      pay: 'Pago dividido',
+      subtotal: subtotal,
+      totalDue: totalDue,
+      address: address.value.trim(),
+      split: splitInfo
+    });
+  } else {
+    // Flujo original (un método)
+    if (pay === 'Tarjeta') totalDue = +(base * 1.043).toFixed(2);
+    if (pay === 'Efectivo') {
+      var pagaCon = parseFloat(cashGiven.value || '0') || 0;
+      var cambio  = +(pagaCon - totalDue).toFixed(2);
+      efectivo = { pagaCon: pagaCon, cambio: cambio };
+    }
+    ticket = buildTicket({
+      items: items,
+      zoneName: zoneInfo.name,
+      shipping: shipping,
+      pay: pay,
+      subtotal: subtotal,
+      totalDue: totalDue,
+      address: address.value.trim(),
+      efectivo: efectivo
+    });
   }
-  var ticket = buildTicket({ items: items, zoneName: zoneInfo.name, shipping: shipping, pay: pay, subtotal: subtotal, totalDue: totalDue, address: addressText, efectivo: efectivo });
+
   openWhatsAppWithMessage(ticket);
   openModal(modalConfirm);
 });
@@ -1250,10 +1175,11 @@ function getCartItemsDetailed(){
   return items;
 }
 function buildTicket(data) {
-  var items = data.items, zoneName = data.zoneName, shipping = data.shipping, pay = data.pay, subtotal = data.subtotal, totalDue = data.totalDue, address = data.address, efectivo = data.efectivo;
+  var items = data.items, zoneName = data.zoneName, shipping = data.shipping, pay = data.pay, subtotal = data.subtotal, totalDue = data.totalDue, address = data.address, efectivo = data.efectivo, split = data.split;
   var lines = [];
   lines.push('*KaChu Domicilio*');
   lines.push('');
+
   if (items && items.length) {
     lines.push('*Artículos:*');
     items.forEach(function(it){
@@ -1275,22 +1201,33 @@ function buildTicket(data) {
       lines.push('');
     });
   }
-  var isFree = Number(shipping) === 0;
-  var envioTag = isFree ? (zoneName || 'Zona') : (zoneName || 'Zona');
+
   lines.push('*Subtotal:* $' + Number(subtotal).toFixed(2));
-  lines.push('*Envío:* (' + envioTag + ') $' + Number(shipping).toFixed(2));
-  lines.push('*Total a pagar:* $' + Number(totalDue).toFixed(2));
-  lines.push('');
-  lines.push('*Pago:* ' + pay);
-  if (efectivo) {
-    lines.push('*Paga con:* $' + Number(efectivo.pagaCon).toFixed(2));
-    lines.push('*Cambio:* $' + Number(efectivo.cambio).toFixed(2));
+  lines.push('*Envío:* (' + (zoneName || 'Zona') + ') $' + Number(shipping).toFixed(2));
+
+  if (split && split.splitEnabled){
+    lines.push('');
+    lines.push('*Pago:* Dividido');
+    lines.push('> Método 1: ' + split.payments[0].method + ' — $' + split.payments[0].amount.toFixed(2));
+    lines.push('> Método 2: ' + split.payments[1].method + ' — $' + split.payments[1].amount.toFixed(2));
+    if (split.cardFee > 0) lines.push('> Comisión tarjeta: $' + split.cardFee.toFixed(2));
+    lines.push('*Total a pagar:* $' + Number(split.total).toFixed(2));
+    if (split.change > 0)  lines.push('*Cambio estimado:* $' + Number(split.change).toFixed(2));
+  } else {
+    lines.push('*Total a pagar:* $' + Number(totalDue).toFixed(2));
+    lines.push('');
+    lines.push('*Pago:* ' + pay);
+    if (efectivo) {
+      lines.push('*Paga con:* $' + Number(efectivo.pagaCon).toFixed(2));
+      lines.push('*Cambio:* $' + Number(efectivo.cambio).toFixed(2));
+    }
   }
+
   lines.push('');
   if (address) { lines.push('*Dirección de entrega:*'); lines.push('> ' + address); lines.push(''); }
   lines.push('*Aviso:* _Hemos recibido tu solicitud, en un máximo de *15min-20min* te estaríamos entregando tu pedido_');
   lines.push('');
-  if (pay === 'Transferencia') {
+  if (!split && pay === 'Transferencia') {
     lines.push('*Aviso:* _Pago Transferencia_');
     lines.push('> Con *este método de pago* la *entrega* de tu pedido puede *tardar un poco más de lo establecido.*');
     lines.push('> Esperamos la captura de tu transferencia y, cuando se *refleje* en nuestra banca, *enviamos* tu pedido.');
@@ -1298,6 +1235,7 @@ function buildTicket(data) {
   lines.push(' ```Gracias por tu compra...``` ');
   return lines.join('\n');
 }
+
 var STORE_WHATSAPP = '528135697787';
 function openWhatsAppWithMessage(text){
   var base = STORE_WHATSAPP ? ('https://wa.me/' + STORE_WHATSAPP + '?text=') : 'https://wa.me/?text=';
@@ -1311,24 +1249,136 @@ function toggleContinueButton(){
   btnContinue.disabled = items === 0;
   cartBadge.style.display = items === 0 ? 'none' : '';
 }
-function validateCheckout() {
-  var zoneOk    = zone.value.trim() !== '';
-  var pay       = (checkoutForm.querySelector('input[name="pay"]:checked') || {}).value || '';
-  var addressOk = address.value.trim().length > 0;
+var CARD_FEE_RATE = 0.043; // 4.3%
 
+function formatMoney(n){ return '$' + Number(n||0).toFixed(2); }
+
+function getCheckoutBase(){
   var subtotal = getCartSubtotalFast();
   var shipping = computeShippingWithThreshold(subtotal);
-  var base = subtotal + shipping;
-  var totalDue = pay === 'Tarjeta' ? +(base * 1.043).toFixed(2) : +base.toFixed(2);
+  return { subtotal: subtotal, shipping: shipping, base: subtotal + shipping };
+}
+
+function initSplitPay() {
+  var sw  = document.getElementById('twoPaymentsSwitch');
+  var box = document.getElementById('splitPayFields');
+  if (!sw || !box) return;
+
+  function bind(id, ev){ var el = document.getElementById(id); if (el){ el.addEventListener(ev||'input', recalcSplitPay); } }
+  sw.addEventListener('change', function(){
+    box.classList.toggle('hidden', !sw.checked);
+    recalcSplitPay();
+    validateCheckout();            // revalida todo
+  });
+
+  ['payMethod1','payMethod2'].forEach(function(id){ bind(id, 'change'); });
+  ['payAmount1','payAmount2'].forEach(function(id){ bind(id, 'input'); });
+
+  recalcSplitPay(); // init
+}
+
+function recalcSplitPay() {
+  var sw = document.getElementById('twoPaymentsSwitch');
+  var subEl = document.getElementById('splitSubtotal');
+  var feeEl = document.getElementById('splitFee');
+  var totEl = document.getElementById('splitTotal');
+  var chgEl = document.getElementById('splitChange');
+  var baseInfo = getCheckoutBase();
+
+  if (!sw || !sw.checked){
+    if (subEl) subEl.textContent = formatMoney(baseInfo.base);
+    if (feeEl) feeEl.textContent = formatMoney(0);
+    if (totEl) totEl.textContent = formatMoney(baseInfo.base);
+    if (chgEl) chgEl.textContent = formatMoney(0);
+    return;
+  }
+
+  var m1 = (document.getElementById('payMethod1')?.value) || 'Efectivo';
+  var m2 = (document.getElementById('payMethod2')?.value) || 'Efectivo';
+  var a1 = Number(document.getElementById('payAmount1')?.value || 0);
+  var a2 = Number(document.getElementById('payAmount2')?.value || 0);
+
+  var cardPortion = (m1 === 'Tarjeta' ? a1 : 0) + (m2 === 'Tarjeta' ? a2 : 0);
+  var fee  = cardPortion * CARD_FEE_RATE;
+  var total = baseInfo.base + fee;
+
+  var cashPortion  = (m1 === 'Efectivo' ? a1 : 0) + (m2 === 'Efectivo' ? a2 : 0);
+  var otherPortion = (m1 !== 'Efectivo' ? a1 : 0) + (m2 !== 'Efectivo' ? a2 : 0);
+
+  var change = 0;
+  var paid = a1 + a2;
+  if (paid >= total && cashPortion > 0){
+    var neededFromCash = Math.max(0, total - otherPortion);
+    change = Math.max(0, cashPortion - neededFromCash);
+  }
+
+  if (subEl) subEl.textContent = formatMoney(baseInfo.base);
+  if (feeEl) feeEl.textContent = formatMoney(fee);
+  if (totEl) totEl.textContent = formatMoney(total);
+  if (chgEl) chgEl.textContent = formatMoney(change);
+
+  // refresca el pill de total
+  updateCheckoutTotalPill();
+}
+
+function collectSplitPayForOrder(){
+  var sw = document.getElementById('twoPaymentsSwitch');
+  if (!sw || !sw.checked) return null;
+
+  var m1 = (document.getElementById('payMethod1')?.value) || 'Efectivo';
+  var m2 = (document.getElementById('payMethod2')?.value) || 'Efectivo';
+  var a1 = Number(document.getElementById('payAmount1')?.value || 0);
+  var a2 = Number(document.getElementById('payAmount2')?.value || 0);
+
+  var baseInfo = getCheckoutBase();
+  var cardPortion = (m1 === 'Tarjeta' ? a1 : 0) + (m2 === 'Tarjeta' ? a2 : 0);
+  var fee  = cardPortion * CARD_FEE_RATE;
+  var total = baseInfo.base + fee;
+
+  var cashPortion  = (m1 === 'Efectivo' ? a1 : 0) + (m2 === 'Efectivo' ? a2 : 0);
+  var otherPortion = (m1 !== 'Efectivo' ? a1 : 0) + (m2 !== 'Efectivo' ? a2 : 0);
+  var paid = a1 + a2;
+  var change = 0;
+  if (paid >= total && cashPortion > 0){
+    var neededFromCash = Math.max(0, total - otherPortion);
+    change = Math.max(0, cashPortion - neededFromCash);
+  }
+
+  return {
+    splitEnabled: true,
+    payments: [
+      { method: m1, amount: +a1.toFixed(2) },
+      { method: m2, amount: +a2.toFixed(2) },
+    ],
+    cardFee: +fee.toFixed(2),
+    subtotal: +baseInfo.subtotal.toFixed(2),
+    shipping: +baseInfo.shipping.toFixed(2),
+    total: +total.toFixed(2),
+    change: +change.toFixed(2),
+    paid: +paid.toFixed(2),
+  };
+}
+
+function validateCheckout() {
+  var zoneOk    = zone.value.trim() !== '';
+  var addressOk = address.value.trim().length > 0;
+
+  var sw = document.getElementById('twoPaymentsSwitch');
+  var splitOn = !!(sw && sw.checked);
+
+  var paySingle = (checkoutForm.querySelector('input[name="pay"]:checked') || {}).value || '';
 
   var cashOk = true;
-  if (pay === 'Efectivo') {
+  if (!splitOn && paySingle === 'Efectivo') {
+    var baseInfo = getCheckoutBase();
+    var totalDueSingle = +(baseInfo.base).toFixed(2);
+    if (paySingle === 'Tarjeta') totalDueSingle = +(baseInfo.base * 1.043).toFixed(2);
     var raw  = cashGiven.value.trim();
     var cash = parseFloat(raw);
     var msg = '';
     if (!raw.length)           { cashOk = false; msg = 'Con este dato calcularemos tu feria/cambio.'; }
     else if (isNaN(cash))      { cashOk = false; msg = 'Coloca un número válido (ej. 500.00).'; }
-    else if (cash < totalDue)  { cashOk = false; msg = 'El efectivo ingresado no cubre el total ($' + totalDue.toFixed(2) + ').'; }
+    else if (cash < totalDueSingle)  { cashOk = false; msg = 'El efectivo ingresado no cubre el total ($' + totalDueSingle.toFixed(2) + ').'; }
 
     if (!cashOk) {
       cashGiven.setCustomValidity(msg);
@@ -1342,9 +1392,32 @@ function validateCheckout() {
     if (cashHelp) { cashHelp.textContent = ''; cashHelp.classList.remove('show'); }
   }
 
-  btnWhatsApp.disabled = !(zoneOk && pay && addressOk && cashOk);
+  // Validación extra para split
+  var splitOk = true;
+  if (splitOn){
+    var baseInfo2 = getCheckoutBase();
+    var m1 = (document.getElementById('payMethod1')?.value) || 'Efectivo';
+    var m2 = (document.getElementById('payMethod2')?.value) || 'Efectivo';
+    var a1 = Number(document.getElementById('payAmount1')?.value || 0);
+    var a2 = Number(document.getElementById('payAmount2')?.value || 0);
+
+    if (a1 < 0 || a2 < 0){ splitOk = false; }
+
+    var cardPortion = (m1 === 'Tarjeta' ? a1 : 0) + (m2 === 'Tarjeta' ? a2 : 0);
+    var fee  = cardPortion * CARD_FEE_RATE;
+    var total = baseInfo2.base + fee;
+    var paid = a1 + a2;
+
+    if (paid + 1e-6 < total) splitOk = false; // falta cubrir total
+
+    // En split ignoramos el campo "¿con cuánto pagas?" del modo efectivo único
+  }
+  // siempre exigimos que haya un método marcado (no rompe tu flujo actual)
+  var paySelectedOk = !!paySingle;
+  btnWhatsApp.disabled = !(zoneOk && addressOk && cashOk && paySelectedOk && (!splitOn || splitOk));
   updateCheckoutTotalPill();
 }
+
 function resetCheckoutForm() {
   if (zone) zone.selectedIndex = 0;
   if (address) address.value = '';
@@ -1357,13 +1430,28 @@ function resetCheckoutForm() {
 }
 function updateCheckoutTotalPill(){
   if (!checkoutTotalPill) return;
-  var subtotal = getCartSubtotalFast();
-  var shipping = computeShippingWithThreshold(subtotal);
-  var pay = (checkoutForm.querySelector('input[name="pay"]:checked') || {}).value || '';
-  var base = subtotal + shipping;
-  var totalDue = pay === 'Tarjeta' ? +(base * 1.043).toFixed(2) : +base.toFixed(2);
-  checkoutTotalPill.textContent = 'Total: $' + totalDue.toFixed(2);
+  var baseInfo = getCheckoutBase();
+
+  // Si NO hay split, conserva comportamiento anterior (radio único)
+  var sw = document.getElementById('twoPaymentsSwitch');
+  if (!sw || !sw.checked){
+    var pay = (checkoutForm.querySelector('input[name="pay"]:checked') || {}).value || '';
+    var totalDue = pay === 'Tarjeta' ? +(baseInfo.base * 1.043).toFixed(2) : +baseInfo.base.toFixed(2);
+    checkoutTotalPill.textContent = 'Total: $' + totalDue.toFixed(2);
+    return;
+  }
+
+  // Con split: comisión solo sobre la parte de tarjeta
+  var m1 = (document.getElementById('payMethod1')?.value) || 'Efectivo';
+  var m2 = (document.getElementById('payMethod2')?.value) || 'Efectivo';
+  var a1 = Number(document.getElementById('payAmount1')?.value || 0);
+  var a2 = Number(document.getElementById('payAmount2')?.value || 0);
+  var cardPortion = (m1 === 'Tarjeta' ? a1 : 0) + (m2 === 'Tarjeta' ? a2 : 0);
+  var fee  = cardPortion * CARD_FEE_RATE;
+  var total = baseInfo.base + fee;
+  checkoutTotalPill.textContent = 'Total: $' + total.toFixed(2);
 }
+
 checkoutForm.addEventListener('change', function(){
   var pay = (checkoutForm.querySelector('input[name="pay"]:checked') || {}).value;
   cashField.classList.toggle('hidden', pay !== 'Efectivo');
@@ -1522,6 +1610,52 @@ function applyFavsModalScroll(itemsLen){
   else favsModalList.classList.remove('scroll');
 }
 
+var PROMO_KEY = 'kachu_promo_last_dismissed';
+
+async function fetchPromoData() {
+  try {
+    var r = await fetch('/api/data/ad.json', { cache: 'no-store' });
+    if (!r.ok) throw new Error('No se pudo obtener la promo');
+    return await r.json();
+  } catch (e) {
+    console.warn('Promo fallback (disabled):', e);
+    return { enabled:false };
+  }
+}
+function shouldShowPromo(freq) {
+  var last = localStorage.getItem(PROMO_KEY);
+  if (!last) return true;
+  var lastDt = new Date(last), now = new Date();
+  if (freq === 'always') return true;
+  if (freq === 'daily')  return (now - lastDt) > (24*60*60*1000);
+  if (freq === 'weekly') return (now - lastDt) > (7*24*60*60*1000);
+  return true;
+}
+function placePromoPosition(el, pos) {
+  el.classList.remove('bottom-left','bottom-right');
+  if (pos === 'bottom-right') el.classList.add('bottom-right');
+}
+async function initPromoPop() {
+  var el = document.getElementById('promoPop');
+  if (!el) return;
+  var data = await fetchPromoData();
+  if (!data.enabled) { el.classList.add('hidden'); return; }
+  if (!shouldShowPromo(data.frequency)) { el.classList.add('hidden'); return; }
+
+  el.querySelector('.promo-title').textContent = data.title || 'Recomendado';
+  el.querySelector('.promo-text').textContent  = data.text || '';
+  var cta = el.querySelector('.promo-cta');
+  cta.textContent = data.ctaText || 'Ver más';
+  cta.href = data.url || '#';
+  placePromoPosition(el, data.position || 'bottom-left');
+
+  el.classList.remove('hidden');
+  el.querySelector('.promo-close').addEventListener('click', function(){
+    localStorage.setItem(PROMO_KEY, new Date().toISOString());
+    el.classList.add('hidden');
+  });
+}
+
 /* == 18) INIT == */
 window.addEventListener('DOMContentLoaded', function(){
   (function fixTopbarOffset(){
@@ -1540,7 +1674,7 @@ window.addEventListener('DOMContentLoaded', function(){
     if (!service.active) { showServiceOverlay(service); return; }
   }).catch(function(err){ console.error('Service status error', err); });
 
-  loadCart();   renderCart(); validateCheckout(); loadCheckout();
+  loadCart(); initSplitPay(); recalcSplitPay(); initPromoPop(); renderCart(); validateCheckout(); loadCheckout();
 
   // Favoritos
   loadFavs();

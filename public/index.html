@@ -179,6 +179,55 @@
           <label><input type="radio" name="pay" value="Transferencia"> Transferencia</label>
         </fieldset>
 
+<!-- PAGO DIVIDIDO -->
+<div class="split-pay">
+  <label class="switch">
+    <input type="checkbox" id="twoPaymentsSwitch">
+    <span>Quiero pagar con 2 métodos</span>
+  </label>
+
+  <div id="splitPayFields" class="hidden">
+    <div class="split-row">
+      <div class="field">
+        <span>Método 1</span>
+        <select id="payMethod1">
+          <option value="Efectivo">Efectivo</option>
+          <option value="Tarjeta">Tarjeta</option>
+          <option value="Transferencia">Transferencia</option>
+        </select>
+      </div>
+      <div class="field">
+        <span>Monto 1</span>
+        <input type="number" id="payAmount1" min="0" step="0.01" placeholder="0.00">
+      </div>
+    </div>
+
+    <div class="split-row">
+      <div class="field">
+        <span>Método 2</span>
+        <select id="payMethod2">
+          <option value="Efectivo">Efectivo</option>
+          <option value="Tarjeta">Tarjeta</option>
+          <option value="Transferencia">Transferencia</option>
+        </select>
+      </div>
+      <div class="field">
+        <span>Monto 2</span>
+        <input type="number" id="payAmount2" min="0" step="0.01" placeholder="0.00">
+      </div>
+    </div>
+
+    <div class="split-summary">
+      <div>Subtotal + envío: <strong id="splitSubtotal">$0.00</strong></div>
+      <div>Comisión por tarjeta: <strong id="splitFee">$0.00</strong></div>
+      <div>Total a pagar: <strong id="splitTotal">$0.00</strong></div>
+      <div class="muted">Si hay efectivo, calculamos el cambio automáticamente.</div>
+      <div>Cambio estimado: <strong id="splitChange">$0.00</strong></div>
+    </div>
+  </div>
+</div>
+
+
         <label class="field hidden" id="cashField">
           <span>¿Con cuánto vas a pagar?</span>
           <input type="number" id="cashGiven" placeholder="Ej. 200.00" min="0" step="0.01">
@@ -241,6 +290,14 @@
       </div>
     </div>
   </div>
+
+<!-- POPUP PUBLICITARIO -->
+<div id="promoPop" class="promo-pop hidden" role="dialog" aria-live="polite">
+  <button class="promo-close" title="Cerrar" type="button">✕</button>
+  <div class="promo-title"></div>
+  <div class="promo-text"></div>
+  <a class="promo-cta" href="#" target="_blank" rel="noopener">Ver</a>
+</div>
 
   <script src="script.js?v=kg3-tiers" defer></script>
 </body>

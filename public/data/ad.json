@@ -1,0 +1,9 @@
+{
+  "enabled": true,
+  "title": "¿Ya probaste KaChu Domicilio?",
+  "text": "Compra fácil y recibe en casa. Da clic aquí.",
+  "ctaText": "Ir al sitio",
+  "url": "https://kachudomicilio.vercel.app/",
+  "frequency": "daily",
+  "position": "bottom-left"
+}

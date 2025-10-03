@@ -531,3 +531,38 @@ body.service-blocked{ overflow: hidden; }
   text-decoration: none;
   color: #FFF;
 }
+/* Favoritos: estados no disponibles */
+.fav-card.is-unavailable .price{ opacity:.75; }
+.fav-card .status-badge,
+.favs-modal-card .status-badge{
+  position:absolute; left:6px; top:6px;
+  background:#111827; color:#fff; font-size:.72rem; padding:2px 6px; border-radius:999px; opacity:.9;
+}
+.btn.add.unavailable{ background:#f59e0b; color:#111827; cursor:not-allowed; box-shadow:none; opacity:.95; }
+/* Pago dividido */
+.split-pay .hidden{ display:none; }
+.switch{ display:inline-flex; align-items:center; gap:8px; cursor:pointer; }
+.switch input{ width:16px; height:16px; }
+.split-row{ display:flex; gap:12px; margin-top:8px; }
+.split-row .field{ flex:1; }
+.split-summary{ margin-top:10px; display:grid; gap:4px; }
+
+/* Pop-up publicitario */
+.promo-pop.hidden{ display:none; }
+.promo-pop{
+  position: fixed;
+  bottom: 16px; left: 16px;
+  max-width: 280px;
+  background: #ffffffee; backdrop-filter: blur(4px);
+  border: 1px solid #e6e6e6; border-radius: 14px;
+  padding: 12px 12px 10px 12px; box-shadow: var(--shadow);
+  z-index: 3000;
+}
+.promo-pop.bottom-right{ left:auto; right:16px; }
+.promo-title{ font-weight:700; margin-bottom:4px; }
+.promo-text{ font-size:.95rem; margin-bottom:8px; }
+.promo-cta{ display:inline-block; text-decoration:none; padding:6px 10px; border-radius:10px; border:1px solid #111; }
+.promo-close{
+  position:absolute; top:6px; right:6px; width:28px; height:28px;
+  border-radius:50%; border:0; background:#f2f2f2; cursor:pointer;
+}
