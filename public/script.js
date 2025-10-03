@@ -1689,7 +1689,7 @@ function renderFavoritesRail(){
 
     return '' +
       '<div class="fav-card' + (isAvailable ? '' : ' is-unavailable') + '" data-id="' + p.id + '">' +
-        '<img src="' + img + '" alt="">' +
+        '<div class="media"><img src="' + img + '" alt=""></div>' +
         '<div class="meta">' +
           '<h4>' + (p.name || '') + '</h4>' +
           '<p class="p">$' + price + ' <small>por ' + unitLabel + '</small></p>' +
