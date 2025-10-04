@@ -1615,12 +1615,12 @@ var PROMO_KEY = 'kachu_promo_last_dismissed';
 
 async function fetchPromoData() {
   try {
-    var r = await fetch('/api/data/ad.json', { cache: 'no-store' });
+    var r = await fetch('api/data/ad.json', { cache: 'no-store' });
     if (!r.ok) throw new Error('No ad.json');
     var json = await r.json();
     // Defaults seguros: si no viene "enabled", lo tratamos como true.
     return {
-      enabled: json.enabled !== true,
+      enabled: json.enabled !== false,
       frequency: json.frequency || 'always',   // 'always' | 'daily' | 'weekly'
       title: json.title || 'Recomendado',
       text: json.text || '',
@@ -1631,7 +1631,7 @@ async function fetchPromoData() {
   } catch (e) {
     // Fallback visible para que puedas probar aunque el JSON no exista/rompa
     return {
-      enabled: false,
+      enabled: true,
       frequency: 'always',
       title: '¡Promo de prueba!',
       text: 'Aparece porque /api/data/ad.json no respondió.',
