@@ -1,0 +1,11 @@
+{
+  "enabled": true,
+  "messages": [
+    {
+      "l1": "Pedidos más rápidos:",
+      "l2": "Agrega los productos que más consumes a tus favoritos para un pedido mucho más fácil",
+      "ctaText": "",
+      "ctaUrl": ""
+    }
+  ]
+}

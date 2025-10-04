@@ -174,6 +174,17 @@ let toastTimer      = null;
 const toast      = $('#mensajeGuardado');
 const toastClose = $('#cerrarMensaje');
 
+// Mini Pop-up (panel)
+const API_ADS      = '/api/data/ads';
+const optMiniPop   = $('#optMiniPop');
+const modalAds     = $('#modalAds');
+const adsEnabled   = $('#adsEnabled');
+const adsList      = $('#adsList');
+const btnAddAd     = $('#btnAddAd');
+const btnAdsCancel = $('#btnAdsCancel');
+const btnAdsSave   = $('#btnAdsSave');
+
+let adsCache = { enabled: false, messages: [] }; // estado local
 /* ────────────────────────────────────────────────────────────────────────── */
 /* 1) SERVICIO (activar/desactivar)                                           */
 /* ────────────────────────────────────────────────────────────────────────── */
@@ -225,6 +236,227 @@ btnSrvSave?.addEventListener('click', async () => {
   } catch (err) {
     console.error(err);
     mostrarToast?.('Error al guardar el estado del servicio');
+  }
+});
+
+/* ────────────────────────────────────────────────────────────────────────── */
+/* MINI POP-UP (ADMIN)                                                       */
+/* ────────────────────────────────────────────────────────────────────────── */
+// Cargar config desde API
+async function loadAdsConfig(){
+  try{
+    const data = await apiGet(API_ADS);
+    // Soporta objeto {enabled, messages} o array legacy
+    if (Array.isArray(data)) return { enabled: true, messages: data };
+    const enabled  = !!data.enabled;
+    const messages = Array.isArray(data.messages) ? data.messages : [];
+    return { enabled, messages };
+  }catch(_){
+    return { enabled:false, messages:[] };
+  }
+}
+
+// Guardar a API
+async function saveAdsConfig(payload){
+  return apiPut(API_ADS, payload);
+}
+
+// Render de una fila de mensaje
+function renderAdRow(ad, idx){
+  const wrap = document.createElement('div');
+  wrap.className = 'ads-row';
+  wrap.dataset.index = String(idx);
+
+  const hasLink = !!ad.link || !!ad.ctaText || !!ad.ctaUrl;
+
+  wrap.innerHTML = `
+    <div class="inline" style="justify-content:space-between;">
+      <strong>Mensaje #${idx+1}</strong>
+      <button class="del" type="button" aria-label="Eliminar">Eliminar</button>
+    </div>
+
+    <div class="grid">
+      <label>
+        <div>L1 (título) *</div>
+        <input type="text" class="modal-input ad-l1" placeholder="Ej. 🎉 Nuevo: Donas a $10" value="${ad.l1 ?? ''}">
+      </label>
+
+      <label>
+        <div>L2 (opcional)</div>
+        <input type="text" class="modal-input ad-l2" placeholder="Texto secundario" value="${ad.l2 ?? ''}">
+      </label>
+    </div>
+
+    <div class="inline">
+      <label class="switch">
+        <input type="checkbox" class="ad-haslink" ${hasLink ? 'checked' : ''}>
+        <span class="track"><span class="thumb"></span></span>
+      </label>
+      <span>Incluir enlace (CTA)</span>
+    </div>
+
+    <div class="grid ad-linkwrap" style="${hasLink ? '' : 'display:none;'}">
+      <label>
+        <div>Texto del enlace</div>
+        <input type="text" class="modal-input ad-ctatext" placeholder="Ej. Ver catálogo" value="${ad.ctaText ?? ''}">
+      </label>
+
+      <label>
+        <div>URL (https://...)</div>
+        <input type="url" class="modal-input ad-ctaurl" placeholder="https://..." value="${ad.ctaUrl ?? ''}">
+      </label>
+    </div>
+  `;
+
+  return wrap;
+}
+
+// Pintar lista completa
+function renderAdsList(){
+  adsList.innerHTML = '';
+  if (!Array.isArray(adsCache.messages) || adsCache.messages.length === 0){
+    // crea uno por defecto para animar al usuario
+    adsCache.messages = [{ l1:'', l2:'', link:false, ctaText:'', ctaUrl:'' }];
+  }
+  adsCache.messages.forEach((ad, i) => {
+    adsList.appendChild(renderAdRow(ad, i));
+  });
+}
+
+// Validación global
+function isValidUrl(u){
+  try{
+    const x = new URL(u);
+    return x.protocol === 'http:' || x.protocol === 'https:';
+  }catch{ return false; }
+}
+function validateAdsForm(){
+  // Reglas:
+  // - Si está habilitado: al menos un mensaje con L1 no vacío
+  // - Si un mensaje tiene "link" → CTA text y URL válidos
+  const enabled = !!adsEnabled?.checked;
+  let ok = true;
+
+  if (enabled){
+    const anyWithL1 = adsCache.messages.some(m => normalizeStr(m.l1).length > 0);
+    if (!anyWithL1) ok = false;
+  }
+
+  // Valida filas una por una (y marca inputs si algo falta)
+  $$('.ads-row', adsList).forEach((row, idx) => {
+    const l1 = normalizeStr($('.ad-l1', row).value);
+    const has = $('.ad-haslink', row).checked;
+    const txt = normalizeStr($('.ad-ctatext', row)?.value || '');
+    const url = normalizeStr($('.ad-ctaurl', row)?.value || '');
+    // resalta errores mínimos
+    $('.ad-l1', row).style.borderColor = (l1.length > 0 || !enabled) ? '#cbd5e1' : '#ef4444';
+    if (has){
+      $('.ad-ctatext', row).style.borderColor = txt ? '#cbd5e1' : '#ef4444';
+      $('.ad-ctaurl', row).style.borderColor  = (url && isValidUrl(url)) ? '#cbd5e1' : '#ef4444';
+      if (!txt || !url || !isValidUrl(url)) ok = false;
+    }else{
+      if ($('.ad-ctatext', row)) $('.ad-ctatext', row).style.borderColor = '#cbd5e1';
+      if ($('.ad-ctaurl', row))  $('.ad-ctaurl', row).style.borderColor  = '#cbd5e1';
+    }
+  });
+
+  btnAdsSave.disabled = !ok;
+  btnAdsSave.setAttribute('aria-disabled', String(!ok));
+}
+
+// Sincroniza el estado del DOM -> adsCache
+function syncAdsFromDOM(){
+  const rows = $$('.ads-row', adsList);
+  adsCache.messages = rows.map(row => {
+    const l1 = $('.ad-l1', row)?.value || '';
+    const l2 = $('.ad-l2', row)?.value || '';
+    const link = $('.ad-haslink', row)?.checked || false;
+    const ctaText = $('.ad-ctatext', row)?.value || '';
+    const ctaUrl  = $('.ad-ctaurl', row)?.value || '';
+    return { l1, l2, link, ctaText, ctaUrl };
+  });
+}
+
+// Abrir modal: cargar + render
+async function openMiniPopModal(){
+  const data = await loadAdsConfig();
+  adsCache = {
+    enabled: !!data.enabled,
+    messages: Array.isArray(data.messages) ? data.messages.map(m => ({
+      l1: m.l1 || '', l2: m.l2 || '',
+      link: !!(m.ctaText || m.ctaUrl), ctaText: m.ctaText || '', ctaUrl: m.ctaUrl || ''
+    })) : []
+  };
+  adsEnabled.checked = !!adsCache.enabled;
+  renderAdsList();
+  validateAdsForm();
+  abrirModal(modalAds);
+}
+
+// Eventos UI
+optMiniPop?.addEventListener('click', () => {
+  cerrarMenu?.();
+  openMiniPopModal().catch(err => {
+    console.error(err);
+    mostrarToast?.('Error cargando Mini Pop-up');
+  });
+});
+
+// Añadir fila
+btnAddAd?.addEventListener('click', () => {
+  adsCache.messages.push({ l1:'', l2:'', link:false, ctaText:'', ctaUrl:'' });
+  renderAdsList();
+  validateAdsForm();
+});
+
+// Cambios dentro de la lista (delegado)
+adsList?.addEventListener('input', (e) => {
+  const row = e.target.closest('.ads-row'); if (!row) return;
+  // Mostrar/ocultar campos de link
+  if (e.target.classList.contains('ad-haslink')){
+    const wrap = $('.ad-linkwrap', row);
+    wrap.style.display = e.target.checked ? '' : 'none';
+  }
+  syncAdsFromDOM();
+  validateAdsForm();
+});
+adsList?.addEventListener('click', (e) => {
+  const row = e.target.closest('.ads-row'); if (!row) return;
+  if (e.target.classList.contains('del')){
+    const i = +row.dataset.index;
+    adsCache.messages.splice(i,1);
+    renderAdsList();
+    validateAdsForm();
+  }
+});
+
+// Guardar / Cancelar
+btnAdsCancel?.addEventListener('click', () => cerrarModal(modalAds));
+btnAdsSave?.addEventListener('click', async () => {
+  if (btnAdsSave.disabled) return;
+  try{
+    // Sync final y saneo
+    syncAdsFromDOM();
+
+    const enabled = !!adsEnabled.checked;
+    // Filtra mensajes vacíos (sin L1)
+    const msgs = adsCache.messages
+      .map(m => ({
+        l1: (m.l1||'').trim(),
+        l2: (m.l2||'').trim(),
+        ctaText: (m.link ? (m.ctaText||'').trim() : ''),
+        ctaUrl:  (m.link ? (m.ctaUrl||'').trim()  : '')
+      }))
+      .filter(m => m.l1.length > 0);
+
+    const payload = { enabled, messages: msgs };
+    await saveAdsConfig(payload);
+
+    mostrarToast('Mini pop-up guardado');
+    cerrarModal(modalAds);
+  }catch(err){
+    console.error(err);
+    mostrarToast('Error al guardar Mini pop-up');
   }
 });
 
@@ -1259,6 +1491,7 @@ habilitarCierreExterior(modalAgregar,   '.modal-contenido');
 habilitarCierreExterior(modalEditarZona,'.modal-contenido');
 habilitarCierreExterior(modalServicio,  '.modal-contenido');
 habilitarCierreExterior(modalEditProd,  '.modal-contenido');
+habilitarCierreExterior(modalAds, '.modal-contenido');
 modalZonas?.addEventListener('click', (e) => {
   const cont = modalZonas.querySelector('.contenido-zonas');
   if (e.target === modalZonas) cerrarModal(modalZonas);
@@ -1344,4 +1577,6 @@ document.addEventListener('keydown', (e) => {
   if (modalZonas     && !modalZonas.classList.contains('oculto'))     return cerrarModal(modalZonas);
   if (modalAgregar   && !modalAgregar.classList.contains('oculto'))   return cerrarModal(modalAgregar);
   if (menuOverlay    && menuOverlay.classList.contains('activo'))     return cerrarMenu();
+  if (modalAds     && !modalAds.classList.contains('oculto'))     return cerrarModal(modalAds);
+
 });

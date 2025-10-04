@@ -8,6 +8,7 @@
   <h3>Configuración</h3>
   <ul>
     <li><button id="optServicio" class="menu-item">Activar/Desactivar servicio</button></li>
+    <li><button id="optMiniPop" class="menu-item">Mini Pop-up</button></li>
     <li><button id="btnCats" class="menu-item">Editar/Eliminar Categorías/Subcategorías</button></li>
     <li><button id="btnAbrirZonas">Editar / Eliminar Zona</button></li>
   </ul>
@@ -212,6 +213,36 @@
     <div class="actions" style="display:flex; gap:10px; justify-content:flex-end; margin-top:12px;">
       <button id="btnSrvCancel" class="btn-cancelar" type="button">Cancelar</button>
       <button id="btnSrvSave" class="btn-guardar" type="button">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Mini Pop-up -->
+<div id="modalAds" class="modal oculto">
+  <div class="modal-contenido" style="max-width:680px;">
+    <h3>Mini Pop-up</h3>
+
+    <div class="row" style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
+      <label class="lbl">Mini pop-up activo</label>
+      <label class="switch">
+        <input id="adsEnabled" type="checkbox">
+        <span class="track"><span class="thumb"></span></span>
+      </label>
+    </div>
+
+    <div class="muted" style="margin:8px 0 12px; color:#64748b; line-height:1.35;">
+      Agrega uno o más mensajes. <b>L1</b> es el título (obligatorio). <b>L2</b> es opcional.
+      Marca “Incluir enlace” si quieres un CTA con URL.
+    </div>
+
+    <div id="adsList" class="ads-list"></div>
+
+    <div class="actions" style="display:flex; justify-content:space-between; gap:10px; margin-top:10px;">
+      <button id="btnAddAd" class="btn-accion" type="button">+ Agregar mensaje</button>
+      <div>
+        <button id="btnAdsCancel" class="btn-cancelar" type="button">Cancelar</button>
+        <button id="btnAdsSave" class="btn-guardar" type="button" disabled>Guardar</button>
+      </div>
     </div>
   </div>
 </div>
