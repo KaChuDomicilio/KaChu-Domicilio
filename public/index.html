@@ -302,9 +302,9 @@
 (function(){
   const CANDIDATE_ENDPOINTS = [
     typeof window !== 'undefined' && window.KACHU_ADS_ENDPOINT ? window.KACHU_ADS_ENDPOINT : null,
-    '/api/data/ads',
-    '/api/data/ad.json',
-    '/api/ads',
+    '/data/ads',
+    '/data/ads.json',
+    '/ads',
     '/ads.json'
   ].filter(Boolean);
 
