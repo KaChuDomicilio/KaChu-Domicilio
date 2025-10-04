@@ -461,6 +461,88 @@ btnAdsSave?.addEventListener('click', async () => {
 });
 
 /* ────────────────────────────────────────────────────────────────────────── */
+/* MINI POP-UP: bloqueo de campos cuando está desactivado + control de links  */
+/* ────────────────────────────────────────────────────────────────────────── */
+
+const modalAds     = $('#modalAds');
+const adsEnabled   = $('#adsEnabled');
+const adsList      = $('#adsList');         // contenedor de filas (.ad-row)
+const btnAdsAdd    = $('#btnAdsAdd');
+const btnAdsSave   = $('#btnAdsSave');
+const btnAdsCancel = $('#btnAdsCancel');
+
+/** Habilita/deshabilita ctaText/ctaUrl en UNA fila según:
+ *  - switch maestro (adsEnabled)
+ *  - checkbox local (.ad-hasLink)
+ */
+function setRowLinkState(row){
+  const hasLink = $('.ad-hasLink', row);
+  const ctaText = $('.ad-ctaText', row);
+  const ctaUrl  = $('.ad-ctaUrl', row);
+  const formOn  = !!adsEnabled?.checked;
+  const linkOn  = !!hasLink?.checked;
+  const enable  = formOn && linkOn;
+  if (ctaText) ctaText.disabled = !enable;
+  if (ctaUrl)  ctaUrl.disabled  = !enable;
+}
+
+/** (Re)aplica el estado de interactividad del formulario completo */
+function refreshAdsFormInteractivity(){
+  const formOn = !!adsEnabled?.checked;
+  if (!modalAds) return;
+
+  // 1) Dentro del listado, deshabilita todo si está OFF
+  $$('#adsList input, #adsList textarea, #adsList select, #adsList button').forEach(el => {
+    el.disabled = !formOn;
+  });
+
+  // 2) Botones globales
+  if (btnAdsAdd)  btnAdsAdd.disabled  = !formOn;
+
+  // 3) EXCEPCIONES: switch maestro y botones Guardar/Cancelar SIEMPRE habilitados
+  if (adsEnabled)    adsEnabled.disabled   = false;
+  if (btnAdsSave)    btnAdsSave.disabled   = false; // puedes guardar el ON/OFF
+  if (btnAdsCancel)  btnAdsCancel.disabled = false;
+
+  // 4) Ajusta, fila por fila, los campos de enlace
+  $$('.ad-row', adsList).forEach(setRowLinkState);
+}
+
+/* Delegación: cambios en el toggle "Incluir enlace" por fila */
+adsList?.addEventListener('change', (e) => {
+  const row = e.target.closest('.ad-row');
+  if (!row) return;
+  if (e.target.matches('.ad-hasLink')) {
+    setRowLinkState(row);
+  }
+});
+
+/* Switch maestro ON/OFF */
+adsEnabled?.addEventListener('change', refreshAdsFormInteractivity);
+
+/* Llamar al abrir el modal del mini pop-up */
+function onOpenAdsModal(){
+  // si tu flujo ya carga/renderiza filas aquí, después de render llama:
+  refreshAdsFormInteractivity();
+}
+
+/* Si tienes un handler existente para abrir el modal, insértale onOpenAdsModal();
+   Si no, este fallback lo invoca al cargar si el modal ya está visible. */
+document.addEventListener('DOMContentLoaded', () => {
+  if (modalAds && !modalAds.classList.contains('oculto')) {
+    onOpenAdsModal();
+  }
+});
+
+/* IMPORTANTE:
+   - Cuando agregues una nueva fila dinámicamente (click en #btnAdsAdd),
+     llama otra vez a refreshAdsFormInteractivity() para que esa fila
+     respete el estado (sobre todo si el switch está apagado).
+   - Al eliminar filas, no hace falta, pero no pasa nada si lo llamas.
+*/
+
+
+/* ────────────────────────────────────────────────────────────────────────── */
 /* 2) PRODUCTOS (Alta, Edición, Tabla)                                        */
 /* ────────────────────────────────────────────────────────────────────────── */
 

@@ -291,13 +291,243 @@
     </div>
   </div>
 
-<!-- POPUP PUBLICITARIO -->
-<div id="promoPop" class="promo-pop hidden" role="dialog" aria-live="polite">
-  <button class="promo-close" title="Cerrar" type="button">✕</button>
-  <div class="promo-title"></div>
-  <div class="promo-text"></div>
-  <a class="promo-cta" href="#" target="_blank" rel="noopener">Ver</a>
-</div>
+  <!-- En el <head> o antes de cerrar </body> -->
+<script>
+/* ====== Mini Pop-up KaChu — Cliente (Catálogo) ======
+   - Endpoints que intenta (en orden): window.KACHU_ADS_ENDPOINT, /api/data/ads, /api/data/ad.json, /api/ads, /ads.json
+   - Estructura esperada: { enabled: boolean, displayMs?: number, pauseMs?: number, items: [{ l1, l2, ctaText?, ctaUrl? }] }
+   - No requiere HTML previo: inserta el contenedor y estilos automáticamente.
+*/
+
+(function(){
+  const CANDIDATE_ENDPOINTS = [
+    typeof window !== 'undefined' && window.KACHU_ADS_ENDPOINT ? window.KACHU_ADS_ENDPOINT : null,
+    '/api/data/ads',
+    '/api/data/ad.json',
+    '/api/ads',
+    '/ads.json'
+  ].filter(Boolean);
+
+  const DEFAULTS = { displayMs: 6000, pauseMs: 10000 };
+  const STYLE_ID = 'kachu-ads-style';
+  const WRAP_ID  = 'popupKachu';
+
+  // ───────── Utilitarios ─────────
+  const $  = (s, ctx=document) => ctx.querySelector(s);
+  function isNonEmptyStr(v){ return typeof v === 'string' && v.trim().length > 0; }
+  function sanitizeURL(u){
+    try {
+      const url = new URL(u, location.origin);
+      // Permite http(s) únicamente
+      if (!/^https?:$/.test(url.protocol)) return null;
+      return url.href;
+    } catch { return null; }
+  }
+  async function fetchFirstOk(urls){
+    for (const u of urls){
+      try{
+        const r = await fetch(u, { cache:'no-store' });
+        if (!r.ok) continue;
+        const data = await r.json();
+        return { url: u, data };
+      }catch{ /* siguiente */ }
+    }
+    return null;
+  }
+
+  // ───────── Estilos (se inyectan 1 sola vez) ─────────
+  function injectStylesOnce(){
+    if (document.getElementById(STYLE_ID)) return;
+    const css = `
+      :root{ --kachu-black:#111; --kachu-white:#fff; --shadow:0 10px 30px rgba(0,0,0,.15); --z-ads:900; }
+      @media (prefers-reduced-motion: reduce){
+        *{animation-duration:.001ms !important;animation-iteration-count:1 !important;transition-duration:.001ms !important}
+      }
+      #${WRAP_ID}{
+        position:fixed; left:16px; bottom:16px; z-index:var(--z-ads);
+        width:min(92vw, 340px);
+        background:var(--kachu-white);
+        border:1px solid #eee; border-radius:16px;
+        padding:14px 16px 16px; display:none;
+        box-shadow:var(--shadow);
+      }
+      #${WRAP_ID} .l1{font-weight:900;margin:0 22px 4px 0;color:var(--kachu-black)}
+      #${WRAP_ID} .l2{margin:0 22px 8px 0;color:#333;font-size:14px}
+      #${WRAP_ID} .cta{font-weight:800;text-decoration:underline;color:var(--kachu-black)}
+      #${WRAP_ID} .ad-close{
+        position:absolute; top:6px; right:8px; border:0; background:transparent;
+        font:inherit; cursor:pointer; opacity:.6
+      }
+      #${WRAP_ID} .ad-close:hover{opacity:1}
+      .kachu-in{animation:kachuSlideIn .28s ease forwards}
+      .kachu-out{animation:kachuSlideOut .26s ease forwards}
+      @keyframes kachuSlideIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+      @keyframes kachuSlideOut{to{opacity:0;transform:translateY(12px)}}
+    `.trim();
+    const style = document.createElement('style');
+    style.id = STYLE_ID;
+    style.textContent = css;
+    document.head.appendChild(style);
+  }
+
+  // ───────── DOM: contenedor ─────────
+  function ensureWrapper(){
+    let el = document.getElementById(WRAP_ID);
+    if (el) return el;
+    el = document.createElement('section');
+    el.id = WRAP_ID;
+    el.setAttribute('role','dialog');
+    el.setAttribute('aria-live','polite');
+    el.setAttribute('aria-label','Notificación');
+
+    el.innerHTML = `
+      <button class="ad-close" aria-label="Cerrar notificación">✕</button>
+      <p class="l1"></p>
+      <p class="l2"></p>
+    `;
+    document.body.appendChild(el);
+    return el;
+  }
+
+  // ───────── Lógica de ciclo ─────────
+  function Popper(config){
+    const { enabled, displayMs, pauseMs, items } = config;
+    const el = ensureWrapper();
+    const closeBtn = $('.ad-close', el);
+    const l1 = $('.l1', el);
+    const l2 = $('.l2', el);
+
+    let idx = 0;
+    let timers = [];
+    let running = false;
+
+    function setContent(i){
+      const it = items[i];
+      // l1 + l2 como texto
+      l1.textContent = it.l1 || '';
+      l2.textContent = it.l2 || '';
+      // añadir CTA si existe
+      const oldA = l2.querySelector('a.cta');
+      if (oldA) oldA.remove();
+      if (it.link && isNonEmptyStr(it.link.text) && isNonEmptyStr(it.link.url)){
+        const a = document.createElement('a');
+        a.className = 'cta';
+        a.textContent = it.link.text;
+        a.href = it.link.url;
+        a.target = '_blank';
+        a.rel = 'noopener';
+        // espacio si l2 no termina en espacio
+        if (l2.lastChild && l2.lastChild.nodeType === Node.TEXT_NODE && !/\s$/.test(l2.lastChild.textContent||'')){
+          l2.appendChild(document.createTextNode(' '));
+        }
+        l2.appendChild(a);
+      }
+    }
+
+    function animateIn(){
+      el.classList.remove('kachu-out');
+      el.style.display = 'block';
+      // reflow para reiniciar animación
+      void el.offsetWidth;
+      el.classList.add('kachu-in');
+    }
+    function animateOut(cb){
+      el.classList.remove('kachu-in');
+      el.classList.add('kachu-out');
+      const t = setTimeout(()=>{ el.style.display='none'; cb && cb(); }, 240);
+      timers.push(t);
+    }
+
+    function cycleOnce(){
+      if (!running) return;
+      setContent(idx);
+      animateIn();
+      const t1 = setTimeout(()=>{
+        animateOut(()=>{
+          if (!running) return;
+          idx = (idx + 1) % items.length;
+          const t2 = setTimeout(()=>{ cycleOnce(); }, 1100 + pauseMs);
+          timers.push(t2);
+        });
+      }, displayMs);
+      timers.push(t1);
+    }
+
+    function start(){
+      if (running) return;
+      running = true;
+      el.style.display = 'block';
+      timers.push(setTimeout(()=>cycleOnce(), 50));
+    }
+    function stop(hideNow=false){
+      running = false;
+      timers.forEach(clearTimeout);
+      timers = [];
+      if (hideNow){
+        el.style.display='none';
+        el.classList.remove('kachu-in','kachu-out');
+      }
+    }
+
+    // Eventos
+    closeBtn.addEventListener('click', ()=> stop(true));
+    document.addEventListener('visibilitychange', ()=>{
+      if (document.hidden) stop(true);
+      else if (enabled) start();
+    });
+
+    // API pública mínima
+    return { start, stop, el };
+  }
+
+  // ───────── Normalización del payload ─────────
+  function normalizePayload(raw){
+    // Acepta: {enabled, displayMs, pauseMs, items:[{l1,l2,ctaText?,ctaUrl?}]}
+    const enabled = !!raw?.enabled;
+    const displayMs = Number.isFinite(+raw?.displayMs) && +raw.displayMs > 0 ? +raw.displayMs : DEFAULTS.displayMs;
+    const pauseMs   = Number.isFinite(+raw?.pauseMs)   && +raw.pauseMs   > 0 ? +raw.pauseMs   : DEFAULTS.pauseMs;
+
+    let items = Array.isArray(raw?.items) ? raw.items : [];
+    items = items
+      .map(it => {
+        const l1 = isNonEmptyStr(it?.l1) ? it.l1.trim() : '';
+        const l2 = isNonEmptyStr(it?.l2) ? it.l2.trim() : '';
+        const ctaText = isNonEmptyStr(it?.ctaText) ? it.ctaText.trim() : '';
+        const ctaUrl  = sanitizeURL(it?.ctaUrl || '');
+        const link = (ctaText && ctaUrl) ? { text: ctaText, url: ctaUrl } : null;
+        // Permite filtrar (opcional) por "show: false"
+        const show = (typeof it?.show === 'boolean') ? !!it.show : true;
+        return { l1, l2, link, show };
+      })
+      .filter(it => it.show && (isNonEmptyStr(it.l1) || isNonEmptyStr(it.l2)));
+
+    return { enabled, displayMs, pauseMs, items };
+  }
+
+  // ───────── Bootstrap ─────────
+  async function boot(){
+    try {
+      injectStylesOnce();
+      const found = await fetchFirstOk(CANDIDATE_ENDPOINTS);
+      if (!found || !found.data) return; // no mostramos nada
+      const cfg = normalizePayload(found.data);
+      if (!cfg.enabled || cfg.items.length === 0) return; // desactivado o sin mensajes => no mostrar
+      // Esperar a que exista body/DOM
+      const ready = (document.readyState === 'loading')
+        ? new Promise(res => document.addEventListener('DOMContentLoaded', res, { once:true }))
+        : Promise.resolve();
+      await ready;
+      const popper = Popper(cfg);
+      popper.start();
+    } catch (err) {
+      // Silencioso en producción para no molestar al usuario final
+      // console.warn('Ads popup error:', err);
+    }
+  }
+
+  boot();
+})();
+</script>
 
   <script src="script.js?v=kg3-tiers" defer></script>
 </body>
