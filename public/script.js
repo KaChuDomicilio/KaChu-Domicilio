@@ -1615,7 +1615,7 @@ var PROMO_KEY = 'kachu_promo_last_dismissed';
 
 async function fetchPromoData() {
   try {
-    var r = await fetch('/api/data/ad.json', { cache: 'no-store' });
+    var r = await fetch('./api/data/ad.json', { cache: 'no-store' });
     if (!r.ok) throw new Error('No ad.json');
     var json = await r.json();
     // Defaults seguros: si no viene "enabled", lo tratamos como true.
