@@ -4,19 +4,22 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Abarrotes KaChu — Catálogo</title>
+
+  <!-- CSS -->
   <link rel="stylesheet" href="styles.css">
-  <!--<link rel="manifest" href="/manifest.json">-->
+
+  <!-- PWA / Iconos -->
   <link rel="manifest" href="/manifest.webmanifest">
   <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16.png">
   <link rel="apple-touch-icon" href="/icons/apple-touch-icon-180.png">
   <meta name="theme-color" content="#1e40af">
-  <!-- Android/Chromium (opcional hoy, silencia el warning) -->
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 </head>
 <body>
+
   <!-- BARRA SUPERIOR STICKY -->
   <header class="topbar">
     <div class="filters">
@@ -29,7 +32,7 @@
         </label>
         <label class="field">
           <span>Subcategoría</span>
-          <select id="subcategory">
+          <select id="subcategory" disabled>
             <option value="">Todas</option>
           </select>
         </label>
@@ -43,30 +46,23 @@
       </div>
     </div>
   </header>
-<!-- ================= FAVORITOS: carrusel ================= -->
-<section class="favs" id="favsSection" role="region" aria-label="Tus favoritos">
-  <div class="favs-head">
-    <h3 class="favs-title">⭐ Tus favoritos</h3>
 
-    <div class="favs-actions">
-      <!-- Flechas: el JS las mostrará/ocultará según haya más ítems -->
-      <button class="favs-nav" id="favsPrev" type="button" aria-label="Anterior" aria-hidden="true" hidden>‹</button>
-      <button class="favs-nav" id="favsNext" type="button" aria-label="Siguiente" aria-hidden="true" hidden>›</button>
-
-      <button class="btn small" id="favsAll" type="button">Ver todos</button>
+  <!-- ================= FAVORITOS: carrusel ================= -->
+  <section class="favs hidden" id="favsSection" role="region" aria-label="Tus favoritos">
+    <div class="favs-head">
+      <h3 class="favs-title">⭐ Tus favoritos</h3>
+      <div class="favs-actions">
+        <button class="favs-nav" id="favsPrev" type="button" aria-label="Anterior" aria-hidden="true" hidden>‹</button>
+        <button class="favs-nav" id="favsNext" type="button" aria-label="Siguiente" aria-hidden="true" hidden>›</button>
+        <button class="btn small" id="favsAll" type="button">Ver todos</button>
+      </div>
     </div>
-  </div>
-
-  <div class="favs-viewport" aria-live="polite">
-    <div class="favs-track" id="favsTrack" aria-label="Carrusel de favoritos">
-      <!-- Aquí el JS inyecta <article class="fav-card">… -->
+    <div class="favs-viewport" aria-live="polite">
+      <div class="favs-track" id="favsTrack" aria-label="Carrusel de favoritos"></div>
     </div>
-  </div>
-
-  <!-- Puntitos de paginación (1 por “paso/grupo”) -->
-  <div class="favs-dots" id="favsDots" aria-label="Indicadores"></div>
-</section>
-<!-- =============== /FAVORITOS: carrusel ================== -->
+    <div class="favs-dots" id="favsDots" aria-label="Indicadores"></div>
+  </section>
+  <!-- =============== /FAVORITOS: carrusel ================== -->
 
   <!-- Rail de redes -->
   <div class="social-fabs" aria-label="Redes sociales">
@@ -109,11 +105,11 @@
   <!-- BOTÓN FLOTANTE CARRITO -->
   <button id="btnCart" class="fab" aria-label="Carrito" type="button">
     🛒
-    <span class="badge" id="cartBadge">2</span>
+    <span class="badge" id="cartBadge" hidden>0</span>
   </button>
 
   <!-- MODAL CARRITO -->
-  <div id="modalCart" class="modal" aria-hidden="true">
+  <div id="modalCart" class="modal" aria-hidden="true" inert>
     <div class="modal__overlay" data-close="cart"></div>
     <div class="modal__content" role="dialog" aria-modal="true" aria-labelledby="cartTitle">
       <button class="modal__close" data-close="cart" aria-label="Cerrar" type="button">✕</button>
@@ -122,7 +118,7 @@
       <div class="cart-total">
         <div class="sum-row">
           <span>Total:</span>
-          <strong id="cartTotal"></strong>
+          <strong id="cartTotal">$0.00</strong>
         </div>
         <p class="note">NOTA: El total cambia dependiendo zona y tipo de pago | los precios mostrados son exclusivos del catálogo.</p>
       </div>
@@ -139,26 +135,19 @@
     <div class="fs-progress"><div class="fs-bar"></div></div>
   </div>
 
-<!-- ================== MODAL: Ver todos =================== -->
-<div class="modal" id="modalFavs" aria-hidden="true" inert>
-  <div class="modal__overlay" data-close="favs" aria-hidden="true"></div>
-
-  <div class="modal__content" role="dialog" aria-modal="true" aria-labelledby="favsModalTitle">
-    <button class="modal__close" type="button" data-close="favs" aria-label="Cerrar">✕</button>
-
-    <h2 id="favsModalTitle" style="margin-top:0">Todos tus favoritos</h2>
-
-    <!-- Contenedor donde el JS renderiza la grilla de favoritos -->
-    <div id="favsModalList" class="favs-modal-grid">
-      <!-- JS inyecta .favs-modal-card -->
+  <!-- ================== MODAL: Ver todos =================== -->
+  <div class="modal" id="modalFavs" aria-hidden="true" inert>
+    <div class="modal__overlay" data-close="favs" aria-hidden="true"></div>
+    <div class="modal__content" role="dialog" aria-modal="true" aria-labelledby="favsModalTitle">
+      <button class="modal__close" type="button" data-close="favs" aria-label="Cerrar">✕</button>
+      <h2 id="favsModalTitle" style="margin-top:0">Todos tus favoritos</h2>
+      <div id="favsModalList" class="favs-modal-grid"></div>
     </div>
   </div>
-</div>
-<!-- ================= /MODAL: Ver todos =================== -->
-
+  <!-- ================= /MODAL: Ver todos =================== -->
 
   <!-- MODAL CHECKOUT -->
-  <div id="modalCheckout" class="modal" aria-hidden="true">
+  <div id="modalCheckout" class="modal" aria-hidden="true" inert>
     <div class="modal__overlay" data-close="checkout"></div>
     <div class="modal__content" role="dialog" aria-modal="true" aria-labelledby="checkoutTitle">
       <button class="modal__close" data-close="checkout" aria-label="Cerrar" type="button">✕</button>
@@ -179,54 +168,53 @@
           <label><input type="radio" name="pay" value="Transferencia"> Transferencia</label>
         </fieldset>
 
-<!-- PAGO DIVIDIDO -->
-<div class="split-pay">
-  <label class="switch">
-    <input type="checkbox" id="twoPaymentsSwitch">
-    <span>Quiero pagar con 2 métodos</span>
-  </label>
+        <!-- PAGO DIVIDIDO -->
+        <div class="split-pay">
+          <label class="switch">
+            <input type="checkbox" id="twoPaymentsSwitch">
+            <span>Quiero pagar con 2 métodos</span>
+          </label>
 
-  <div id="splitPayFields" class="hidden">
-    <div class="split-row">
-      <div class="field">
-        <span>Método 1</span>
-        <select id="payMethod1">
-          <option value="Efectivo">Efectivo</option>
-          <option value="Tarjeta">Tarjeta</option>
-          <option value="Transferencia">Transferencia</option>
-        </select>
-      </div>
-      <div class="field">
-        <span>Monto 1</span>
-        <input type="number" id="payAmount1" min="0" step="0.01" placeholder="0.00">
-      </div>
-    </div>
+          <div id="splitPayFields" class="hidden">
+            <div class="split-row">
+              <div class="field">
+                <span>Método 1</span>
+                <select id="payMethod1">
+                  <option value="Efectivo">Efectivo</option>
+                  <option value="Tarjeta">Tarjeta</option>
+                  <option value="Transferencia">Transferencia</option>
+                </select>
+              </div>
+              <div class="field">
+                <span>Monto 1</span>
+                <input type="number" id="payAmount1" min="0" step="0.01" placeholder="0.00">
+              </div>
+            </div>
 
-    <div class="split-row">
-      <div class="field">
-        <span>Método 2</span>
-        <select id="payMethod2">
-          <option value="Efectivo">Efectivo</option>
-          <option value="Tarjeta">Tarjeta</option>
-          <option value="Transferencia">Transferencia</option>
-        </select>
-      </div>
-      <div class="field">
-        <span>Monto 2</span>
-        <input type="number" id="payAmount2" min="0" step="0.01" placeholder="0.00">
-      </div>
-    </div>
+            <div class="split-row">
+              <div class="field">
+                <span>Método 2</span>
+                <select id="payMethod2">
+                  <option value="Efectivo">Efectivo</option>
+                  <option value="Tarjeta">Tarjeta</option>
+                  <option value="Transferencia">Transferencia</option>
+                </select>
+              </div>
+              <div class="field">
+                <span>Monto 2</span>
+                <input type="number" id="payAmount2" min="0" step="0.01" placeholder="0.00">
+              </div>
+            </div>
 
-    <div class="split-summary">
-      <div>Subtotal + envío: <strong id="splitSubtotal">$0.00</strong></div>
-      <div>Comisión por tarjeta: <strong id="splitFee">$0.00</strong></div>
-      <div>Total a pagar: <strong id="splitTotal">$0.00</strong></div>
-      <div class="muted">Si hay efectivo, calculamos el cambio automáticamente.</div>
-      <div>Cambio estimado: <strong id="splitChange">$0.00</strong></div>
-    </div>
-  </div>
-</div>
-
+            <div class="split-summary">
+              <div>Subtotal + envío: <strong id="splitSubtotal">$0.00</strong></div>
+              <div>Comisión por tarjeta: <strong id="splitFee">$0.00</strong></div>
+              <div>Total a pagar: <strong id="splitTotal">$0.00</strong></div>
+              <div class="muted">Si hay efectivo, calculamos el cambio automáticamente.</div>
+              <div>Cambio estimado: <strong id="splitChange">$0.00</strong></div>
+            </div>
+          </div>
+        </div>
 
         <label class="field hidden" id="cashField">
           <span>¿Con cuánto vas a pagar?</span>
@@ -245,7 +233,7 @@
           <button type="submit" id="btnWhatsApp" class="btn primary" disabled>Enviar por WhatsApp</button>
           <p class="muted" style="margin-top:.5rem">
             Al enviar aceptas el tratamiento de tus datos solo para procesar tu pedido por WhatsApp.
-            La información no se guarda en nuestros servidores. Consulta el 
+            La información no se guarda en nuestros servidores. Consulta el
             <a href="/privacidad.html" target="_blank" rel="noopener">Aviso de Privacidad</a>.
           </p>
         </div>
@@ -254,12 +242,12 @@
   </div>
 
   <!-- MODAL CONFIRMAR ENVÍO -->
-  <div id="modalConfirm" class="modal" aria-hidden="true">
+  <div id="modalConfirm" class="modal" aria-hidden="true" inert>
     <div class="modal__overlay" data-close="confirm"></div>
     <div class="modal__content" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
       <button class="modal__close" data-close="confirm" aria-label="Cerrar" type="button">✕</button>
       <h2 id="confirmTitle">¿Se envió correctamente tu pedido por WhatsApp?</h2>
-      <p>Si ya lo enviaste y todo bien, liberaremos tu carrito para un proximo pedido, de lo contrario tu carrito sigue tal cual como lo dejaste.</p>
+      <p>Si ya lo enviaste y todo bien, liberaremos tu carrito para un próximo pedido; de lo contrario tu carrito sigue tal cual como lo dejaste.</p>
       <div class="actions" style="display:flex; gap:10px;">
         <button id="btnConfirmNo" class="btn ghost" type="button">No, mantener</button>
         <button id="btnConfirmYes" class="btn primary" type="button">Sí, limpiar</button>
@@ -267,268 +255,121 @@
     </div>
   </div>
 
-  <!-- Modal: Aviso Transferencia -->
-  <div class="modal" id="modalTransferencia" aria-hidden="true">
-    <div class="modal__content">
-      <h2>Aviso para: Transferencia</h2>
-      <p style="margin:8px 0 12px; font-weight:600;">
-        Con este método de pago la entrega de tu pedido puede tardar un poco más de lo establecido.
-      </p>
-      <ol style="padding-left:18px; line-height:1.5;">
-        <li>Envía tu pedido normalmente.</li>
-        <li>Espera en el chat mientras se te envían los datos para transferir.</li>
-        <li>Realiza el pago.</li>
-        <li><strong>Deberás adjuntar captura(Obligatorio).</strong></li>
-        <li>Esperaremos a que tu transferencia se refleje en nuestra banca.</li>
-        <li>Una vez reflejada, procederemos a enviar tu pedido.</li>
-      </ol>
-      <div class="sum-row" style="margin-top:14px;">
-        <span></span>
-        <div style="display:flex; gap:8px;">
-          <button class="btn primary" id="btnTransferOK" type="button">Entendido</button>
-        </div>
-      </div>
-    </div>
-  </div>
+  <!-- ===== Mini Pop-up desde el panel (ads.json) ===== -->
+  <!-- Si usas otra ruta, define esto ANTES: <script>window.KACHU_ADS_ENDPOINT='/mi/ruta';</script> -->
+  <script>
+  (function(){
+    const CANDIDATE_ENDPOINTS = [
+      typeof window !== 'undefined' && window.KACHU_ADS_ENDPOINT ? window.KACHU_ADS_ENDPOINT : null,
+      '/api/data/ads',
+      '/api/data/ad.json',  // compat
+      '/api/ads',
+      '/ads.json'
+    ].filter(Boolean);
 
-  <!-- En el <head> o antes de cerrar </body> -->
-<script>
-/* ====== Mini Pop-up KaChu — Cliente (Catálogo) ======
-   - Endpoints que intenta (en orden): window.KACHU_ADS_ENDPOINT, /api/data/ads, /api/data/ad.json, /api/ads, /ads.json
-   - Estructura esperada: { enabled: boolean, displayMs?: number, pauseMs?: number, items: [{ l1, l2, ctaText?, ctaUrl? }] }
-   - No requiere HTML previo: inserta el contenedor y estilos automáticamente.
-*/
-
-(function(){
-  const CANDIDATE_ENDPOINTS = [
-    typeof window !== 'undefined' && window.KACHU_ADS_ENDPOINT ? window.KACHU_ADS_ENDPOINT : null,
-    '/data/ads',
-    '/data/ads.json',
-    '/ads',
-    '/ads.json'
-  ].filter(Boolean);
-
-  const DEFAULTS = { displayMs: 6000, pauseMs: 10000 };
-  const STYLE_ID = 'kachu-ads-style';
-  const WRAP_ID  = 'popupKachu';
-
-  // ───────── Utilitarios ─────────
-  const $  = (s, ctx=document) => ctx.querySelector(s);
-  function isNonEmptyStr(v){ return typeof v === 'string' && v.trim().length > 0; }
-  function sanitizeURL(u){
-    try {
-      const url = new URL(u, location.origin);
-      // Permite http(s) únicamente
-      if (!/^https?:$/.test(url.protocol)) return null;
-      return url.href;
-    } catch { return null; }
-  }
-  async function fetchFirstOk(urls){
-    for (const u of urls){
-      try{
-        const r = await fetch(u, { cache:'no-store' });
-        if (!r.ok) continue;
-        const data = await r.json();
-        return { url: u, data };
-      }catch{ /* siguiente */ }
+    const DEFAULTS = { displayMs: 6000, pauseMs: 10000 };
+    const STYLE_ID = 'kachu-ads-style';
+    const WRAP_ID  = 'popupKachu';
+    const $  = (s, ctx=document) => ctx.querySelector(s);
+    const isNonEmptyStr = v => typeof v === 'string' && v.trim().length > 0;
+    function sanitizeURL(u){ try{ const url = new URL(u, location.origin); if(!/^https?:$/.test(url.protocol)) return null; return url.href; } catch { return null; } }
+    async function fetchFirstOk(urls){
+      for (const u of urls){
+        try{ const r = await fetch(u, { cache:'no-store' }); if (!r.ok) continue; const data = await r.json(); return { url:u, data }; }catch{}
+      } return null;
     }
-    return null;
-  }
-
-  // ───────── Estilos (se inyectan 1 sola vez) ─────────
-  function injectStylesOnce(){
-    if (document.getElementById(STYLE_ID)) return;
-    const css = `
-      :root{ --kachu-black:#111; --kachu-white:#fff; --shadow:0 10px 30px rgba(0,0,0,.15); --z-ads:900; }
-      @media (prefers-reduced-motion: reduce){
-        *{animation-duration:.001ms !important;animation-iteration-count:1 !important;transition-duration:.001ms !important}
-      }
-      #${WRAP_ID}{
-        position:fixed; left:16px; bottom:16px; z-index:var(--z-ads);
-        width:min(92vw, 340px);
-        background:var(--kachu-white);
-        border:1px solid #eee; border-radius:16px;
-        padding:14px 16px 16px; display:none;
-        box-shadow:var(--shadow);
-      }
-      #${WRAP_ID} .l1{font-weight:900;margin:0 22px 4px 0;color:var(--kachu-black)}
-      #${WRAP_ID} .l2{margin:0 22px 8px 0;color:#333;font-size:14px}
-      #${WRAP_ID} .cta{font-weight:800;text-decoration:underline;color:var(--kachu-black)}
-      #${WRAP_ID} .ad-close{
-        position:absolute; top:6px; right:8px; border:0; background:transparent;
-        font:inherit; cursor:pointer; opacity:.6
-      }
-      #${WRAP_ID} .ad-close:hover{opacity:1}
-      .kachu-in{animation:kachuSlideIn .28s ease forwards}
-      .kachu-out{animation:kachuSlideOut .26s ease forwards}
-      @keyframes kachuSlideIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
-      @keyframes kachuSlideOut{to{opacity:0;transform:translateY(12px)}}
-    `.trim();
-    const style = document.createElement('style');
-    style.id = STYLE_ID;
-    style.textContent = css;
-    document.head.appendChild(style);
-  }
-
-  // ───────── DOM: contenedor ─────────
-  function ensureWrapper(){
-    let el = document.getElementById(WRAP_ID);
-    if (el) return el;
-    el = document.createElement('section');
-    el.id = WRAP_ID;
-    el.setAttribute('role','dialog');
-    el.setAttribute('aria-live','polite');
-    el.setAttribute('aria-label','Notificación');
-
-    el.innerHTML = `
-      <button class="ad-close" aria-label="Cerrar notificación">✕</button>
-      <p class="l1"></p>
-      <p class="l2"></p>
-    `;
-    document.body.appendChild(el);
-    return el;
-  }
-
-  // ───────── Lógica de ciclo ─────────
-  function Popper(config){
-    const { enabled, displayMs, pauseMs, items } = config;
-    const el = ensureWrapper();
-    const closeBtn = $('.ad-close', el);
-    const l1 = $('.l1', el);
-    const l2 = $('.l2', el);
-
-    let idx = 0;
-    let timers = [];
-    let running = false;
-
-    function setContent(i){
-      const it = items[i];
-      // l1 + l2 como texto
-      l1.textContent = it.l1 || '';
-      l2.textContent = it.l2 || '';
-      // añadir CTA si existe
-      const oldA = l2.querySelector('a.cta');
-      if (oldA) oldA.remove();
-      if (it.link && isNonEmptyStr(it.link.text) && isNonEmptyStr(it.link.url)){
-        const a = document.createElement('a');
-        a.className = 'cta';
-        a.textContent = it.link.text;
-        a.href = it.link.url;
-        a.target = '_blank';
-        a.rel = 'noopener';
-        // espacio si l2 no termina en espacio
-        if (l2.lastChild && l2.lastChild.nodeType === Node.TEXT_NODE && !/\s$/.test(l2.lastChild.textContent||'')){
-          l2.appendChild(document.createTextNode(' '));
+    function injectStylesOnce(){
+      if (document.getElementById(STYLE_ID)) return;
+      const css = `
+        :root{ --kachu-black:#111; --kachu-white:#fff; --shadow:0 10px 30px rgba(0,0,0,.15); --z-ads:900; }
+        @media (prefers-reduced-motion: reduce){
+          *{animation-duration:.001ms !important;animation-iteration-count:1 !important;transition-duration:.001ms !important}
         }
-        l2.appendChild(a);
+        #${WRAP_ID}{
+          position:fixed; left:16px; bottom:16px; z-index:var(--z-ads);
+          width:min(92vw, 340px);
+          background:var(--kachu-white);
+          border:1px solid #eee; border-radius:16px;
+          padding:14px 16px 16px; display:none;
+          box-shadow:var(--shadow);
+        }
+        #${WRAP_ID} .l1{font-weight:900;margin:0 22px 4px 0;color:var(--kachu-black)}
+        #${WRAP_ID} .l2{margin:0 22px 8px 0;color:#333;font-size:14px}
+        #${WRAP_ID} .cta{font-weight:800;text-decoration:underline;color:var(--kachu-black)}
+        #${WRAP_ID} .ad-close{
+          position:absolute; top:6px; right:8px; border:0; background:transparent;
+          font:inherit; cursor:pointer; opacity:.6
+        }
+        #${WRAP_ID} .ad-close:hover{opacity:1}
+        .kachu-in{animation:kachuSlideIn .28s ease forwards}
+        .kachu-out{animation:kachuSlideOut .26s ease forwards}
+        @keyframes kachuSlideIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+        @keyframes kachuSlideOut{to{opacity:0;transform:translateY(12px)}}
+      `.trim();
+      const style = document.createElement('style'); style.id = STYLE_ID; style.textContent = css; document.head.appendChild(style);
+    }
+    function ensureWrapper(){
+      let el = document.getElementById(WRAP_ID);
+      if (el) return el;
+      el = document.createElement('section'); el.id = WRAP_ID;
+      el.setAttribute('role','dialog'); el.setAttribute('aria-live','polite'); el.setAttribute('aria-label','Notificación');
+      el.innerHTML = `<button class="ad-close" aria-label="Cerrar notificación">✕</button><p class="l1"></p><p class="l2"></p>`;
+      document.body.appendChild(el); return el;
+    }
+    function Popper(config){
+      const { enabled, displayMs, pauseMs, items } = config;
+      const el = ensureWrapper(); const closeBtn = $('.ad-close', el); const l1 = $('.l1', el); const l2 = $('.l2', el);
+      let idx = 0, timers = [], running = false;
+      function setContent(i){
+        const it = items[i]; l1.textContent = it.l1 || ''; l2.textContent = it.l2 || '';
+        const oldA = l2.querySelector('a.cta'); if (oldA) oldA.remove();
+        if (it.link && isNonEmptyStr(it.link.text) && isNonEmptyStr(it.link.url)){
+          const a = document.createElement('a'); a.className='cta'; a.textContent=it.link.text; a.href=it.link.url; a.target='_blank'; a.rel='noopener';
+          if (l2.lastChild && l2.lastChild.nodeType === Node.TEXT_NODE && !/\s$/.test(l2.lastChild.textContent||'')) l2.appendChild(document.createTextNode(' '));
+          l2.appendChild(a);
+        }
       }
+      function animateIn(){ el.classList.remove('kachu-out'); el.style.display='block'; void el.offsetWidth; el.classList.add('kachu-in'); }
+      function animateOut(cb){ el.classList.remove('kachu-in'); el.classList.add('kachu-out'); timers.push(setTimeout(()=>{ el.style.display='none'; cb&&cb(); }, 240)); }
+      function cycleOnce(){ if (!running) return; setContent(idx); animateIn(); const t1=setTimeout(()=>{ animateOut(()=>{ if(!running) return; idx=(idx+1)%items.length; const t2=setTimeout(()=>{ cycleOnce(); }, 1100 + pauseMs); timers.push(t2); }); }, displayMs); timers.push(t1); }
+      function start(){ if (running) return; running=true; el.style.display='block'; timers.push(setTimeout(()=>cycleOnce(),50)); }
+      function stop(hideNow=false){ running=false; timers.forEach(clearTimeout); timers=[]; if (hideNow){ el.style.display='none'; el.classList.remove('kachu-in','kachu-out'); } }
+      closeBtn.addEventListener('click', ()=> stop(true));
+      document.addEventListener('visibilitychange', ()=>{ if (document.hidden) stop(true); else if (enabled) start(); });
+      return { start, stop, el };
     }
-
-    function animateIn(){
-      el.classList.remove('kachu-out');
-      el.style.display = 'block';
-      // reflow para reiniciar animación
-      void el.offsetWidth;
-      el.classList.add('kachu-in');
-    }
-    function animateOut(cb){
-      el.classList.remove('kachu-in');
-      el.classList.add('kachu-out');
-      const t = setTimeout(()=>{ el.style.display='none'; cb && cb(); }, 240);
-      timers.push(t);
-    }
-
-    function cycleOnce(){
-      if (!running) return;
-      setContent(idx);
-      animateIn();
-      const t1 = setTimeout(()=>{
-        animateOut(()=>{
-          if (!running) return;
-          idx = (idx + 1) % items.length;
-          const t2 = setTimeout(()=>{ cycleOnce(); }, 1100 + pauseMs);
-          timers.push(t2);
-        });
-      }, displayMs);
-      timers.push(t1);
-    }
-
-    function start(){
-      if (running) return;
-      running = true;
-      el.style.display = 'block';
-      timers.push(setTimeout(()=>cycleOnce(), 50));
-    }
-    function stop(hideNow=false){
-      running = false;
-      timers.forEach(clearTimeout);
-      timers = [];
-      if (hideNow){
-        el.style.display='none';
-        el.classList.remove('kachu-in','kachu-out');
-      }
-    }
-
-    // Eventos
-    closeBtn.addEventListener('click', ()=> stop(true));
-    document.addEventListener('visibilitychange', ()=>{
-      if (document.hidden) stop(true);
-      else if (enabled) start();
-    });
-
-    // API pública mínima
-    return { start, stop, el };
-  }
-
-  // ───────── Normalización del payload ─────────
-  function normalizePayload(raw){
-    // Acepta: {enabled, displayMs, pauseMs, items:[{l1,l2,ctaText?,ctaUrl?}]}
-    const enabled = !!raw?.enabled;
-    const displayMs = Number.isFinite(+raw?.displayMs) && +raw.displayMs > 0 ? +raw.displayMs : DEFAULTS.displayMs;
-    const pauseMs   = Number.isFinite(+raw?.pauseMs)   && +raw.pauseMs   > 0 ? +raw.pauseMs   : DEFAULTS.pauseMs;
-
-    let items = Array.isArray(raw?.items) ? raw.items : [];
-    items = items
-      .map(it => {
+    function normalizePayload(raw){
+      const enabled   = !!raw?.enabled;
+      const displayMs = Number.isFinite(+raw?.displayMs) && +raw.displayMs > 0 ? +raw.displayMs : DEFAULTS.displayMs;
+      const pauseMs   = Number.isFinite(+raw?.pauseMs)   && +raw.pauseMs   > 0 ? +raw.pauseMs   : DEFAULTS.pauseMs;
+      let items = Array.isArray(raw?.items) ? raw.items : [];
+      items = items.map(it => {
         const l1 = isNonEmptyStr(it?.l1) ? it.l1.trim() : '';
         const l2 = isNonEmptyStr(it?.l2) ? it.l2.trim() : '';
         const ctaText = isNonEmptyStr(it?.ctaText) ? it.ctaText.trim() : '';
         const ctaUrl  = sanitizeURL(it?.ctaUrl || '');
         const link = (ctaText && ctaUrl) ? { text: ctaText, url: ctaUrl } : null;
-        // Permite filtrar (opcional) por "show: false"
         const show = (typeof it?.show === 'boolean') ? !!it.show : true;
         return { l1, l2, link, show };
-      })
-      .filter(it => it.show && (isNonEmptyStr(it.l1) || isNonEmptyStr(it.l2)));
-
-    return { enabled, displayMs, pauseMs, items };
-  }
-
-  // ───────── Bootstrap ─────────
-  async function boot(){
-    try {
-      injectStylesOnce();
-      const found = await fetchFirstOk(CANDIDATE_ENDPOINTS);
-      if (!found || !found.data) return; // no mostramos nada
-      const cfg = normalizePayload(found.data);
-      if (!cfg.enabled || cfg.items.length === 0) return; // desactivado o sin mensajes => no mostrar
-      // Esperar a que exista body/DOM
-      const ready = (document.readyState === 'loading')
-        ? new Promise(res => document.addEventListener('DOMContentLoaded', res, { once:true }))
-        : Promise.resolve();
-      await ready;
-      const popper = Popper(cfg);
-      popper.start();
-    } catch (err) {
-      // Silencioso en producción para no molestar al usuario final
-      // console.warn('Ads popup error:', err);
+      }).filter(it => it.show && (isNonEmptyStr(it.l1) || isNonEmptyStr(it.l2)));
+      return { enabled, displayMs, pauseMs, items };
     }
-  }
+    async function boot(){
+      try{
+        injectStylesOnce();
+        const found = await fetchFirstOk(CANDIDATE_ENDPOINTS);
+        if (!found || !found.data) return;
+        const cfg = normalizePayload(found.data);
+        if (!cfg.enabled || cfg.items.length === 0) return;
+        const ready = (document.readyState === 'loading') ? new Promise(res => document.addEventListener('DOMContentLoaded', res, { once:true })) : Promise.resolve();
+        await ready; Popper(cfg).start();
+      }catch{}
+    }
+    boot();
+  })();
+  </script>
 
-  boot();
-})();
-</script>
-
-  <script src="script.js?v=kg3-tiers" defer></script>
+  <!-- LÓGICA del catálogo -->
+  <script src="script.js" defer></script>
 </body>
 </html>

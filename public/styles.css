@@ -10,7 +10,6 @@
   --radius: 16px;
   --shadow: 0 8px 24px rgba(0,0,0,.12);
 
-  /* capas */
   --z-fabs: 1200;
   --z-modal-overlay: 2000;
   --z-modal: 2100;
@@ -35,9 +34,7 @@ body{
   backdrop-filter: blur(6px);
   border-bottom: 1px solid #e9e9e9;
 }
-body.has-fixed-topbar{
-  padding-top: var(--topbar-h, 120px);
-}
+body.has-fixed-topbar{ padding-top: var(--topbar-h, 120px); }
 
 .filters{
   max-width: 1100px;
@@ -51,32 +48,15 @@ body.has-fixed-topbar{
   grid-template-columns: repeat(2, minmax(0,1fr));
   gap: 12px;
 }
-.field{
-  display:flex;
-  flex-direction: column;
-  gap:6px;
-}
-.field > span, .radios legend{
-  font-size:.9rem;
-  color:#555;
-}
-.field select,
-.field input[type="search"],
-.field textarea{
-  border:1px solid #ddd;
-  padding:12px 12px;
-  border-radius: 12px;
-  outline: none;
-  background:#fff;
+.field{ display:flex; flex-direction: column; gap:6px; }
+.field > span, .radios legend{ font-size:.9rem; color:#555; }
+.field select, .field input[type="search"], .field textarea{
+  border:1px solid #ddd; padding:12px 12px; border-radius: 12px; outline: none; background:#fff;
 }
 .field input[type="search"]{ width:100%; }
 .field-search{ grid-column: 1 / -1; }
 
-.container{
-  max-width:1100px;
-  margin: 18px auto 80px;
-  padding: 0 16px;
-}
+.container{ max-width:1100px; margin: 18px auto 80px; padding: 0 16px; }
 
 /* Grid de productos */
 .grid{
@@ -85,21 +65,12 @@ body.has-fixed-topbar{
   gap:16px;
 }
 .card{
-  background:#fff;
-  border-radius: var(--radius);
-  padding:12px;
-  display:flex;
-  gap:12px;
-  box-shadow: var(--shadow);
+  background:#fff; border-radius: var(--radius); padding:12px; display:flex; gap:12px; box-shadow: var(--shadow);
 }
 .card img{
-  width: 110px; height: 110px; object-fit: cover;
-  border-radius: 12px; background: #eee;
+  width: 110px; height: 110px; object-fit: cover; border-radius: 12px; background: #eee;
 }
-.card .info{
-  display:flex; flex-direction: column; justify-content: space-between;
-  flex:1; min-width: 0;
-}
+.card .info{ display:flex; flex-direction: column; justify-content: space-between; flex:1; min-width: 0; }
 .card h3{ margin:0; font-size:1rem; line-height:1.2; }
 .price{ margin:6px 0; font-weight: 700; color: var(--green); }
 
@@ -194,8 +165,7 @@ select:focus, input:focus, textarea:focus, .btn:focus{
 
 .qty-control{ display:flex; align-items:center; gap:8px; }
 .qty-control button{
-  border: 1px solid #ddd; background:#fff; padding: 6px 10px; border-radius: 999px;
-  cursor: pointer; font-weight: bold; font-size: 1rem;
+  border:1px solid #ddd; background:#fff; padding:6px 10px; border-radius:999px; cursor:pointer; font-weight:bold; font-size:1rem;
 }
 .qty-control span{ min-width: 20px; text-align: center; font-weight: 600; }
 
@@ -276,20 +246,7 @@ body.service-blocked{ overflow: hidden; }
 
 /* Campo efectivo */
 #cashField{ position: relative; }
-.cash-bubble{
-  position:absolute; left:0; top:calc(100% + 6px);
-  background:#FDE68A; border:1px solid #F59E0B; color:#111827;
-  padding:6px 10px; border-radius:10px; font-size:.9rem; box-shadow:0 6px 18px rgba(0,0,0,.12);
-  z-index:60; max-width:320px;
-}
-.cash-bubble::before{
-  content:""; position:absolute; left:16px; top:-6px;
-  border-width:6px; border-style:solid; border-color:transparent transparent #F59E0B transparent;
-}
-.cash-bubble::after{
-  content:""; position:absolute; left:16px; top:-5px;
-  border-width:6px; border-style:solid; border-color:transparent transparent #FDE68A transparent;
-}
+.cash-help{ color:#b91c1c; display:block; margin-top:4px; }
 #cashField input:invalid{ border-color:#e53e3e; box-shadow:0 0 0 2px rgba(229,62,62,.12); }
 
 /* === Free Shipping Toast === */
@@ -320,249 +277,80 @@ body.service-blocked{ overflow: hidden; }
 .card.is-unavailable .price{ opacity:.75; }
 .btn.add.unavailable:focus{ outline: 2px dashed rgba(245,158,11,.6); outline-offset: 2px; }
 
-/* ======== FAVORITOS (Carrusel) — centrado real ======== */
-.favs{
-  max-width:1100px; margin:0 auto; padding:8px 16px 6px; border-top:1px solid #e9e9e9; position:relative;
-}
+/* ======== FAVORITOS (Carrusel) ======== */
+.favs{ max-width:1100px; margin:0 auto; padding:8px 16px 6px; border-top:1px solid #e9e9e9; position:relative; }
 .favs.hidden{ display:none; }
-
 .favs-head{ display:flex; align-items:center; justify-content:space-between; margin:2px 0 8px; }
 .favs-title{ margin:0; font-size:1rem; font-weight:700; color:#111827; }
 .favs-actions{ display:flex; gap:8px; align-items:center; }
-/* Si JS pone hidden en una flecha, que desaparezca de verdad */
 .favs-nav[hidden]{ display:none !important; }
 .favs-nav{ width:34px; height:34px; border-radius:999px; border:1px solid #ddd; background:#fff; cursor:pointer; }
 .btn.small{ padding:6px 10px; font-size:.9rem; }
 
-/* Viewport */
 .favs-viewport{ position:relative; overflow:hidden; }
-
-/* Track con slide variable y padding para centrar 1.º/último */
 .favs-track{
-  /* ancho de cada slide (móvil: ~2 por viewport) */
   --slide: clamp(190px, 40vw, 200px);
   display:flex; gap:12px;
   overflow-x:auto; -webkit-overflow-scrolling:touch;
   scroll-snap-type: x mandatory; scroll-behavior: smooth;
   padding-block: 4px 16px;
-  /* centrar extremos: medio de viewport - medio del slide */
   padding-inline: max(12px, calc(50% - var(--slide) / 2));
   scroll-padding-inline: calc(50% - var(--slide) / 2);
+  scrollbar-width: none;
 }
-/* Oculta el scroll en todos los navegadores */
-.favs-track{
-  scrollbar-width: none;           /* Firefox */
-}
-.favs-track::-webkit-scrollbar{
-  display: none;                   /* WebKit */
-}
+.favs-track::-webkit-scrollbar{ display:none; }
 
-/* Mini-card */
 .fav-card{
   flex: 0 0 var(--slide);
-  scroll-snap-align: center;            /* ❤️ centra cada item */
+  scroll-snap-align: center;
   background:#fff; border:1px solid #e5e7eb; border-radius:14px;
   padding:10px; box-shadow: var(--shadow);
   display:grid; grid-template-columns: 84px 1fr; gap:10px; align-items:center;
 }
-.fav-card .media{
-  position:relative; width:84px; height:84px; border-radius:10px; overflow:hidden; background:#eee; flex:0 0 84px;
-}
+.fav-card .media{ position:relative; width:84px; height:84px; border-radius:10px; overflow:hidden; background:#eee; flex:0 0 84px; }
 .fav-card .media img{ width:100%; height:100%; object-fit:cover; display:block; }
-.fav-card .fav-heart{
-  position:absolute; left:6px; bottom:6px; width:28px; height:28px; border:none; border-radius:999px;
-  background:rgba(255,255,255,.92); backdrop-filter: blur(4px); box-shadow:0 4px 12px rgba(0,0,0,.18);
-  display:grid; place-items:center; cursor:pointer; transition: transform .12s ease, background .2s ease;
-}
-.fav-card .fav-heart:active{ transform: translateY(1px); }
-.fav-card .fav-heart svg{ width:16px; height:16px; }
-.fav-card .fav-heart .icon-fill{ display:none; }
-.fav-card .fav-heart.is-fav .icon-stroke{ display:none; }
-.fav-card .fav-heart.is-fav .icon-fill{ display:block; }
-
 .fav-card .meta{ min-width:0; display:grid; gap:6px; }
 .fav-card .meta h4{ margin:0; font-size:.95rem; line-height:1.15; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.fav-card .price{ margin:0; color:#16a34a; font-weight:700; }
+.fav-card .p{ margin:0; color:#16a34a; font-weight:700; }
 .fav-card .btn.add{ width:100%; padding:8px 10px; border-radius:999px; }
+.fav-card.is-unavailable{ opacity:.82; }
+.fav-qty{ display:flex; align-items:center; gap:10px; }
+.fav-qty .qminus, .fav-qty .qplus{
+  border:1px solid #ddd; background:#fff; padding:6px 10px; border-radius:999px; cursor:pointer; font-weight:700;
+}
+.fav-qty .qcount{ min-width:28px; text-align:center; font-weight:700; }
 
-/* Dots */
-.favs-dots{
-  pointer-events:none;
-  position:absolute; left:50%; bottom:4px; transform:translateX(-50%);
-  display:grid; grid-auto-flow:column; gap:8px;
-}
-.favs-dot{ width:8px; height:8px; border-radius:999px; background:#d1d5db; }
-.favs-dot.is-active{ background:#6366f1; }
+.favs-dots{ display:flex; gap:6px; justify-content:center; margin:4px 0 0; }
+.favs-dot{ width:6px; height:6px; border-radius:999px; background:#d1d5db; }
+.favs-dot.is-active{ background:#111827; }
 
-/* Corazón en tarjetas del grid normal */
-.card .media{ position:relative; width:110px; height:110px; flex:0 0 110px; border-radius:12px; overflow:hidden; background:#eee; }
-.card .media img{ width:100%; height:100%; object-fit:cover; display:block; }
-.card .media .fav-heart{
-  position:absolute; left:8px; bottom:8px; width:34px; height:34px;
-  display:grid; place-items:center; border:nonfve; border-radius:999px;
-  background:rgba(255,255,255,.92); box-shadow:0 6px 16px rgba(0,0,0,.18);
+/* ====== MODAL de favoritos ====== */
+.favs-modal-grid{
+  display:grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap:14px;
 }
-.card .media .fav-heart svg{ width:18px; height:18px; }
-.card .media .fav-heart .icon-fill{ display:none; }
-.card .media .fav-heart.is-fav .icon-stroke{ display:none; }
-.card .media .fav-heart.is-fav .icon-fill{ display:block; }
-
-/* Breakpoints: más tarjetas visibles en pantallas grandes */
-@media (min-width: 640px){
-  .favs-track{ --slide: clamp(210px, 36vw, 260px); }
-}
-@media (min-width: 900px){
-  .favs-track{ --slide: clamp(220px, 28vw, 280px); }
-}
-@media (min-width: 1200px){
-  .favs-track{ --slide: clamp(230px, 22vw, 300px); }
-}
-/* ======== FAVORITOS: Modal "Ver todos" ======== */
-#modalFavs .modal__overlay{
-  background: rgba(0,0,0,.45);
-}
-
-/* En escritorio: centrado, tamaño contenido y scroll interno */
-@media (min-width: 780px){
-  #modalFavs .modal__content{
-    inset: 0;                      /* centrado */
-    margin: auto;
-    width: min(92vw, 900px);
-    max-height: 85vh;              /* no tapa toda la pantalla */
-    border-radius: 20px;
-    overflow: auto;                /* scroll dentro del modal */
-  }
-}
-
-/* Contenedor de tarjetas dentro del modal */
-#favsModalList{
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: 12px;
-  padding: 6px;
-}
-
-/* Tarjeta dentro del modal */
+.favs-modal-grid.scroll{ max-height:60vh; overflow:auto; padding-right:.25rem; }
 .favs-modal-card{
-  display: grid;
-  grid-template-columns: 72px 1fr;
-  align-items: center;
-  gap: 10px;
-  padding: 10px;
-  border: 1px solid #eee;
-  border-radius: 12px;
-  background: #fff;
-  box-shadow: 0 4px 12px rgba(0,0,0,.05);
+  border:1px solid #e5e7eb; border-radius:12px; padding:10px; background:#fff;
+  display:grid; grid-template-rows: auto auto auto auto; gap:8px;
 }
-.favs-modal-card img{
-  width: 72px; height: 72px; object-fit: cover; border-radius: 10px; background: #eee;
-}
-.favs-modal-card .meta h4{
-  margin: 0 0 4px; font-size: .98rem; line-height: 1.15;
-}
-.favs-modal-card .p{
-  margin: 0; color: #16a34a; font-weight: 700;
-}
-.favs-modal-card .actions{
-  grid-column: 1 / -1;
-  display: flex; gap: 8px; justify-content: flex-end; margin-top: 6px;
+.favs-modal-card img{ width:100%; height:140px; object-fit:cover; border-radius:10px; background:#eee; }
+.favs-modal-card .meta h4{ margin:0 0 4px; font-size: 1rem; }
+.favs-modal-card .p{ margin:0; color:#16a34a; font-weight:700; }
+.favs-modal-card .actions{ display:flex; align-items:center; gap:10px; }
+.favs-modal-card .btn.btn-remove{ width:100%; }
+.status-badge{
+  position:absolute; top:8px; right:8px; background:#f59e0b; color:#111827; padding:3px 6px; font-size:.78rem; border-radius:999px;
 }
 
-/* Botón "Quitar" con estilo de advertencia ligera */
-.btn.btn-remove{
-  background: #fee2e2;
-  color: #991b1b;
-  border: 1px solid #fecaca;
-}
-.btn.btn-remove:hover{
-  filter: brightness(.97);
-}
-/* ======== FAVORITOS: control de cantidad compacto en el rail ======== */
-.fav-qty{
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;                 /* antes 8px */
-  border: 1px solid #e5e7eb;
-  background: #fff;
-  padding: 4px 8px;         /* antes 6px 10px */
-  border-radius: 999px;
-  box-shadow: 0 3px 8px rgba(0,0,0,.05);
-  max-width: 100%;
-}
-.fav-qty .qminus,
-.fav-qty .qplus{
-  appearance: none; border: none; background: #fff;
-  width: 24px; height: 24px;     /* antes 28x28 */
-  border-radius: 999px;
-  display: grid; place-items: center;
-  cursor: pointer;
-  font-weight: 700; font-size: 14px; line-height: 1; /* más compacto */
-  border: 1px solid #e5e7eb;
-}
-.fav-qty .qminus:active,
-.fav-qty .qplus:active{ transform: translateY(1px); }
-.fav-qty .qcount{
-  min-width: 20px;              /* antes 22px */
-  text-align: center; font-weight: 700;
-  font-size: 14px;
-}
-/* Lista con scroll si hay muchos favoritos */
-#favsModalList.scroll{
-  max-height: 60vh;           /* ajustable */
-  overflow-y: auto;
-  padding-right: 6px;
-}
-#favsModalList.scroll::-webkit-scrollbar{ width: 8px; }
-#favsModalList.scroll::-webkit-scrollbar-thumb{
-  background: rgba(0,0,0,.15); border-radius: 999px;
+/* Total pill */
+.total-pill{
+  display:inline-block; background:#e5f7e8; color:#065f46; padding:6px 10px; border-radius:999px; border:1px solid #a7f3d0;
 }
 
-/* En móviles, un poco más alto (para 3-4 tarjetas visibles) */
-@media (max-width: 380px){
-  .fav-qty{ gap: 4px; padding: 3px 6px; }
-  .fav-qty .qminus, .fav-qty .qplus{ width: 22px; height: 22px; font-size: 13px; }
-  .fav-qty .qcount{ min-width: 18px; font-size: 13px; }
-}
-/* En tablets */
-@media (min-width: 481px) and (max-width: 779px){
-  #favsModalList.scroll{ max-height: 68vh; }
-}
-.fab-title{
-  text-decoration: none;
-  color: #FFF;
-}
-/* Favoritos: estados no disponibles */
-.fav-card.is-unavailable .price{ opacity:.75; }
-.fav-card .status-badge,
-.favs-modal-card .status-badge{
-  position:absolute; left:6px; top:6px;
-  background:#111827; color:#fff; font-size:.72rem; padding:2px 6px; border-radius:999px; opacity:.9;
-}
-.btn.add.unavailable{ background:#f59e0b; color:#111827; cursor:not-allowed; box-shadow:none; opacity:.95; }
-/* Pago dividido */
-.split-pay .hidden{ display:none; }
-.switch{ display:inline-flex; align-items:center; gap:8px; cursor:pointer; }
-.switch input{ width:16px; height:16px; }
-.split-row{ display:flex; gap:12px; margin-top:8px; }
-.split-row .field{ flex:1; }
-.split-summary{ margin-top:10px; display:grid; gap:4px; }
-
-/* Pop-up publicitario */
-.promo-pop.hidden{ display:none; }
-.promo-pop{
-  position: fixed;
-  bottom: 16px; left: 16px;
-  max-width: 280px;
-  background: #ffffffee; backdrop-filter: blur(4px);
-  border: 1px solid #e6e6e6; border-radius: 14px;
-  padding: 12px 12px 10px 12px; box-shadow: var(--shadow);
-  z-index: 3000;
-}
-.promo-pop.bottom-right{ left:auto; right:16px; }
-.promo-title{ font-weight:700; margin-bottom:4px; }
-.promo-text{ font-size:.95rem; margin-bottom:8px; }
-.promo-cta{ display:inline-block; text-decoration:none; padding:6px 10px; border-radius:10px; border:1px solid #111; }
-.promo-close{
-  position:absolute; top:6px; right:6px; width:28px; height:28px;
-  border-radius:50%; border:0; background:#f2f2f2; cursor:pointer;
-}
+/* Split pay */
+.split-pay .switch{ display:flex; align-items:center; gap:10px; }
+.split-row{ display:grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap:12px; }
+.split-summary{ margin-top:8px; display:grid; gap:4px; }
+.muted{ color:#6b7280; font-size:.9rem; }
