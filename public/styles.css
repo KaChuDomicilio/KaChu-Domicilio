@@ -354,3 +354,38 @@ body.service-blocked{ overflow: hidden; }
 .split-row{ display:grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap:12px; }
 .split-summary{ margin-top:8px; display:grid; gap:4px; }
 .muted{ color:#6b7280; font-size:.9rem; }
+
+/* ===== MINI POP-UP ADS ===== */
+:root{
+  --kachu-black:#111;
+  --kachu-white:#fff;
+  --shadow:0 10px 30px rgba(0,0,0,.15);
+  --z-ads:900;
+}
+#popupKachu{
+  position:fixed; left:16px; bottom:16px; z-index:var(--z-ads);
+  width:min(92vw, 340px);
+  background:var(--kachu-white);
+  border:1px solid #eee; border-radius:16px;
+  padding:14px 16px 16px; display:none;
+  box-shadow:var(--shadow);
+}
+#popupKachu .l1{font-weight:900;margin:0 22px 4px 0;color:var(--kachu-black)}
+#popupKachu .l2{margin:0 22px 8px 0;color:#333;font-size:14px}
+#popupKachu .cta{font-weight:800;text-decoration:underline;color:var(--kachu-black)}
+#popupKachu .ad-close{
+  position:absolute; top:6px; right:8px; border:0; background:transparent;
+  font:inherit; cursor:pointer; opacity:.6
+}
+#popupKachu .ad-close:hover{opacity:1}
+#popupKachu.hidden{display:none}
+
+.in{animation:slideIn .28s ease forwards}
+.out{animation:slideOut .26s ease forwards}
+@keyframes slideIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+@keyframes slideOut{to{opacity:0;transform:translateY(12px)}}
+
+/* accesibilidad: reduce motion */
+@media (prefers-reduced-motion: reduce){
+  .in,.out{animation-duration:.001ms !important; animation-iteration-count:1 !important; transition-duration:.001ms !important}
+}

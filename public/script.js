@@ -74,7 +74,8 @@ var API = {
   productos:  ['/api/data/productos'],
   categorias: ['/api/data/categorias'],
   zonas:      ['/api/data/zonas'],
-  servicio:   ['/api/data/servicio']
+  servicio:   ['/api/data/servicio'],
+  ads:        ['/api/data/ads', '/ads.json'] // <— NUEVO: fallback a /ads.json
 };
 function fetchNoCache(url){
   var u = url + (url.indexOf('?') >= 0 ? '&t=' + Date.now() : '?t=' + Date.now());
@@ -90,6 +91,35 @@ function fetchFirstOk(urls){
     }).catch(function(){ tryOne(idx+1, resolve, reject); });
   }
   return new Promise(function(resolve, reject){ tryOne(0, resolve, reject); });
+}
+/* == ADS: carga y normalización desde ads.json == */
+var AdsData = { enabled:false, messages:[] };
+
+function normalizeAds(json){
+  var out = { enabled:false, messages:[] };
+  if (!json || typeof json !== 'object') return out;
+
+  var enabled = (json.enabled !== false);
+  var msgs = Array.isArray(json.messages) ? json.messages : [];
+
+  out.enabled = enabled;
+  out.messages = msgs.map(function(m){
+    var l1 = (m.l1 || '').toString();
+    var l2 = (m.l2 || '').toString();
+    var ctaText = (m.ctaText || '').toString().trim();
+    var ctaUrl  = (m.ctaUrl  || '').toString().trim();
+    return { l1: l1, l2: l2, ctaText: ctaText, ctaUrl: ctaUrl };
+  }).filter(function(m){ return m.l1 || m.l2; });
+
+  return out;
+}
+
+function loadAds(){
+  return fetchFirstOk(API.ads).then(function(res){
+    AdsData = normalizeAds(res.json);
+  }).catch(function(){
+    AdsData = { enabled:false, messages:[] };
+  });
 }
 
 /* == 3) Helpers == */
@@ -1102,6 +1132,142 @@ zone.addEventListener('change', function(){
   fsShowOnAdd = true;
   updateFreeShippingPromo();
 });
+/* == MINI POP-UP ADS (persistente/rotativo) == */
+/* Preferencias/snooze */
+var ADS_SNOOZE_MIN = 360;              // 6 horas de “no mostrar” tras cerrar
+var ADS_SNOOZE_KEY = 'kachu_ads_snooze_until';
+
+/* Tiempos (ms) */
+var ADS_DISPLAY_MS = 6000;             // visible
+var ADS_PAUSE_MS   = 10000;            // pausa entre mensajes
+
+/* Estado */
+var __adsNode = null, __adsClose = null, __adsL1 = null, __adsL2 = null, __adsCta = null;
+var __adsTimers = [];
+var __adsRunning = false;
+var __adsIndex = 0;
+
+/* Util: fecha/hora */
+function nowMs(){ return Date.now(); }
+function snoozedUntil(){ return parseInt(localStorage.getItem(ADS_SNOOZE_KEY)||'0',10) || 0; }
+function setSnooze(minutes){
+  var until = nowMs() + Math.max(1, minutes) * 60 * 1000;
+  localStorage.setItem(ADS_SNOOZE_KEY, String(until));
+}
+
+/* Crear DOM si hace falta */
+function ensureAdsDOM(){
+  if (__adsNode) return;
+  var sec = document.createElement('section');
+  sec.id = 'popupKachu';
+  sec.setAttribute('role','dialog');
+  sec.setAttribute('aria-live','polite');
+  sec.setAttribute('aria-label','Notificación');
+
+  sec.innerHTML = '' +
+    '<button class="ad-close" aria-label="Cerrar notificación">✕</button>' +
+    '<p class="l1"></p>' +
+    '<p class="l2"></p>' +
+    '<p class="lcta" style="margin:0 22px 0 0;display:none">' +
+      '<a class="cta" href="#" target="_blank" rel="noopener"></a>' +
+    '</p>';
+
+  document.body.appendChild(sec);
+
+  __adsNode  = sec;
+  __adsClose = sec.querySelector('.ad-close');
+  __adsL1    = sec.querySelector('.l1');
+  __adsL2    = sec.querySelector('.l2');
+  __adsCta   = sec.querySelector('.lcta .cta');
+
+  __adsClose.addEventListener('click', function(){
+    stopAdsCycle(true);
+    setSnooze(ADS_SNOOZE_MIN);
+  });
+}
+
+/* Render del mensaje */
+function setAdsContent(msg){
+  // l1 y l2: como texto simple para evitar inyecciones; si necesitas HTML en l2, cámbialo a innerHTML conscientemente.
+  __adsL1.textContent = (msg.l1 || '').trim();
+  __adsL2.textContent = (msg.l2 || '').trim();
+
+  var hasCTA = msg.ctaText && msg.ctaUrl;
+  var pcta = __adsNode.querySelector('.lcta');
+  if (hasCTA){
+    __adsCta.textContent = msg.ctaText;
+    __adsCta.href = msg.ctaUrl;
+    pcta.style.display = '';
+  } else {
+    __adsCta.removeAttribute('href');
+    pcta.style.display = 'none';
+  }
+}
+
+/* Animaciones */
+function adsAnimateIn(){
+  __adsNode.classList.remove('out');
+  __adsNode.style.display = 'block';
+  void __adsNode.offsetWidth;
+  __adsNode.classList.add('in');
+}
+function adsAnimateOut(cb){
+  __adsNode.classList.remove('in');
+  __adsNode.classList.add('out');
+  var t = setTimeout(function(){
+    __adsNode.style.display = 'none';
+    cb && cb();
+  }, 240);
+  __adsTimers.push(t);
+}
+
+/* Ciclo */
+function adsCycleOnce(){
+  if (!__adsRunning) return;
+  if (!AdsData.enabled || !AdsData.messages.length) { stopAdsCycle(true); return; }
+
+  var msg = AdsData.messages[__adsIndex % AdsData.messages.length];
+  setAdsContent(msg);
+  adsAnimateIn();
+
+  var t1 = setTimeout(function(){
+    adsAnimateOut(function(){
+      if (!__adsRunning) return;
+      __adsIndex = (__adsIndex + 1) % AdsData.messages.length;
+      var t2 = setTimeout(function(){ adsCycleOnce(); }, 1100 + ADS_PAUSE_MS);
+      __adsTimers.push(t2);
+    });
+  }, ADS_DISPLAY_MS);
+  __adsTimers.push(t1);
+}
+
+function startAdsCycle(){
+  if (__adsRunning) return;
+  if (!AdsData.enabled || !AdsData.messages.length) return;
+  if (nowMs() < snoozedUntil()) return; // respetar snooze
+
+  ensureAdsDOM();
+  __adsRunning = true;
+  __adsNode.style.display = 'block';
+  var t = setTimeout(adsCycleOnce, 50);
+  __adsTimers.push(t);
+}
+
+function stopAdsCycle(hideNow){
+  __adsRunning = false;
+  __adsTimers.forEach(function(t){ clearTimeout(t); });
+  __adsTimers = [];
+  if (__adsNode && hideNow){
+    __adsNode.classList.remove('in','out');
+    __adsNode.style.display = 'none';
+  }
+}
+
+/* Pausar cuando la pestaña no es visible (ahorra batería/CPU) */
+document.addEventListener('visibilitychange', function(){
+  if (document.hidden) stopAdsCycle(true);
+  else startAdsCycle();
+});
 
 /* == 14) WHATSAPP == */
 checkoutForm.addEventListener('submit', function(e){
@@ -1719,15 +1885,18 @@ window.addEventListener('DOMContentLoaded', function(){
   favsSetupCenteredCarousel();
   bindFavsRailEvents();
 
-  Promise.all([ loadCategories(), loadProducts(), loadZones() ]).then(function(){
-    Array.from(cart.keys()).forEach(function(id){ syncCardsQty(id); });
-    toggleContinueButton();
-    updateFreeShippingPromo();
-    renderFavoritesRail();
-    updateAllCardHearts();
+  Promise.all([ loadCategories(), loadProducts(), loadZones(), loadAds() ]).then(function(){
+  Array.from(cart.keys()).forEach(function(id){ syncCardsQty(id); });
+  toggleContinueButton();
+  updateFreeShippingPromo();
+  renderFavoritesRail();
+  updateAllCardHearts();
 
-    if (zone.value && (cart.size > 0)) { fsShowOnAdd = true; updateFreeShippingPromo(); }
-    bindAddButtons();
-    bindFavoriteHearts();
-  }).catch(function(e){ console.error(e); });
+  if (zone.value && (cart.size > 0)) { fsShowOnAdd = true; updateFreeShippingPromo(); }
+  bindAddButtons();
+  bindFavoriteHearts();
+
+  // ===== iniciar pop-up de anuncios =====
+  startAdsCycle();
+}).catch(function(e){ console.error(e); });
 });
