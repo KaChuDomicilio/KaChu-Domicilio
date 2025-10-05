@@ -19,7 +19,6 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 </head>
 <body>
-
   <!-- BARRA SUPERIOR STICKY -->
   <header class="topbar">
     <div class="filters">
@@ -37,7 +36,6 @@
           </select>
         </label>
       </div>
-
       <div class="row">
         <label class="field field-search">
           <span>Buscar producto</span>
@@ -75,8 +73,7 @@
         </span>
         <span class="fab-text">
           <span class="fab-subtitle">Síguenos en:</span>
-          <a class="fab-title" href="https://www.facebook.com/AbarrotesKaChu"
-             target="_blank" rel="noopener" data-name="Abarrotes KaChu">Abarrotes KaChu</a>
+          <a class="fab-title" href="https://www.facebook.com/AbarrotesKaChu" target="_blank" rel="noopener" data-name="Abarrotes KaChu">Abarrotes KaChu</a>
         </span>
       </button>
     </div>
@@ -89,8 +86,7 @@
         </span>
         <span class="fab-text">
           <span class="fab-subtitle">Síguenos en:</span>
-          <a class="fab-title" href="https://whatsapp.com/channel/0029VagyKOKL7UVb2wxnh502"
-             target="_blank" rel="noopener" data-name="KaChu New">KaChu New</a>
+          <a class="fab-title" href="https://whatsapp.com/channel/0029VagyKOKL7UVb2wxnh502" target="_blank" rel="noopener" data-name="KaChu New">KaChu New</a>
         </span>
       </button>
     </div>
@@ -104,8 +100,7 @@
 
   <!-- BOTÓN FLOTANTE CARRITO -->
   <button id="btnCart" class="fab" aria-label="Carrito" type="button">
-    🛒
-    <span class="badge" id="cartBadge" hidden>0</span>
+    🛒 <span class="badge" id="cartBadge" hidden>0</span>
   </button>
 
   <!-- MODAL CARRITO -->
@@ -123,7 +118,7 @@
         <p class="note">NOTA: El total cambia dependiendo zona y tipo de pago | los precios mostrados son exclusivos del catálogo.</p>
       </div>
       <div class="actions">
-        <button id="btnClearCart" class="btn ghost" disabled type="button">Vaciar/Carrito</button>
+        <button id="btnClearCart" class="btn ghost" disabled type="button">Vaciar carrito</button>
         <button id="btnContinue" class="btn primary" disabled type="button">Continuar</button>
       </div>
     </div>
@@ -135,7 +130,7 @@
     <div class="fs-progress"><div class="fs-bar"></div></div>
   </div>
 
-  <!-- ================== MODAL: Ver todos =================== -->
+  <!-- ================== MODAL: Ver todos (favoritos) =================== -->
   <div class="modal" id="modalFavs" aria-hidden="true" inert>
     <div class="modal__overlay" data-close="favs" aria-hidden="true"></div>
     <div class="modal__content" role="dialog" aria-modal="true" aria-labelledby="favsModalTitle">
@@ -144,7 +139,7 @@
       <div id="favsModalList" class="favs-modal-grid"></div>
     </div>
   </div>
-  <!-- ================= /MODAL: Ver todos =================== -->
+  <!-- ================= /MODAL: Ver todos (favoritos) =================== -->
 
   <!-- MODAL CHECKOUT -->
   <div id="modalCheckout" class="modal" aria-hidden="true" inert>
@@ -232,12 +227,27 @@
           <button type="button" id="btnCancel" class="btn ghost">Cancelar</button>
           <button type="submit" id="btnWhatsApp" class="btn primary" disabled>Enviar por WhatsApp</button>
           <p class="muted" style="margin-top:.5rem">
-            Al enviar aceptas el tratamiento de tus datos solo para procesar tu pedido por WhatsApp.
-            La información no se guarda en nuestros servidores. Consulta el
-            <a href="/privacidad.html" target="_blank" rel="noopener">Aviso de Privacidad</a>.
+            Al enviar aceptas el tratamiento de tus datos solo para procesar tu pedido por WhatsApp. La información no se guarda en nuestros servidores.
+            Consulta el <a href="/privacidad.html" target="_blank" rel="noopener">Aviso de Privacidad</a>.
           </p>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- MODAL AVISO: Transferencia -->
+  <div id="modalTransferencia" class="modal" aria-hidden="true" inert>
+    <div class="modal__overlay" data-close="checkout"></div>
+    <div class="modal__content" role="dialog" aria-modal="true" aria-labelledby="transferTitle">
+      <button class="modal__close" data-close="checkout" aria-label="Cerrar" type="button">✕</button>
+      <h2 id="transferTitle">Aviso importante — Pago por Transferencia</h2>
+      <p>
+        Con este método de pago la entrega puede tardar un poco más de lo establecido. Esperamos la captura y
+        el reflejo en banca para poder enviar tu pedido.
+      </p>
+      <div class="actions">
+        <button id="btnTransferOK" class="btn primary" type="button">Entendido</button>
+      </div>
     </div>
   </div>
 
@@ -255,14 +265,16 @@
     </div>
   </div>
 
-  <!-- ===== Mini Pop-up desde el panel (ads.json) ===== -->
-  <!-- Si usas otra ruta, define esto ANTES: <script>window.KACHU_ADS_ENDPOINT='/mi/ruta';</script> -->
+  <!-- ===== Mini Pop-up desde el panel (ads.json) =====
+       Si usas otra ruta, define esto ANTES:
+       <script>window.KACHU_ADS_ENDPOINT='/mi/ruta';</script>
+  -->
   <script>
   (function(){
     const CANDIDATE_ENDPOINTS = [
-      typeof window !== 'undefined' && window.KACHU_ADS_ENDPOINT ? window.KACHU_ADS_ENDPOINT : null,
+      (typeof window !== 'undefined' && window.KACHU_ADS_ENDPOINT) ? window.KACHU_ADS_ENDPOINT : null,
       '/api/data/ads',
-      '/api/data/ads.json',  // compat
+      '/api/data/ads.json', // compat
       '/api/ads',
       '/ads.json'
     ].filter(Boolean);
@@ -270,76 +282,179 @@
     const DEFAULTS = { displayMs: 6000, pauseMs: 10000 };
     const STYLE_ID = 'kachu-ads-style';
     const WRAP_ID  = 'popupKachu';
-    const $  = (s, ctx=document) => ctx.querySelector(s);
+
+    const $ = (s, ctx=document) => ctx.querySelector(s);
     const isNonEmptyStr = v => typeof v === 'string' && v.trim().length > 0;
-    function sanitizeURL(u){ try{ const url = new URL(u, location.origin); if(!/^https?:$/.test(url.protocol)) return null; return url.href; } catch { return null; } }
+
+    function sanitizeURL(u){
+      try{
+        const url = new URL(u, location.origin);
+        if(!/^https?:$/.test(url.protocol)) return null;
+        return url.href;
+      } catch { return null; }
+    }
+
     async function fetchFirstOk(urls){
       for (const u of urls){
-        try{ const r = await fetch(u, { cache:'no-store' }); if (!r.ok) continue; const data = await r.json(); return { url:u, data }; }catch{}
-      } return null;
+        try{
+          const r = await fetch(u, { cache:'no-store' });
+          if (!r.ok) continue;
+          const data = await r.json();
+          return { url:u, data };
+        }catch{}
+      }
+      return null;
     }
+
     function injectStylesOnce(){
       if (document.getElementById(STYLE_ID)) return;
       const css = `
-        :root{ --kachu-black:#111; --kachu-white:#fff; --shadow:0 10px 30px rgba(0,0,0,.15); --z-ads:900; }
-        @media (prefers-reduced-motion: reduce){
-          *{animation-duration:.001ms !important;animation-iteration-count:1 !important;transition-duration:.001ms !important}
-        }
-        #${WRAP_ID}{
-          position:fixed; left:16px; bottom:16px; z-index:var(--z-ads);
-          width:min(92vw, 340px);
-          background:var(--kachu-white);
-          border:1px solid #eee; border-radius:16px;
-          padding:14px 16px 16px; display:none;
-          box-shadow:var(--shadow);
-        }
-        #${WRAP_ID} .l1{font-weight:900;margin:0 22px 4px 0;color:var(--kachu-black)}
-        #${WRAP_ID} .l2{margin:0 22px 8px 0;color:#333;font-size:14px}
-        #${WRAP_ID} .cta{font-weight:800;text-decoration:underline;color:var(--kachu-black)}
-        #${WRAP_ID} .ad-close{
-          position:absolute; top:6px; right:8px; border:0; background:transparent;
-          font:inherit; cursor:pointer; opacity:.6
-        }
-        #${WRAP_ID} .ad-close:hover{opacity:1}
-        .kachu-in{animation:kachuSlideIn .28s ease forwards}
-        .kachu-out{animation:kachuSlideOut .26s ease forwards}
-        @keyframes kachuSlideIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
-        @keyframes kachuSlideOut{to{opacity:0;transform:translateY(12px)}}
+:root{
+  --kachu-black:#111;
+  --kachu-white:#fff;
+  --shadow:0 10px 30px rgba(0,0,0,.15);
+  --z-ads:900;
+}
+@media (prefers-reduced-motion: reduce){
+  *{animation-duration:.001ms !important;animation-iteration-count:1 !important;transition-duration:.001ms !important}
+}
+#${WRAP_ID}{
+  position:fixed;
+  left:16px; bottom:16px;
+  z-index:var(--z-ads);
+  width:min(92vw, 340px);
+  background:var(--kachu-white);
+  border:1px solid #eee;
+  border-radius:16px;
+  padding:14px 16px 16px;
+  display:none;
+  box-shadow:var(--shadow);
+}
+#${WRAP_ID} .l1{font-weight:900;margin:0 22px 4px 0;color:var(--kachu-black)}
+#${WRAP_ID} .l2{margin:0 22px 8px 0;color:#333;font-size:14px}
+#${WRAP_ID} .cta{font-weight:800;text-decoration:underline;color:var(--kachu-black)}
+#${WRAP_ID} .ad-close{
+  position:absolute; top:6px; right:8px;
+  border:0; background:transparent; font:inherit; cursor:pointer; opacity:.6
+}
+#${WRAP_ID} .ad-close:hover{opacity:1}
+.kachu-in{animation:kachuSlideIn .28s ease forwards}
+.kachu-out{animation:kachuSlideOut .26s ease forwards}
+@keyframes kachuSlideIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+@keyframes kachuSlideOut{to{opacity:0;transform:translateY(12px)}}
       `.trim();
-      const style = document.createElement('style'); style.id = STYLE_ID; style.textContent = css; document.head.appendChild(style);
+      const style = document.createElement('style');
+      style.id = STYLE_ID;
+      style.textContent = css;
+      document.head.appendChild(style);
     }
+
     function ensureWrapper(){
       let el = document.getElementById(WRAP_ID);
       if (el) return el;
-      el = document.createElement('section'); el.id = WRAP_ID;
-      el.setAttribute('role','dialog'); el.setAttribute('aria-live','polite'); el.setAttribute('aria-label','Notificación');
-      el.innerHTML = `<button class="ad-close" aria-label="Cerrar notificación">✕</button><p class="l1"></p><p class="l2"></p>`;
-      document.body.appendChild(el); return el;
+      el = document.createElement('section');
+      el.id = WRAP_ID;
+      el.setAttribute('role','dialog');
+      el.setAttribute('aria-live','polite');
+      el.setAttribute('aria-label','Notificación');
+      el.innerHTML = `
+        <button class="ad-close" aria-label="Cerrar notificación">✕</button>
+        <p class="l1"></p>
+        <p class="l2"></p>
+      `;
+      document.body.appendChild(el);
+      return el;
     }
+
     function Popper(config){
       const { enabled, displayMs, pauseMs, items } = config;
-      const el = ensureWrapper(); const closeBtn = $('.ad-close', el); const l1 = $('.l1', el); const l2 = $('.l2', el);
+      const el = ensureWrapper();
+      const closeBtn = $('.ad-close', el);
+      const l1 = $('.l1', el);
+      const l2 = $('.l2', el);
+
       let idx = 0, timers = [], running = false;
+
       function setContent(i){
-        const it = items[i]; l1.textContent = it.l1 || ''; l2.textContent = it.l2 || '';
-        const oldA = l2.querySelector('a.cta'); if (oldA) oldA.remove();
+        const it = items[i];
+        l1.textContent = it.l1 || '';
+        l2.textContent = it.l2 || '';
+
+        // quitar CTA previa si existiera
+        const oldAs = l2.querySelectorAll('a.cta');
+        oldAs.forEach(a => a.remove());
+
         if (it.link && isNonEmptyStr(it.link.text) && isNonEmptyStr(it.link.url)){
-          const a = document.createElement('a'); a.className='cta'; a.textContent=it.link.text; a.href=it.link.url; a.target='_blank'; a.rel='noopener';
-          if (l2.lastChild && l2.lastChild.nodeType === Node.TEXT_NODE && !/\s$/.test(l2.lastChild.textContent||'')) l2.appendChild(document.createTextNode(' '));
+          const a = document.createElement('a');
+          a.className='cta';
+          a.textContent=it.link.text;
+          a.href=it.link.url;
+          a.target='_blank';
+          a.rel='noopener';
+          if (l2.lastChild && l2.lastChild.nodeType === Node.TEXT_NODE && !/\s$/.test(l2.lastChild.textContent||'')) {
+            l2.appendChild(document.createTextNode(' '));
+          }
           l2.appendChild(a);
         }
       }
-      function animateIn(){ el.classList.remove('kachu-out'); el.style.display='block'; void el.offsetWidth; el.classList.add('kachu-in'); }
-      function animateOut(cb){ el.classList.remove('kachu-in'); el.classList.add('kachu-out'); timers.push(setTimeout(()=>{ el.style.display='none'; cb&&cb(); }, 240)); }
-      function cycleOnce(){ if (!running) return; setContent(idx); animateIn(); const t1=setTimeout(()=>{ animateOut(()=>{ if(!running) return; idx=(idx+1)%items.length; const t2=setTimeout(()=>{ cycleOnce(); }, 1100 + pauseMs); timers.push(t2); }); }, displayMs); timers.push(t1); }
-      function start(){ if (running) return; running=true; el.style.display='block'; timers.push(setTimeout(()=>cycleOnce(),50)); }
-      function stop(hideNow=false){ running=false; timers.forEach(clearTimeout); timers=[]; if (hideNow){ el.style.display='none'; el.classList.remove('kachu-in','kachu-out'); } }
+
+      function animateIn(){
+        el.classList.remove('kachu-out');
+        el.style.display='block';
+        void el.offsetWidth;
+        el.classList.add('kachu-in');
+      }
+      function animateOut(cb){
+        el.classList.remove('kachu-in');
+        el.classList.add('kachu-out');
+        timers.push(setTimeout(()=>{
+          el.style.display='none';
+          cb&&cb();
+        }, 240));
+      }
+
+      function cycleOnce(){
+        if (!running) return;
+        setContent(idx);
+        animateIn();
+        const t1=setTimeout(()=>{
+          animateOut(()=>{
+            if(!running) return;
+            idx=(idx+1)%items.length;
+            const t2=setTimeout(()=>{ cycleOnce(); }, 1100 + pauseMs);
+            timers.push(t2);
+          });
+        }, displayMs);
+        timers.push(t1);
+      }
+
+      function start(){
+        if (running) return;
+        running=true;
+        el.style.display='block';
+        timers.push(setTimeout(()=>cycleOnce(),50));
+      }
+      function stop(hideNow=false){
+        running=false;
+        timers.forEach(clearTimeout);
+        timers=[];
+        if (hideNow){
+          el.style.display='none';
+          el.classList.remove('kachu-in','kachu-out');
+        }
+      }
+
       closeBtn.addEventListener('click', ()=> stop(true));
-      document.addEventListener('visibilitychange', ()=>{ if (document.hidden) stop(true); else if (enabled) start(); });
+      document.addEventListener('visibilitychange', ()=>{
+        if (document.hidden) stop(true);
+        else if (enabled) start();
+      });
+
       return { start, stop, el };
     }
+
     function normalizePayload(raw){
-      const enabled   = !!raw?.enabled;
+      const enabled  = !!raw?.enabled;
       const displayMs = Number.isFinite(+raw?.displayMs) && +raw.displayMs > 0 ? +raw.displayMs : DEFAULTS.displayMs;
       const pauseMs   = Number.isFinite(+raw?.pauseMs)   && +raw.pauseMs   > 0 ? +raw.pauseMs   : DEFAULTS.pauseMs;
       let items = Array.isArray(raw?.items) ? raw.items : [];
@@ -354,6 +469,7 @@
       }).filter(it => it.show && (isNonEmptyStr(it.l1) || isNonEmptyStr(it.l2)));
       return { enabled, displayMs, pauseMs, items };
     }
+
     async function boot(){
       try{
         injectStylesOnce();
@@ -361,10 +477,16 @@
         if (!found || !found.data) return;
         const cfg = normalizePayload(found.data);
         if (!cfg.enabled || cfg.items.length === 0) return;
-        const ready = (document.readyState === 'loading') ? new Promise(res => document.addEventListener('DOMContentLoaded', res, { once:true })) : Promise.resolve();
-        await ready; Popper(cfg).start();
+
+        const ready = (document.readyState === 'loading')
+          ? new Promise(res => document.addEventListener('DOMContentLoaded', res, { once:true }))
+          : Promise.resolve();
+
+        await ready;
+        Popper(cfg).start();
       }catch{}
     }
+
     boot();
   })();
   </script>
