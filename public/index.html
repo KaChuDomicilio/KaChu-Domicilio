@@ -156,61 +156,73 @@
           </select>
         </label>
 
-        <fieldset class="field radios">
-          <legend>Método de pago</legend>
+        <!-- Título + Switch -->
+        <div class="field" style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
+          <strong style="font-size:1rem;">Método de pago</strong>
+          <label class="switch" style="display:flex; align-items:center; gap:.5rem;">
+            <input type="checkbox" id="twoPaymentsSwitch" aria-controls="splitPayFields">
+            <span>Pagar con 2 métodos</span>
+          </label>
+        </div>
+
+        <!-- Pago único (radios). Se oculta cuando el switch está ON -->
+        <fieldset class="field radios" id="singlePayBox">
+          <legend class="sr-only">Selecciona método de pago</legend>
           <label><input type="radio" name="pay" value="Efectivo" required> Efectivo</label>
           <label><input type="radio" name="pay" value="Tarjeta" required> Tarjeta</label>
           <label><input type="radio" name="pay" value="Transferencia"> Transferencia</label>
         </fieldset>
 
         <!-- PAGO DIVIDIDO -->
-        <div class="split-pay">
-          <label class="switch">
-            <input type="checkbox" id="twoPaymentsSwitch">
-            <span>Quiero pagar con 2 métodos</span>
+        <div id="splitPayFields" class="hidden" aria-live="polite">
+          <div class="split-row">
+            <div class="field">
+              <span>Método 1</span>
+              <select id="payMethod1">
+                <option value="Efectivo">Efectivo</option>
+                <option value="Tarjeta">Tarjeta</option>
+                <option value="Transferencia">Transferencia</option>
+              </select>
+            </div>
+            <div class="field">
+              <span>Monto 1</span>
+              <input type="number" id="payAmount1" min="0" step="0.01" placeholder="0.00" inputmode="decimal">
+              <small class="muted">Escribe solo este monto. El 2º se calcula automático.</small>
+            </div>
+          </div>
+
+          <div class="split-row">
+            <div class="field">
+              <span>Método 2</span>
+              <select id="payMethod2">
+                <option value="Efectivo">Efectivo</option>
+                <option value="Tarjeta">Tarjeta</option>
+                <option value="Transferencia">Transferencia</option>
+              </select>
+            </div>
+            <div class="field">
+              <span>Monto 2 (auto)</span>
+              <input type="number" id="payAmount2" min="0" step="0.01" placeholder="Se calcula" inputmode="decimal" readonly aria-readonly="true">
+            </div>
+          </div>
+
+          <!-- Paga con en efectivo (solo si hay efectivo en alguno de los métodos) -->
+          <label class="field hidden" id="cashFieldSplit">
+            <span>¿Con cuánto pagarás en efectivo?</span>
+            <input type="number" id="cashGivenSplit" placeholder="Ej. 200.00" min="0" step="0.01" inputmode="decimal">
+            <small id="cashSplitHelp" class="cash-help"></small>
           </label>
 
-          <div id="splitPayFields" class="hidden">
-            <div class="split-row">
-              <div class="field">
-                <span>Método 1</span>
-                <select id="payMethod1">
-                  <option value="Efectivo">Efectivo</option>
-                  <option value="Tarjeta">Tarjeta</option>
-                  <option value="Transferencia">Transferencia</option>
-                </select>
-              </div>
-              <div class="field">
-                <span>Monto 1</span>
-                <input type="number" id="payAmount1" min="0" step="0.01" placeholder="0.00">
-              </div>
-            </div>
-
-            <div class="split-row">
-              <div class="field">
-                <span>Método 2</span>
-                <select id="payMethod2">
-                  <option value="Efectivo">Efectivo</option>
-                  <option value="Tarjeta">Tarjeta</option>
-                  <option value="Transferencia">Transferencia</option>
-                </select>
-              </div>
-              <div class="field">
-                <span>Monto 2</span>
-                <input type="number" id="payAmount2" min="0" step="0.01" placeholder="0.00">
-              </div>
-            </div>
-
-            <div class="split-summary">
-              <div>Subtotal + envío: <strong id="splitSubtotal">$0.00</strong></div>
-              <div>Comisión por tarjeta: <strong id="splitFee">$0.00</strong></div>
-              <div>Total a pagar: <strong id="splitTotal">$0.00</strong></div>
-              <div class="muted">Si hay efectivo, calculamos el cambio automáticamente.</div>
-              <div>Cambio estimado: <strong id="splitChange">$0.00</strong></div>
-            </div>
+          <div class="split-summary">
+            <div>Subtotal + envío: <strong id="splitSubtotal">$0.00</strong></div>
+            <div>Comisión por tarjeta: <strong id="splitFee">$0.00</strong></div>
+            <div>Total a pagar: <strong id="splitTotal">$0.00</strong></div>
+            <div class="muted">Si hay efectivo, calculamos el cambio automáticamente.</div>
+            <div>Cambio estimado: <strong id="splitChange">$0.00</strong></div>
           </div>
         </div>
 
+        <!-- Paga con (pago único en efectivo) -->
         <label class="field hidden" id="cashField">
           <span>¿Con cuánto vas a pagar?</span>
           <input type="number" id="cashGiven" placeholder="Ej. 200.00" min="0" step="0.01">
@@ -265,10 +277,7 @@
     </div>
   </div>
 
-  <!-- ===== Mini Pop-up desde el panel (ads.json) =====
-       Si usas otra ruta, define esto ANTES:
-       <script>window.KACHU_ADS_ENDPOINT='/mi/ruta';</script>
-  -->
+  <!-- ===== Mini Pop-up desde el panel (ads.json) ===== -->
   <script>
   (function(){
     const CANDIDATE_ENDPOINTS = [
@@ -486,11 +495,9 @@
         Popper(cfg).start();
       }catch{}
     }
-
     boot();
   })();
   </script>
-
   <!-- LÓGICA del catálogo -->
   <script src="script.js" defer></script>
 </body>

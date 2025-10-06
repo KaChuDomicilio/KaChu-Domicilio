@@ -358,13 +358,13 @@ body.service-blocked{ overflow: hidden; }
 /* ===== MINI POP-UP ADS ===== */
 :root{
   --kachu-black:#111;
-  --kachu-white:#fff;
+  --kachu-white:#32CD32;
   --shadow:0 10px 30px rgba(0,0,0,.15);
   --z-ads:900;
 }
 #popupKachu{
   position:fixed; left:16px; bottom:16px; z-index:var(--z-ads);
-  width:min(92vw, 340px);
+  width:min(72vw, 240px);
   background:var(--kachu-white);
   border:1px solid #eee; border-radius:16px;
   padding:14px 16px 16px; display:none;
