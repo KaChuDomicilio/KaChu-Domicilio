@@ -168,8 +168,8 @@
         <!-- Pago único (radios). Se oculta cuando el switch está ON -->
         <fieldset class="field radios" id="singlePayBox">
           <legend class="sr-only">Selecciona método de pago</legend>
-          <label><input type="radio" name="pay" value="Efectivo" required> Efectivo</label>
-          <label><input type="radio" name="pay" value="Tarjeta" required> Tarjeta</label>
+          <label><input type="radio" name="pay" value="Efectivo"> Efectivo</label>
+          <label><input type="radio" name="pay" value="Tarjeta"> Tarjeta</label>
           <label><input type="radio" name="pay" value="Transferencia"> Transferencia</label>
         </fieldset>
 
@@ -217,6 +217,7 @@
             <div>Subtotal + envío: <strong id="splitSubtotal">$0.00</strong></div>
             <div>Comisión por tarjeta: <strong id="splitFee">$0.00</strong></div>
             <div>Total a pagar: <strong id="splitTotal">$0.00</strong></div>
+            <div id="splitMissing" class="muted">Falta: $0.00</div>
             <div class="muted">Si hay efectivo, calculamos el cambio automáticamente.</div>
             <div>Cambio estimado: <strong id="splitChange">$0.00</strong></div>
           </div>

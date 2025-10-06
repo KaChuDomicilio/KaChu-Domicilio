@@ -349,8 +349,8 @@ body.service-blocked{ overflow: hidden; }
   display:inline-block; background:#e5f7e8; color:#065f46; padding:6px 10px; border-radius:999px; border:1px solid #a7f3d0;
 }
 
-/* Split pay */
-.split-pay .switch{ display:flex; align-items:center; gap:10px; }
+/* Switch genérico (aplica en el checkout) */
+.switch{ display:flex; align-items:center; gap:10px; }
 .split-row{ display:grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap:12px; }
 .split-summary{ margin-top:8px; display:grid; gap:4px; }
 .muted{ color:#6b7280; font-size:.9rem; }
@@ -388,4 +388,49 @@ body.service-blocked{ overflow: hidden; }
 /* accesibilidad: reduce motion */
 @media (prefers-reduced-motion: reduce){
   .in,.out{animation-duration:.001ms !important; animation-iteration-count:1 !important; transition-duration:.001ms !important}
+}
+/* ===== Split Pay — ajustes UI ===== */
+
+/* Caja del split y ayudas */
+#splitPayFields{ margin-top:6px; }
+#splitPayFields .field small.muted{ display:block; margin-top:4px; }
+
+/* Forzar ocultar radios de pago único si están marcados como hidden desde JS */
+#singlePayBox.hidden{ display:none !important; }
+
+/* Inputs numéricos alineados a la derecha (más claro para montos) */
+#payAmount1, #payAmount2, #cashGivenSplit, #cashGiven{ text-align:right; }
+
+/* Monto 2 es automático: aspecto “readonly” */
+#payAmount2[readonly],
+#payAmount2[aria-readonly="true"]{
+  background:#f9fafb; color:#374151;
+  border-color:#e5e7eb; cursor:not-allowed;
+}
+
+/* Método 1 sin tarjeta: que se vea gris la opción bloqueada */
+#payMethod1 option[disabled]{ color:#9ca3af; }
+
+/* Campo “¿Con cuánto pagarás?” cuando hay efectivo en split */
+#cashFieldSplit{ position:relative; }
+#cashFieldSplit .cash-help{ color:#b91c1c; display:block; margin-top:4px; }
+
+/* Resumen del split (subtotal, fee, total, cambio) */
+.split-summary{
+  margin-top:10px; padding:10px 12px;
+  background:#f9fafb; border:1px solid #e5e7eb; border-radius:12px;
+}
+.split-summary strong{ font-weight:700; }
+
+/* Chip de “Falta: $X” (añade <div id="splitMissing"> en el HTML si no lo tienes) */
+#splitMissing{
+  display:inline-block; margin-top:4px;
+  font-weight:700; color:#111827;
+  background:#fff7ed; border:1px solid #fed7aa;
+  border-radius:999px; padding:4px 8px;
+}
+
+/* Responsive: apilamos los dos campos por fila en móviles */
+@media (max-width: 480px){
+  .split-row{ grid-template-columns: 1fr; }
 }
