@@ -350,7 +350,7 @@ body.service-blocked{ overflow: hidden; }
 }
 
 /* Switch genérico (aplica en el checkout) */
-.switch{ display:flex; align-items:center; gap:10px; }
+.switch{ display:flex; align-items:center; gap:.5rem; }
 .split-row{ display:grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap:12px; }
 .split-summary{ margin-top:8px; display:grid; gap:4px; }
 .muted{ color:#6b7280; font-size:.9rem; }
@@ -433,4 +433,40 @@ body.service-blocked{ overflow: hidden; }
 /* Responsive: apilamos los dos campos por fila en móviles */
 @media (max-width: 480px){
   .split-row{ grid-template-columns: 1fr; }
+}
+/* ===== Switch visual (checkbox → palanca) ===== */
+.switch input[type="checkbox"]{
+  appearance: none; width: 44px; height: 26px; border-radius: 999px;
+  background: #e5e7eb; position: relative; outline: none; cursor: pointer;
+  transition: background .2s ease;
+  box-shadow: inset 0 0 0 2px rgba(0,0,0,.04);
+}
+.switch input[type="checkbox"]::after{
+  content: ""; position: absolute; top: 3px; left: 3px;
+  width: 20px; height: 20px; border-radius: 50%; background: #fff;
+  box-shadow: 0 2px 6px rgba(0,0,0,.18);
+  transition: transform .2s ease;
+}
+.switch input[type="checkbox"]:checked{ background:#22c55e; }
+.switch input[type="checkbox"]:checked::after{ transform: translateX(18px); }
+
+/* Radios en línea como el pago único */
+.radios{
+  display:flex; align-items:center; gap:18px; flex-wrap:wrap;
+}
+.radios label{ display:inline-flex; align-items:center; gap:8px; }
+
+/* Grupos del split */
+.split-group{ border-bottom:1px solid #eee; padding-bottom:10px; margin-bottom:10px; }
+#splitMissing{
+  display:inline-block; margin:4px 0 8px;
+  font-weight:700; background:#fff7ed; border:1px solid #fed7aa;
+  border-radius:999px; padding:4px 10px; color:#7c2d12;
+}
+
+/* Inputs de montos a la derecha */
+#payAmount1, #payAmount2, #cashGivenSplit, #cashGiven{ text-align:right; }
+
+@media (max-width: 480px){
+  .split-row, .radios{ gap:12px; }
 }

@@ -174,55 +174,64 @@
         </fieldset>
 
         <!-- PAGO DIVIDIDO -->
-        <div id="splitPayFields" class="hidden" aria-live="polite">
-          <div class="split-row">
-            <div class="field">
-              <span>Método 1</span>
-              <select id="payMethod1">
-                <option value="Efectivo">Efectivo</option>
-                <option value="Tarjeta">Tarjeta</option>
-                <option value="Transferencia">Transferencia</option>
-              </select>
-            </div>
-            <div class="field">
-              <span>Monto 1</span>
-              <input type="number" id="payAmount1" min="0" step="0.01" placeholder="0.00" inputmode="decimal">
-              <small class="muted">Escribe solo este monto. El 2º se calcula automático.</small>
-            </div>
-          </div>
+<div id="splitPayFields" class="hidden" aria-live="polite">
+  <!-- Indicador de lo que falta -->
+  <div id="splitMissing" class="muted" style="font-weight:700;">Faltan: $0.00</div>
 
-          <div class="split-row">
-            <div class="field">
-              <span>Método 2</span>
-              <select id="payMethod2">
-                <option value="Efectivo">Efectivo</option>
-                <option value="Tarjeta">Tarjeta</option>
-                <option value="Transferencia">Transferencia</option>
-              </select>
-            </div>
-            <div class="field">
-              <span>Monto 2 (auto)</span>
-              <input type="number" id="payAmount2" min="0" step="0.01" placeholder="Se calcula" inputmode="decimal" readonly aria-readonly="true">
-            </div>
-          </div>
+  <!-- MÉTODO #1 -->
+  <div class="split-group">
+    <div class="field" style="margin-bottom:6px;">
+      <span><strong>Método #1</strong></span>
+    </div>
+    <fieldset class="field radios" id="splitPay1Box" style="margin-top:-6px;">
+      <legend class="sr-only">Método #1</legend>
+      <label><input type="radio" name="pay1" value="Efectivo" checked> Efectivo</label>
+      <label><input type="radio" name="pay1" value="Tarjeta"> Tarjeta</label>
+      <label><input type="radio" name="pay1" value="Transferencia"> Transferencia</label>
+    </fieldset>
 
-          <!-- Paga con en efectivo (solo si hay efectivo en alguno de los métodos) -->
-          <label class="field hidden" id="cashFieldSplit">
-            <span>¿Con cuánto pagarás en efectivo?</span>
-            <input type="number" id="cashGivenSplit" placeholder="Ej. 200.00" min="0" step="0.01" inputmode="decimal">
-            <small id="cashSplitHelp" class="cash-help"></small>
-          </label>
+    <label class="field" style="margin-top:8px;">
+      <span>Monto #1</span>
+      <input type="number" id="payAmount1" min="0" step="0.01" placeholder="0.00" inputmode="decimal">
+      <small class="muted">Puedes editar este monto. El #2 se ajusta automáticamente.</small>
+    </label>
+  </div>
 
-          <div class="split-summary">
-            <div>Subtotal + envío: <strong id="splitSubtotal">$0.00</strong></div>
-            <div>Comisión por tarjeta: <strong id="splitFee">$0.00</strong></div>
-            <div>Total a pagar: <strong id="splitTotal">$0.00</strong></div>
-            <div id="splitMissing" class="muted">Falta: $0.00</div>
-            <div class="muted">Si hay efectivo, calculamos el cambio automáticamente.</div>
-            <div>Cambio estimado: <strong id="splitChange">$0.00</strong></div>
-          </div>
-        </div>
+  <!-- MÉTODO #2 -->
+  <div class="split-group">
+    <div class="field" style="margin-bottom:6px;">
+      <span><strong>Método #2</strong> <small class="muted">(si eliges Tarjeta aquí, se suma 4.3% al restante)</small></span>
+    </div>
+    <fieldset class="field radios" id="splitPay2Box" style="margin-top:-6px;">
+      <legend class="sr-only">Método #2</legend>
+      <label><input type="radio" name="pay2" value="Efectivo" checked> Efectivo</label>
+      <label><input type="radio" name="pay2" value="Tarjeta"> Tarjeta</label>
+      <label><input type="radio" name="pay2" value="Transferencia"> Transferencia</label>
+    </fieldset>
 
+    <label class="field" style="margin-top:8px;">
+      <span>Monto #2</span>
+      <input type="number" id="payAmount2" min="0" step="0.01" placeholder="0.00" inputmode="decimal">
+      <small class="muted">Puedes editar este monto. Ajustaremos “Faltan” y el total.</small>
+    </label>
+  </div>
+
+  <!-- Campo efectivo (sólo si alguno es Efectivo) -->
+  <label class="field hidden" id="cashFieldSplit">
+    <span>¿Con cuánto pagarás en efectivo?</span>
+    <input type="number" id="cashGivenSplit" placeholder="Ej. 200.00" min="0" step="0.01" inputmode="decimal">
+    <small id="cashSplitHelp" class="cash-help"></small>
+  </label>
+
+  <!-- Resumen -->
+  <div class="split-summary">
+    <div>Subtotal + envío: <strong id="splitSubtotal">$0.00</strong></div>
+    <div>Comisión por tarjeta: <strong id="splitFee">$0.00</strong></div>
+    <div>Total a pagar: <strong id="splitTotal">$0.00</strong></div>
+    <div class="muted">Si hay efectivo, calculamos el cambio automáticamente.</div>
+    <div>Cambio estimado: <strong id="splitChange">$0.00</strong></div>
+  </div>
+</div>
         <!-- Paga con (pago único en efectivo) -->
         <label class="field hidden" id="cashField">
           <span>¿Con cuánto vas a pagar?</span>
