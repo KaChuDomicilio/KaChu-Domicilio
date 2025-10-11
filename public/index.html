@@ -157,13 +157,15 @@
         </label>
 
         <!-- Título + Switch -->
-        <div class="field" style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
-          <strong style="font-size:1rem;">Método de pago</strong>
-          <label class="switch" style="display:flex; align-items:center; gap:.5rem;">
-            <input type="checkbox" id="twoPaymentsSwitch" aria-controls="splitPayFields">
-            <span>Pagar con 2 métodos</span>
-          </label>
-        </div>
+        <div class="pay-header">
+  <span class="title">Método de pago</span>
+  <span>|</span>
+  <label class="switch-wrap">
+    <input id="twoPaymentsSwitch" type="checkbox">
+    <span>Pagar con 2 métodos</span>
+  </label>
+</div>
+
 
         <!-- Pago único (radios). Se oculta cuando el switch está ON -->
         <fieldset class="field radios" id="singlePayBox">

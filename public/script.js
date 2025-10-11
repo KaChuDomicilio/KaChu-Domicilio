@@ -1452,27 +1452,59 @@ function getCheckoutBase(){
   var shipping = computeShippingWithThreshold(subtotal);
   return { subtotal: subtotal, shipping: shipping, base: subtotal + shipping };
 }
+function ensureSinglePayCashVisibility(){
+  var pay = (checkoutForm.querySelector('input[name="pay"]:checked') || {}).value || '';
+  if (cashField) cashField.classList.toggle('hidden', pay !== 'Efectivo');
+}
 
 function initSplitPay() {
   if (!twoPaymentsSwitch || !splitBox) return;
 
+  function disablePay1Card(disabled){
+    // Tarjeta NO disponible en Método 1 cuando split ON
+    checkoutForm.querySelectorAll('input[name="pay1"][value="Tarjeta"]').forEach(function(i){
+      i.disabled = !!disabled;
+      if (disabled && i.checked) {
+        // si estaba marcada, pásala a Efectivo
+        setRadioVal('pay1','Efectivo');
+      }
+    });
+  }
+
+  function resetSplitFields(){
+    if (payAmount1) payAmount1.value = '';
+    if (payAmount2) payAmount2.value = '';
+    if (cashGivenSplit) cashGivenSplit.value = '';
+    if (cashFieldSplit) cashFieldSplit.classList.add('hidden');
+    // defaults preferidos cuando se vuelva a encender
+    setRadioVal('pay1','Efectivo');      // sólo Efectivo o Transferencia en #1
+    setRadioVal('pay2','Transferencia'); // #2 libre, luego el usuario cambia si quiere
+  }
+
   // Switch ON/OFF
   twoPaymentsSwitch.addEventListener('change', function(){
     var on = !!twoPaymentsSwitch.checked;
-
     splitBox.classList.toggle('hidden', !on);
+
     var singleBox = document.getElementById('singlePayBox');
     if (singleBox) singleBox.classList.toggle('hidden', on);
-    if (cashField) cashField.classList.add('hidden'); // ocultar efectivo de pago único si split ON
 
-    if (!on){
-      payAmount1.value = '';
-      payAmount2.value = '';
-      cashGivenSplit.value = '';
-      if (cashFieldSplit) cashFieldSplit.classList.add('hidden');
+    disablePay1Card(on);
+
+    if (on){
+      // al encender: forzar métodos válidos y recalcular
+      ensureDistinctMethodsRadios(null);
+      toggleCashFieldSplit();
+      recalcSplitPay();
+      // ocultar el campo de efectivo del pago único
+      if (cashField) cashField.classList.add('hidden');
+    } else {
+      // al apagar: limpiar split y volver UI a pago único
+      resetSplitFields();
+      ensureSinglePayCashVisibility();
+      recalcSplitPay();         // pinta “Faltan $0.00” y actualiza pill
+      updateCheckoutTotalPill();
     }
-
-    recalcSplitPay();
     validateCheckout();
   });
 
@@ -1494,7 +1526,7 @@ function initSplitPay() {
     });
   });
 
-  // Ambos montos son editables
+  // Montos editables
   if (payAmount1){
     payAmount1.addEventListener('input', function(){
       __splitLastEdited = 1;
@@ -1509,7 +1541,6 @@ function initSplitPay() {
       validateCheckout();
     });
   }
-
   if (cashGivenSplit){
     cashGivenSplit.addEventListener('input', function(){
       recalcSplitPay();
@@ -1521,64 +1552,74 @@ function initSplitPay() {
   ensureDistinctMethodsRadios(null);
   toggleCashFieldSplit();
   recalcSplitPay();
+
+  // Estado inicial coherente del bloqueo de Tarjeta en pay1
+  var on = !!twoPaymentsSwitch.checked;
+  disablePay1Card(on);
 }
 
 function ensureDistinctMethodsRadios(changedGroup /* 'pay1' | 'pay2' | null */){
   var m1 = getRadioVal('pay1') || 'Efectivo';
   var m2 = getRadioVal('pay2') || 'Transferencia';
-  if (m1 !== m2) return;
 
-  // Preferencia para mover pay2 a la siguiente válida
-  var order = ['Efectivo', 'Tarjeta', 'Transferencia'];
-  var start = order.indexOf(m2);
-  for (var i = 1; i < order.length + 1; i++){
-    var cand = order[(start + i) % order.length];
-    if (cand !== m1){
-      setRadioVal('pay2', cand);
-      break;
+  // En split: pay1 NO puede ser Tarjeta
+  if (twoPaymentsSwitch && twoPaymentsSwitch.checked){
+    if (m1 === 'Tarjeta'){
+      // fuerza a Efectivo si intentan Tarjeta en pay1
+      setRadioVal('pay1','Efectivo');
+      m1 = 'Efectivo';
+    }
+  }
+
+  // Evitar iguales (rotamos pay2 preferentemente)
+  if (m1 === m2){
+    var order = ['Efectivo','Tarjeta','Transferencia'];
+    var start = order.indexOf(m2);
+    for (var i = 1; i < order.length + 1; i++){
+      var cand = order[(start + i) % order.length];
+      if (cand !== m1){
+        setRadioVal('pay2', cand);
+        break;
+      }
     }
   }
 }
 
 function recalcSplitPay(){
   var baseInfo = getCheckoutBase();
-  var base = +baseInfo.base.toFixed(2);        // subtotal + envío (sin comisión)
-  var m1 = getRadioVal('pay1') || 'Efectivo';
-  var m2 = getRadioVal('pay2') || 'Transferencia';
+  var base = +baseInfo.base.toFixed(2);
+  var splitOn = !!(twoPaymentsSwitch && twoPaymentsSwitch.checked);
 
-  // split OFF: sólo pintar base y salir
-  if (!twoPaymentsSwitch || !twoPaymentsSwitch.checked){
-    if (splitSubtotalEl) splitSubtotalEl.textContent = formatMoney(base);
-    if (splitFeeEl)      splitFeeEl.textContent      = formatMoney(0);
-    if (splitTotalEl)    splitTotalEl.textContent    = formatMoney(base);
-    if (splitChangeEl)   splitChangeEl.textContent   = formatMoney(0);
-    if (splitMissingEl)  splitMissingEl.textContent  = 'Faltan: ' + formatMoney(0);
+  // Siempre mostramos "Faltan" en split; en pago único: 0
+  if (!splitOn){
+    if (splitMissingEl) splitMissingEl.textContent = 'Faltan: ' + formatMoney(0);
     updateCheckoutTotalPill();
     return;
   }
+
+  var m1 = getRadioVal('pay1') || 'Efectivo';
+  var m2 = getRadioVal('pay2') || 'Transferencia';
 
   var a1 = Math.max(0, Math.min(base, +((payAmount1 && payAmount1.value) || 0)));
   var a2 = Math.max(0, +((payAmount2 && payAmount2.value) || 0));
   var fee = 0;
 
   if (__splitLastEdited === 2){
-    // Editó #2 ⇒ recalcular #1
+    // Editó #2
     if (m2 === 'Tarjeta'){
-      // a2 viene con fee incluido ⇒ neto que cubre del base:
       var net2 = +(a2 / (1 + CARD_FEE_RATE)).toFixed(2);
       fee = +(a2 - net2).toFixed(2);
       var rest = Math.max(0, +(base - net2).toFixed(2));
       a1 = rest;
       if (payAmount1) payAmount1.value = a1 ? a1.toFixed(2) : '';
     } else {
-      // #2 sin fee ⇒ neto = a2
       var rest2 = Math.max(0, +(base - a2).toFixed(2));
       a1 = rest2;
       if (payAmount1) payAmount1.value = a1 ? a1.toFixed(2) : '';
       fee = 0;
     }
   } else {
-    // Editó #1 ⇒ recalcular #2
+    // Editó #1
     var faltante = Math.max(0, +(base - a1).toFixed(2));
     if (faltante > 0){
       if (m2 === 'Tarjeta'){
@@ -1593,28 +1634,10 @@ function recalcSplitPay(){
     if (payAmount2) payAmount2.value = a2 ? a2.toFixed(2) : '';
   }
 
-  // Faltante (sin considerar fee)
-  var faltanSinFee = Math.max(0, +(base - Math.min(base, a1) - (m2==='Tarjeta' ? Math.min(base, +(a2/(1+CARD_FEE_RATE)).toFixed(2)) : Math.min(base, a2))).toFixed(2));
+  // Mostrar solo "Faltan"
+  var net2 = (m2 === 'Tarjeta') ? +(a2 / (1 + CARD_FEE_RATE)).toFixed(2) : a2;
+  var faltanSinFee = Math.max(0, +(base - Math.min(base, a1) - Math.min(base, net2)).toFixed(2));
   if (splitMissingEl) splitMissingEl.textContent = 'Faltan: ' + formatMoney(faltanSinFee);
-
-  // Cambio (si alguno es Efectivo)
-  var cashDue = 0;
-  if (m1 === 'Efectivo') cashDue += a1;
-  if (m2 === 'Efectivo') cashDue += a2;
-  var change = 0;
-  if (cashDue > 0 && cashGivenSplit && cashGivenSplit.value){
-    var pagaCon = +cashGivenSplit.value || 0;
-    var totalConFee = +(base + fee).toFixed(2);
-    var paid = +(a1 + a2).toFixed(2);
-    if (pagaCon >= cashDue && paid + 1e-6 >= totalConFee){
-      change = +(pagaCon - cashDue).toFixed(2);
-    }
-  }
-
-  if (splitSubtotalEl) splitSubtotalEl.textContent = formatMoney(base);
-  if (splitFeeEl)      splitFeeEl.textContent      = formatMoney(fee);
-  if (splitTotalEl)    splitTotalEl.textContent    = formatMoney(base + fee);
-  if (splitChangeEl)   splitChangeEl.textContent   = formatMoney(change);
 
   toggleCashFieldSplit();
   updateCheckoutTotalPill();
@@ -1766,8 +1789,9 @@ function updateCheckoutTotalPill(){
 }
 
 checkoutForm.addEventListener('change', function(){
-  var pay = (checkoutForm.querySelector('input[name="pay"]:checked') || {}).value;
-  if (cashField) cashField.classList.toggle('hidden', data.pay !== 'Efectivo');
+  var sw = document.getElementById('twoPaymentsSwitch');
+  var splitOn = !!(sw && sw.checked);
+  if (!splitOn) ensureSinglePayCashVisibility();
   validateCheckout();
 });
 

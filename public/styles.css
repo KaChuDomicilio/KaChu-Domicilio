@@ -470,3 +470,24 @@ body.service-blocked{ overflow: hidden; }
 @media (max-width: 480px){
   .split-row, .radios{ gap:12px; }
 }
+/* Encabezado compacto: "Método de pago | [switch] Pagar con 2 métodos" */
+.pay-header {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  flex-wrap: wrap;
+}
+.pay-header .title {
+  font-weight: 600;
+}
+.pay-header .switch-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+}
+
+/* Alinear números a la izquierda (antes estaban a la derecha) */
+input[type="number"],
+.split-amount input[type="number"] {
+  text-align: left;
+}
