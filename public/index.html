@@ -186,14 +186,11 @@
       <span><strong>Método #1</strong></span>
     </div>
     <fieldset class="field radios" id="splitPay1Box" style="margin-top:-6px;">
-      <legend class="sr-only">Método #1</legend>
       <label><input type="radio" name="pay1" value="Efectivo" checked> Efectivo</label>
-      <label><input type="radio" name="pay1" value="Tarjeta"> Tarjeta</label>
       <label><input type="radio" name="pay1" value="Transferencia"> Transferencia</label>
     </fieldset>
 
     <label class="field" style="margin-top:8px;">
-      <span>Monto #1</span>
       <input type="number" id="payAmount1" min="0" step="0.01" placeholder="0.00" inputmode="decimal">
       <small class="muted">Puedes editar este monto. El #2 se ajusta automáticamente.</small>
     </label>
@@ -201,9 +198,6 @@
 
   <!-- MÉTODO #2 -->
   <div class="split-group">
-    <div class="field" style="margin-bottom:6px;">
-      <span><strong>Método #2</strong> <small class="muted">(si eliges Tarjeta aquí, se suma 4.3% al restante)</small></span>
-    </div>
     <fieldset class="field radios" id="splitPay2Box" style="margin-top:-6px;">
       <legend class="sr-only">Método #2</legend>
       <label><input type="radio" name="pay2" value="Efectivo" checked> Efectivo</label>
@@ -212,7 +206,6 @@
     </fieldset>
 
     <label class="field" style="margin-top:8px;">
-      <span>Monto #2</span>
       <input type="number" id="payAmount2" min="0" step="0.01" placeholder="0.00" inputmode="decimal">
       <small class="muted">Puedes editar este monto. Ajustaremos “Faltan” y el total.</small>
     </label>
@@ -224,15 +217,6 @@
     <input type="number" id="cashGivenSplit" placeholder="Ej. 200.00" min="0" step="0.01" inputmode="decimal">
     <small id="cashSplitHelp" class="cash-help"></small>
   </label>
-
-  <!-- Resumen -->
-  <div class="split-summary">
-    <div>Subtotal + envío: <strong id="splitSubtotal">$0.00</strong></div>
-    <div>Comisión por tarjeta: <strong id="splitFee">$0.00</strong></div>
-    <div>Total a pagar: <strong id="splitTotal">$0.00</strong></div>
-    <div class="muted">Si hay efectivo, calculamos el cambio automáticamente.</div>
-    <div>Cambio estimado: <strong id="splitChange">$0.00</strong></div>
-  </div>
 </div>
         <!-- Paga con (pago único en efectivo) -->
         <label class="field hidden" id="cashField">
